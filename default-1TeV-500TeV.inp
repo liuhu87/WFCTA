@@ -1,0 +1,35 @@
+#  Simulation_mode  ( FAST | NORMAL | ADVANCED )        
+SIMMODE   FAST
+#  Cherenkov photon with wavelength in CORSIKA simulation ( T | F )
+wavelength    T
+#  With THIN option in CORSIKA simulation ( T | F )
+thin    F
+####  Information about telescope array： 
+#  Telescope number:    	
+ct_number    1      	
+#  ct position telx tely  telz  telzen telazi
+ct_position 0 0 0 0 0 0
+#ct_position 1 -4000 4000 0 35 30
+#ct_position 2 -4000 -4000 0 35 30
+#ct_position 3 4000 -4000 0 35 30
+
+# Size of Telescope: length width
+mirror_size 400 400
+#  The simga of spot size caused by the roughness of the mirror (mm)
+mirror_spot   0.75
+#  The mirror geomtry of the telescope
+mirror_geomtry  1
+#  The Pointing error of each mirror ( Flag degree)
+mirror_pointerror F  0.5
+#  The option of the filter (T | F)
+filter    T
+# FADC settings 
+fadc_flag T
+fadc_bin 12
+fadc_bin_length 20
+
+# the option of nsb (T|F) (if T, the intensity of NSB is needed, 
+# if F, the fix trigger threshold is needed)
+nsb T 0.07 4
+# The ened of the inputcard 
+end_file

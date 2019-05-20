@@ -1,0 +1,1 @@
+gcc -o WFCTA-MC.exe WFCTA-MC.C creadparam.cxx wtelescope.cpp cer_event.cpp  wcamera.cpp  SquareCone.cc `root-config --cflags --libs`
