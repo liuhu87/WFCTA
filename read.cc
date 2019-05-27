@@ -44,9 +44,6 @@ int main(int argc, char**argv)
   long ClbTime[1024];
   float ClbTemp[1024];
 
-
-
-
   int64_t packSize = 0;
   map<short, int>* sipm_position;
   map<short, int>::iterator sipm_position_iter;
