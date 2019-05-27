@@ -56,7 +56,7 @@ public:
         void SetmyImageAdcHigh(float w_myImageAdcHigh);
         void SetmyImageAdcLow(float w_myImageAdcLow);
 
-   ClassDef(WFCTAEvent,0);
+   ClassDef(WFCTAEvent,2);
 };
 
 #endif // WFCTAEVENT_H

@@ -47,9 +47,16 @@ public:
     void GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pulsel);
     
 
-    void Deal81Package(uint8_t *begin, int packsize, float *HV);
-    void Deal82Package(uint8_t *begin, int packsize, float *PreTemp);
+    void Getthresh(uint8_t *begin, int packsize, short *single_thresh, short *record_thresh);//Deal21Package
+    void Deal22Pack(uint8_t *begin, int packsize, long *single_count);//Deal22Package
+    void Deal23Pack(uint8_t *begin, int packsize, long *single_count, long *single_time);//Deal23Package
+    void GetHV(uint8_t *begin, int packsize, float *HV);//Deal81Package
+    void GetPreTemp(uint8_t *begin, int packsize, float *PreTemp);//Deal82Package
+    void GetClbTemp(uint8_t *begin, int packsize, float *ClbTemp);//Deal85pack
 
+    uint64_t GetclbInitialTime(uint8_t *begin, int packsize);
+    double GetclbInitialtime(uint8_t *begin, int packsize);
+    int GetFiredTube(uint8_t *begin, int packsize);
     uint64_t GetStatusReadbackTime(uint8_t *begin, int packsize);
     //uint64_t GetStatusReadbacktime(uint8_t *begin, int packsize);
     double GetStatusReadbacktime(uint8_t *begin, int packsize);

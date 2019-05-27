@@ -54,10 +54,100 @@ uint8_t WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize)
     return 0;
 }
 
+/*****************************************
+ * **get single_thresh and record_thresh**
+ * ***************************************/
+void WFCTADecode::Getthresh(uint8_t *begin, int packsize, short *single_thresh, short *record_thresh)//Deal21Package
+{
+    head = packsize - 72;
+
+    short sipm;
+    short fpga = (short)begin[head+2]&0x0f;
+    short db = ((short)begin[head+2])>>4;
+    short sc = db*10+fpga;
+
+    for(int i=0;i<15;i++)
+    {
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        *(single_thresh+sipm) = ((int16_t)begin[head+4+4*i]<<8) | (int16_t)begin[head+5+4*i];
+    }
+        SC_Channel2SiPM(sc,16,&sipm);
+        *(single_thresh+sipm) = ((int16_t)begin[head+66]<<8) | (int16_t)begin[head+67];
+
+    for(int i=0;i<14;i++)
+    {
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        *(record_thresh+sipm) = ((int16_t)begin[head+6+4*i]<<8) | (int16_t)begin[head+7+4*i];
+    }
+        SC_Channel2SiPM(sc,15,&sipm);
+        *(record_thresh+sipm) = ((int16_t)begin[head+64]<<8) | (int16_t)begin[head+65];
+        SC_Channel2SiPM(sc,16,&sipm);
+        *(record_thresh+sipm) = ((int16_t)begin[head+68]<<8) | (int16_t)begin[head+69];
+}
+
+/*******************************
+ * **deal status package of 22**
+ * *****************************/
+void WFCTADecode::Deal22Pack(uint8_t *begin, int packsize, long *single_count)//Deal22Package
+{
+    head = packsize - 72;
+    short sipm;
+    short fpga = (short)begin[head+2]&0x0f;
+    short db = ((short)begin[head+2])>>4;
+    short sc = db*10+fpga;
+
+    for(int i=0;i<8;i++)
+    {       
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        *(single_count+sipm) =  ((int64_t)begin[head+9+i*5]<<32) | 
+				((int64_t)begin[head+10+i*5]<<24) | 
+				((int64_t)begin[head+11+i*5]<<16) | 
+				((int64_t)begin[head+12+i*5]<<8) | 
+				((int64_t)begin[head+13+i*5]);
+    }        
+
+        //WDbTemp = (clb_db_package[4]<<8)+clb_db_package[5];
+        //*(DbTemp+DbTempCount) = s_SC;
+        //*(DbTemp+64+DbTempCount) = WDbTemp;
+        //DbTempCount++;
+}
+
+/*******************************
+ * **deal status package of 23**
+ * *****************************/
+void WFCTADecode::Deal23Pack(uint8_t *begin, int packsize, long *single_count, long *single_time)//Deal23Package
+{
+    head = packsize - 72;
+    short sipm;
+    short fpga = (short)begin[head+2]&0x0f;
+    short db = ((short)begin[head+2])>>4;
+    short sc = db*10+fpga;
+
+    long m_single_time = ((int64_t)begin[head+44]<<32) |
+			 ((int64_t)begin[head+45]<<24) | 
+			 ((int64_t)begin[head+48]<<16) |
+			 ((int64_t)begin[head+49]<<8) |
+			 ((int64_t)begin[head+50]);
+    for(int i=0;i<16;i++)
+    {
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        *(single_time+sipm) = m_single_time;
+    }
+    for(int i=8;i<16;i++)
+    {
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        *(single_count+sipm) =  ((int64_t)begin[head+4+(i-8)*5]<<32) |
+				((int64_t)begin[head+5+(i-8)*5]<<24) |
+				((int64_t)begin[head+6+(i-8)*5]<<16) |
+				((int64_t)begin[head+7+(i-8)*5]<<8) |
+				((int64_t)begin[head+8+(i-8)*5]);
+    }
+}
+
 /*******************************
  * **deal status package of 81**
  * *****************************/
-void WFCTADecode::Deal81Package(uint8_t *begin, int packsize, float *HV)
+void WFCTADecode::GetHV(uint8_t *begin, int packsize, float *HV)//Deal81Package
 {
     head = packsize - 72;
     //dumpPacket(begin+head,72,16);
@@ -65,60 +155,78 @@ void WFCTADecode::Deal81Package(uint8_t *begin, int packsize, float *HV)
     short sipm;
     short fpga = (short)begin[head+2]&0x0f;
     short db = ((short)begin[head+2])>>4;
+    short sc = db*10+fpga;
 
     //printf("fpga:%d, db:%d, sipm:%d\n",fpga,db,sipm);
  
-    SC_Channel2eSiPM(fpga, db, 1, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,1,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 1, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( ((uint32_t)begin[head+13]<<19) | ((uint32_t)begin[head+14]<<11) | ((uint32_t)begin[head+15]<<3) | ((uint32_t)begin[head+16]>>5) );
 
-    SC_Channel2eSiPM(fpga, db, 2, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,2,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 2, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+16]&0x1f)<<22) | ((uint32_t)begin[head+17]<<14) | ((uint32_t)begin[head+18]<<6) | ((uint32_t)begin[head+19]>>2) );
 
-    SC_Channel2eSiPM(fpga, db, 3, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,3,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 3, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+19]&0x02)<<25) | ((uint32_t)begin[head+20]<<17) | ((uint32_t)begin[head+21]<<9) | ((uint32_t)begin[head+22]<<1) | ((uint32_t)begin[head+23]>>7) );
 
-    SC_Channel2eSiPM(fpga, db, 4, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,4,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 4, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+23]&0x7f)<<20) | ((uint32_t)begin[head+24]<<12) | ((uint32_t)begin[head+25]<<4) | ((uint32_t)begin[head+26]>>4) );
 
-    SC_Channel2eSiPM(fpga, db, 5, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,5,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 5, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+26]&0x0f)<<23) | ((uint32_t)begin[head+27]<<15) | ((uint32_t)begin[head+28]<<7) | ((uint32_t)begin[head+29]>>1) );
 
-    SC_Channel2eSiPM(fpga, db, 6, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,6,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 6, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+29]&0x01)<<26) | ((uint32_t)begin[head+30]<<18) | ((uint32_t)begin[head+31]<<10) | ((uint32_t)begin[head+32]<<2) | ((uint32_t)begin[head+33]>>6) );
 
-    SC_Channel2eSiPM(fpga, db, 7, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,7,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 7, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+33]&0x3f)<<21) | ((uint32_t)begin[head+34]<<13) | ((uint32_t)begin[head+35]<<5) | ((uint32_t)begin[head+36]>>3) );
 
-    SC_Channel2eSiPM(fpga, db, 8, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,8,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 8, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+36]&0x07)<<24) | ((uint32_t)begin[head+37]<<16) | ((uint32_t)begin[head+40]<<8) | ((uint32_t)begin[head+41]) );
 
-    SC_Channel2eSiPM(fpga, db, 9, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,9,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 9, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( ((uint32_t)begin[head+42]<<19) | ((uint32_t)begin[head+43]<<11) | ((uint32_t)begin[head+44]<<3) | ((uint32_t)begin[head+45]>>5) );
 
-    SC_Channel2eSiPM(fpga, db, 10, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,10,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 10, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+45]&0x1f)<<22) | ((uint32_t)begin[head+46]<<14) | ((uint32_t)begin[head+47]<<6) | ((uint32_t)begin[head+48]>>2) );
 
-    SC_Channel2eSiPM(fpga, db, 11, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,11,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 11, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+48]&0x02)<<25) | ((uint32_t)begin[head+49]<<17) | ((uint32_t)begin[head+50]<<9) | ((uint32_t)begin[head+51]<<1) | ((uint32_t)begin[head+52]>>7) );
 
-    SC_Channel2eSiPM(fpga, db, 12, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,12,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 12, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+52]&0x7f)<<20) | ((uint32_t)begin[head+53]<<12) | ((uint32_t)begin[head+54]<<4) | ((uint32_t)begin[head+55]>>4) );
 
-    SC_Channel2eSiPM(fpga, db, 13, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,13,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 13, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+55]&0x0f)<<23) | ((uint32_t)begin[head+56]<<15) | ((uint32_t)begin[head+57]<<7) | ((uint32_t)begin[head+58]>>1) );
 
-    SC_Channel2eSiPM(fpga, db, 14, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,14,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 14, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+58]&0x01)<<26) | ((uint32_t)begin[head+59]<<18) | ((uint32_t)begin[head+60]<<10) | ((uint32_t)begin[head+61]<<2) | ((uint32_t)begin[head+62]>>6) );
 
-    SC_Channel2eSiPM(fpga, db, 15, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,15,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 15, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+62]&0x3f)<<21) | ((uint32_t)begin[head+63]<<13) | ((uint32_t)begin[head+64]<<5) | ((uint32_t)begin[head+65]>>3) );
 
-    SC_Channel2eSiPM(fpga, db, 16, &sipm); sipm -= 1;
+    SC_Channel2SiPM(sc,16,&sipm);
+    //SC_Channel2eSiPM(fpga, db, 16, &sipm); sipm -= 1;
     *(HV+sipm) = (float)( (((uint32_t)begin[head+65]&0x07)<<24) | ((uint32_t)begin[head+66]<<16) | ((uint32_t)begin[head+67]<<8) | ((uint32_t)begin[head+68]) );
 
     for(int i=0;i<16;i++)
     {
-        SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
+	SC_Channel2SiPM(sc,i+1,&sipm);
+        //SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
         *(HV+sipm) /= (512*427.4087);
     }
 }
@@ -126,7 +234,7 @@ void WFCTADecode::Deal81Package(uint8_t *begin, int packsize, float *HV)
 /*******************************
  * **deal status package of 82**
  * *****************************/
-void WFCTADecode::Deal82Package(uint8_t *begin, int packsize, float *PreTemp)
+void WFCTADecode::GetPreTemp(uint8_t *begin, int packsize, float *PreTemp)//Deal82Package
 {
     head = packsize - 72;
     //dumpPacket(begin+head,72,16);
@@ -138,27 +246,86 @@ void WFCTADecode::Deal82Package(uint8_t *begin, int packsize, float *PreTemp)
     short sipm;
     short fpga = (short)begin[head+2]&0x0f;
     short db = ((short)begin[head+2])>>4;
+    short sc = db*10+fpga;
 
     for(int i=0;i<8;i++)
     {
-        SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
+	SC_Channel2SiPM(sc,i+1,&sipm);
+        //SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
         *(PreTemp+sipm) = (float)( ((int16_t)begin[head+13+i*2]<<8) | ((int16_t)begin[head+14+i*2]) );
     }
-        SC_Channel2eSiPM(fpga, db, 9, &sipm); sipm -= 1;
+	SC_Channel2SiPM(sc,9,&sipm);
+        //SC_Channel2eSiPM(fpga, db, 9, &sipm); sipm -= 1;
         *(PreTemp+sipm) = (float)( ((int16_t)begin[head+13+8*2]<<8) | ((int16_t)begin[head+14+9*2]) );
     for(int i=9;i<16;i++)
     {
-        SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
+	SC_Channel2SiPM(sc,i+1,&sipm);
+        //SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
         *(PreTemp+sipm) = (float)( ((int16_t)begin[head+13+(i+1)*2]<<8) | ((int16_t)begin[head+14+(i+1)*2]) );
     }
     for(int i=0;i<16;i++)
     {
-        SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        //SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
         C = *(PreTemp+sipm)*10000./32768-2230.8;
         *(PreTemp+sipm) = (-1*B+sqrt(B*B-4*A*C))/(2*A);
         *(PreTemp+sipm) += 30;
     }
 
+}
+
+/********************************
+ * ***get clb board temperature**
+ * ******************************/
+void WFCTADecode::GetClbTemp(uint8_t *begin, int packsize, float *ClbTemp)//Deal85pack
+{
+    head = packsize - 74;
+
+    short sipm;
+    short fpga = (short)begin[head+2]&0x0f;
+    short db = ((short)begin[head+2])>>4;
+    short sc = db*10+fpga;
+
+    float m_ClbTemp = (float)( ((int16_t)begin[head+15]<<8) | (int16_t)begin[head+16] );
+    if(m_ClbTemp<40960) {m_ClbTemp /= 256.;}
+    else                {m_ClbTemp = (65536-m_ClbTemp)/256.;}
+
+    for(int i=0;i<16;i++)
+    {
+	SC_Channel2SiPM(sc,i+1,&sipm);
+        //SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
+        *(ClbTemp+sipm) = m_ClbTemp;
+    }
+}
+
+/**********************
+ * **get initial time**
+ * ********************/
+uint64_t WFCTADecode::GetclbInitialTime(uint8_t *begin, int packsize)
+{
+    uint64_t m_clb_initial_Time = ((uint64_t)begin[packsize-26]<<30)|
+                                  ((uint64_t)begin[packsize-25]<<22)|
+                                  ((uint64_t)begin[packsize-24]<<14)|
+                                  ((uint64_t)begin[packsize-23]<<6)|
+                                  ((uint64_t)begin[packsize-22]>>2&0x3f);
+    return m_clb_initial_Time;
+}
+double WFCTADecode::GetclbInitialtime(uint8_t *begin, int packsize)
+{
+    double m_clb_initial_time = (double)( (((uint64_t)begin[packsize-22]&0x03)<<24)|
+                                          ((uint64_t)begin[packsize-21]<<16)|
+                                          ((uint64_t)begin[packsize-20]<<8)|
+                                          ((uint64_t)begin[packsize-19]<<0) );
+    return m_clb_initial_time;
+}
+
+/**********************************
+ * **get setted fired tube number**
+ * ********************************/
+int WFCTADecode::GetFiredTube(uint8_t *begin, int packsize)
+{
+    int m_fired_tube = (int)( ((int32_t)begin[packsize-18]<<8) | (int32_t)begin[packsize-17]);
+    return m_fired_tube;
 }
 
 /******************************
