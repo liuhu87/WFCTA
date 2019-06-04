@@ -33,6 +33,8 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.C
 	mkdir -p $(OBJDIR)
 	g++ $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 
+$(OBJDIR)/dictionary.C
+
 #WFCTADecode.o:$(SRCDIR)/WFCTADecode.C $(INCDIR)/WFCTADecode.h
 #	g++ -g -O2 -c $^ `root-config --cflags --libs`
 #
