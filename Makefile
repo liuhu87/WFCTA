@@ -3,7 +3,7 @@ INCDIR := include
 #OBJDIR := obj
 
 HEADERS  :=  $(INCDIR)/WFCTAEvent.h $(INCDIR)/camera.h $(INCDIR)/dumpPack.h
-SOURCES  :=  $(SRCDIR)/WFCTAEvent.cc 
+SOURCES  :=  $(SRCDIR)/WFCTAEvent.C 
 OBJS     :=  WFCTAEvent.o WFCTADecode.o WFCTAEventDict.o WFCTADecodeDict.o
 
 all:event.exe status.exe
@@ -14,19 +14,19 @@ event.exe: event.o $(OBJS)
 status.exe: status.o $(OBJS)
 	g++ -g -O2 -o $@ $^  `root-config --cflags --libs`
 
-event.o:event.cc
+event.o:event.C
 	g++ -g -O2 -c $< `root-config --cflags`
 
-status.o:status.cc
+status.o:status.C
 	g++ -g -O2 -c $< `root-config --cflags`
 
-WFCTADecodeDict.o:$(INCDIR)/WFCTADecodeDict.cc
+WFCTADecodeDict.o:$(INCDIR)/WFCTADecodeDict.C
 	g++ -g -O2 -c $< `root-config --cflags --libs`
 
-WFCTAEventDict.o:$(INCDIR)/WFCTAEventDict.cc
+WFCTAEventDict.o:$(INCDIR)/WFCTAEventDict.C
 	g++ -g -O2 -c $< `root-config --cflags --libs`
 
-WFCTADecode.o:$(SRCDIR)/WFCTADecode.cc $(INCDIR)/WFCTADecode.h
+WFCTADecode.o:$(SRCDIR)/WFCTADecode.C $(INCDIR)/WFCTADecode.h
 	g++ -g -O2 -c $^ `root-config --cflags --libs`
 
 WFCTAEvent.o:$(SOURCES) $(HEADERS)

@@ -1,2 +1,2 @@
-rootcint -f WFCTAEventDict.cc -c WFCTAEvent.h WFCTAEventLinkDef.h
-rootcint -f WFCTADecodeDict.cc -c WFCTADecode.h WFCTADecodeLinkDef.h
+rootcint -f WFCTAEventDict.C -c WFCTAEvent.h WFCTAEventLinkDef.h
+rootcint -f WFCTADecodeDict.C -c WFCTADecode.h WFCTADecodeLinkDef.h
