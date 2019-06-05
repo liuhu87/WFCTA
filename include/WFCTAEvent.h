@@ -46,7 +46,7 @@ public:
         void Init();
         void EventInitial();
 
-   //ClassDef(WFCTAEvent,0);
+   ClassDef(WFCTAEvent,2);
 };
 
 #endif // WFCTAEVENT_H

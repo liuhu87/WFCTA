@@ -4,7 +4,7 @@
 
 using namespace std;
 
-//ClassImp(WFCTAEvent);
+ClassImp(WFCTAEvent);
 
 WFCTAEvent::WFCTAEvent()
 {
@@ -70,5 +70,4 @@ void WFCTAEvent::EventInitial()
    ledevent.Reset();
    laserevent.Reset();
 }
-
 

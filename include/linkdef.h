@@ -19,6 +19,8 @@
 #pragma link C++ class WFCTALaserEvent+;
 #pragma link C++ class WFCTAEvent+;
 
+#pragma link C++ class WFCTADecode+;
+
 #pragma link C++ class EventNtuple+;
 
 #pragma link C++ class FluxModel+;
