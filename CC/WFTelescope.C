@@ -658,9 +658,9 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
 
     hitpos[0] = hitpos[0] - x;
     hitpos[1] = hitpos[1] - y;
-    ix = int((hitpos[0]+D_SiPM/2)/D_Cell);
-    iy = int((hitpos[1]+D_SiPM/2)/D_Cell);
-    icell = iy*NCell+ix;
+    ix = int((hitpos[0]+WCamera::D_SiPM/2)/WCamera::D_Cell);
+    iy = int((hitpos[1]+WCamera::D_SiPM/2)/WCamera::D_Cell);
+    icell = iy*WCamera::NCell+ix;
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Passing All to SiPM Tube%d Cell%d\n",itube,icell);
 
     return 1;

@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <vector>
 #include <map>
-#include "telescopeparameters.h"
+//#include "telescopeparameters.h"
 
 #define NCircle 7
 #define NMaxMirror 6

@@ -26,7 +26,8 @@ void WFMirrorArray::SetMirror(){
     double ndx, ndy, ndz;
     double xc, yc, zc;
     double z2,x2,z3,y3;
-    double _L = length;
+    double _L = WFMirror::length;
+    double CURVATURE=WFMirror::CURVATURE;
     double pi = TMath::Pi();
     double sqrt3 = sqrt(3);
 
