@@ -363,6 +363,9 @@ double  WFCTADecode::GetStatusReadbacktime(uint8_t *begin, int packsize)
 bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize)
 {
     int64_t big_pack_len;
+    head = 0;
+    tail = 0;
+
     readPos = 0;
     while(readPos<bufsize)
     {
@@ -391,15 +394,17 @@ bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize)
 	readPos++;
     }
 
-    big_pack_len = tail- head;
+    big_pack_len = tail - head;
     packSize = tail+1;
     if(big_pack_len>0)
-	{
-	    //dumpPacket(begin+head,24);printf("%lld ** %lld ** packsize:%lld | ",head,tail,packSize);
+    {
+	    //dumpPacket(begin+head,24);printf("%lld ** %lld ** packsize:%lld | \n",head,tail,packSize);
 	    return true;
-	}
+    }
     else
-	{return false;}
+    {
+	return false;
+    }
 }
 
 /**********************

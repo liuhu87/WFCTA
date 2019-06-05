@@ -53,7 +53,7 @@ int main(int argc, char**argv)
       if(size_of_read==0){break;}
       //dumpPacket(buf,size_of_read,16);
 
-      if(wfctaDecode->bigPackCheck(buf,BUF_LEN))
+      if(wfctaDecode->bigPackCheck(buf,int(size_of_read)))
       {
 	  //get info eventID and rabbit_time//
           packSize = wfctaDecode->PackSize();
