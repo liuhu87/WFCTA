@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <iostream>
-#include "../include/WFCTADecode.h"
-#include "../include/dumpPack.h"
-#include "../include/camera.h"
+#include "WFCTADecode.h"
+#include "dumpPack.h"
+#include "camera.h"
 
 using namespace std;
 

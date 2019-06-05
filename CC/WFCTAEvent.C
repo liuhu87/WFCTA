@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <iostream>
-#include "../include/WFCTAEvent.h"
+#include "WFCTAEvent.h"
 
 using namespace std;
 
