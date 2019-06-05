@@ -129,7 +129,7 @@ void CorsikaEvent::Reset(){
    //for(int ii=0;ii<3;ii++) vector<int>(ppp[ii]).swap(ppp[ii]);
    //vector<int>(pweight).swap(pweight);
 
-   if(pwfc) pwfc->Reset();
+   if(pwfc) pwfc->EventInitial();
 }
 void CorsikaEvent::Clear(){
    if(pwfc) delete pwfc;
@@ -195,14 +195,14 @@ int CorsikaEvent::WhichCore(double x0,double y0){
    }
    return whichcore;
 }
-bool CorsikaEvent::DoWFCTA(){
+bool CorsikaEvent::DoWFCTASim(){
    WFTelescopeArray* pct=WFTelescopeArray::GetHead();
    if(!pct) return false;
    if(!pct->CheckTelescope()) return false;
    else{//do the WFCTA simulation
       if(!pwfc) pwfc=new WFCTAEvent();
       for(int itel=0;itel<WFTelescopeArray::CTNumber;itel++) pct->GetCamera(itel)->ReSet();
-      pwfc->Reset();
+      pwfc->EventInitial();
       int CERSize=cx.size();
       bool findcore=false;
       for(int icer=0;icer<CERSize;icer++){
@@ -240,7 +240,7 @@ bool CorsikaEvent::DoWFCTA(){
 }
 void CorsikaEvent::Fill(){
    if(EventNtuple::GetHead()){ //fill the data in EventNtuple
-      if(DoWFCTA()){
+      if(DoWFCTASim()){
          TSelector* pevt0[]={this,(TSelector*)pwfc};
          EventNtuple::GetHead()->Fill(pevt0);
       }

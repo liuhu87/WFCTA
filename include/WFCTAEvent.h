@@ -44,7 +44,7 @@ public:
         WFCTAEvent();
         ~WFCTAEvent();
         void Init();
-        void Reset();
+        void EventInitial();
 
    //ClassDef(WFCTAEvent,0);
 };

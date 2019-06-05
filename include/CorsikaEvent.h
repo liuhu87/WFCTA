@@ -87,7 +87,7 @@ class CorsikaEvent: public TSelector {
    ///which corex or corey
    int WhichCore(double x0,double y0);
    ///Do WFCTA Simulation
-   bool DoWFCTA();
+   bool DoWFCTASim();
    ///Fill the event information to the EventNtuple
    void Fill();
 };

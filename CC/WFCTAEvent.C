@@ -13,7 +13,7 @@ WFCTAEvent::WFCTAEvent()
 
 WFCTAEvent::~WFCTAEvent()
 {
-   Reset();
+   EventInitial();
 }
 
 void WFCTAEvent::Init()
@@ -43,7 +43,7 @@ void WFCTAEvent::Init()
    ledevent.Init();
    laserevent.Init();
 }
-void WFCTAEvent::Reset()
+void WFCTAEvent::EventInitial()
 {
    iEvent=-1;
    rabbitTime=0;
