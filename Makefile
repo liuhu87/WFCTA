@@ -27,6 +27,7 @@ SOURCES  += $(SRCDIR)/FluxModel.C
 SOURCES  += event.C
 SOURCES  += status.C
 SOURCES  += read.C
+SOURCES  += dosim.C
 
 OBJS     := $(OBJDIR)/CorsikaIO.o $(OBJDIR)/CorsikaChain.o $(OBJDIR)/CorsikaEvent.o 
 OBJS     += $(OBJDIR)/WFTelescope.o $(OBJDIR)/WFMirror.o $(OBJDIR)/WFCone.o $(OBJDIR)/WFCamera.o $(OBJDIR)/Readparam.o $(OBJDIR)/WFCTAMCEvent.o
@@ -47,7 +48,7 @@ CXXFLAGS := -O3 -fPIC
 LDFLAGS  := `root-config --libs`
 # -lRGL -lEve -lGeom -lMinuit -lTMVA -lXMLIO -lMLP -lTreePlayer -lXrdClient -lGpad -lNet -lHist -lHistPainter -lGraf -lMatrix -lRooFit
 
-all:event.exe status.exe read.exe $(LIBDIR)/lib.so
+all:event.exe status.exe read.exe dosim.exe $(LIBDIR)/lib.so
 
 event.exe: $(OBJDIR)/event.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
@@ -56,6 +57,9 @@ status.exe: $(OBJDIR)/status.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 read.exe: $(OBJDIR)/read.o $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+dosim.exe: $(OBJDIR)/dosim.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(LIBDIR)/lib.so: $(OBJS)
@@ -71,6 +75,10 @@ $(OBJDIR)/status.o: status.C
 	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 
 $(OBJDIR)/read.o: read.C
+	mkdir -p $(OBJDIR)
+	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
+
+$(OBJDIR)/dosim.o: dosim.C
 	mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 
