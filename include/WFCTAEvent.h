@@ -12,7 +12,7 @@
 #include "WFCTALaserEvent.h"
 
 using namespace std;
-class WFCTAEvent : public TSelector
+class WFCTAEvent// : public TSelector
 {
 public:
         long iEvent;
