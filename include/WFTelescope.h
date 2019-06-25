@@ -7,6 +7,7 @@
 #include "TGraph2D.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "TGraph.h"
 //#include "telescopeparameters.h"
 
 using namespace std;
@@ -47,6 +48,7 @@ class WFTelescopeArray{
    int WhichTel(double x0, double y0);
    int RayTrace(double x0, double y0, double z0, double m1, double n1, double l1,double weight,double wavelength,int &itel,double &t,int &itube,int &icell);
    bool CheckTelescope();
+   TGraph* TelView(int iTel);
    WFMirrorArray* GetMirror(int iTel);
    SquareCone* GetCone(int iTel);
    WCamera* GetCamera(int iTel);
