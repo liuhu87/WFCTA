@@ -29,4 +29,6 @@
 #pragma link C++ class FluxModel+;
 
 #pragma link C++ class Cloud+;
+
+#pragma link C++ class LHChain+;
 #endif

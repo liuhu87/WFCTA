@@ -1,5 +1,5 @@
 #ifndef __CorsikaChain__
-#define __Corsikachain__
+#define __CorsikaChain__
 #include "CorsikaIO.h"
 
 #define charsize 500
