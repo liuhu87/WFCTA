@@ -599,7 +599,7 @@ uint8_t WFCTADecode::Getmypeak(uint8_t *begin, short isipm)
     for(int i=0;i<29;i++){
 	sumhigh = pulsehigh[i]+pulsehigh[i+1]+pulsehigh[i+2]+pulsehigh[i+3];
         sumhigh /=4.;
-	if(sumhighmax<sumhigh) {sumhighmax = sumhigh; m_mypeak = i;}
+	if(sumhighmax<sumhigh) {sumhighmax = sumhigh; m_mypeak = i+1;}
     }
     return m_mypeak;
 }
@@ -683,7 +683,7 @@ void WFCTADecode::Calc_Q_Base(uint8_t *begin, short isipm)
         for(int i=0;i<10;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
         m_Basehigh = m_Basehigh/10.;
         m_Baselow = m_Baselow/10.;
-        for(int i=m_mypeak-6;i<31;i++) { m_Adchigh += pulsehigh[i]-m_Basehigh; m_Adclow += pulselow[i]-m_Baselow;}
+        for(int i=m_mypeak-6;i<32;i++) { m_Adchigh += pulsehigh[i]-m_Basehigh; m_Adclow += pulselow[i]-m_Baselow;}
     }
     else
     {
