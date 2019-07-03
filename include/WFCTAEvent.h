@@ -18,14 +18,6 @@ public:
         long iEvent;
         long rabbitTime;
         double rabbittime;
-        vector<short> iSiPM;
-	vector<bool> gain_marker;
-	vector<char> peak;
-	vector<char> mypeak;
-	vector<short> Single_Threshold;
-	vector<short> Record_Threshold;
-	vector<bool> Over_Single_Marker;
-	vector<bool> Over_Record_Marker;
 	vector<float> ADC_Cut;
 	vector<float> ImageBaseHigh;
 	vector<float> ImageBaseLow;
@@ -35,6 +27,14 @@ public:
 	vector<float> myImageBaseLow;
 	vector<float> myImageAdcHigh;
 	vector<float> myImageAdcLow;
+        vector<short> iSiPM;
+	vector<short> Single_Threshold;
+	vector<short> Record_Threshold;
+	vector<char> peak;
+	vector<char> mypeak;
+	vector<bool> gain_marker;
+	vector<bool> Over_Single_Marker;
+	vector<bool> Over_Record_Marker;
 
         WFCTAMCEvent mcevent;
         WFCTALedEvent ledevent;

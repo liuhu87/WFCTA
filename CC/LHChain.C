@@ -27,7 +27,7 @@ void LHChain::Init(WFCTAEvent* event){
        _EVENT = event;
      else
        _EVENT = new WFCTAEvent;
-     this->SetBranchAddress("eventShow",&_EVENT);
+     this->SetBranchAddress("Event",&_EVENT);
    }
 }
 WFCTAEvent* LHChain::_getevent(Int_t entry, Bool_t kLocal){
