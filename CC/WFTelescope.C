@@ -189,6 +189,87 @@ bool WFTelescopeArray::CheckTelescope(){
    }
    return exist;
 }
+TGraph* WFTelescopeArray::TelView(int iTel){
+   if(!pct) return 0;
+   if(iTel<0||iTel>=WFTelescopeArray::CTNumber) return 0;
+   WFTelescope* pct0=pct[iTel];
+   if(!pct0) return 0;
+   const int nbin=100;
+   double xbin[nbin+1];
+   double ybin[nbin+1][2];
+   for(int ibin=0;ibin<=nbin;ibin++){
+      xbin[ibin]=-100.;
+      double xx=-1.+2./nbin*ibin;
+      bool inside_pre=false;
+      for(int ibin2=0;ibin2<=nbin;ibin2++){
+         double yy=-1.+2./nbin*ibin2;
+         double rr=sqrt(xx*xx+yy*yy);
+         if(rr>1.) continue;
+         double zz=sqrt(1-rr*rr);
+         double x0,y0,z0;
+         double m1=-xx;
+         double n1=-yy;
+         double l1=-zz;
+         //check wheather inside the field of view
+         bool inside=false;
+         double x0new,y0new,z0new;
+         double m1new,n1new,l1new;
+         pct0->ConvertCoor(x0,y0,z0,m1,n1,l1,x0new,y0new,z0new,m1new,n1new,l1new);
+         z0new=WFTelescope::ZDOOR;
+         double margin=100.;
+         int ntest=10;
+         for(int itest=0;itest<ntest*ntest;itest++){
+            int ix=itest/ntest;
+            int iy=itest%ntest;
+            x0new=-(WFTelescope::D_DOOR-margin)/2.+(WFTelescope::D_DOOR-margin)/(ntest-1)*ix;
+            y0new=-(WFTelescope::Hdoor-margin)/2.+(WFTelescope::Hdoor-margin)/(ntest-1)*iy;
+            double t,xcluster,ycluster,m2,n2,l2;
+            int result=pct0->RayTraceUpToCone(x0new,y0new,z0new,m1new,n1new,l1new,t,xcluster,ycluster,m2,n2,l2);
+            if(result>=0){
+               double xc = -ycluster;
+               double yc = xcluster;
+               int itube=(pct0->pcame)->GetCone(xc,yc);
+               if(itube>=0) inside=true;
+               if(inside) break;
+            }
+         }
+         if(inside_pre==false){
+            if(inside==true){
+               xbin[ibin]=xx;
+               ybin[ibin][0]=yy;
+               inside_pre=inside;
+            }
+         }
+         else{
+            if(inside==false){
+               xbin[ibin]=xx;
+               ybin[ibin][1]=yy-2./nbin;
+               break;
+            }
+         }
+         if(jdebug>0) printf("WFTelescopeArray::TelView: xbin=%d(xx=%.2lf) ybin=%d(yy=%.2lf) inside=%d\n",ibin,xx,ibin2,yy,inside);
+      }
+   }
+
+   TGraph* gr=new TGraph();
+   int np=0;
+   double x0,y0;
+   for(int ibin=0;ibin<=nbin;ibin++){
+      if(xbin[ibin]<-2) continue;
+      if(jdebug>1) printf("WFTelescopeArray::TelView: np=%d xx=%.2lf yy=(%.2lf,%.2lf)\n",np,xbin[ibin],ybin[ibin][0],ybin[ibin][1]);
+      if(np==0){x0=xbin[ibin]; y0=ybin[ibin][0];}
+      gr->SetPoint(np,xbin[ibin],ybin[ibin][0]);
+      np++;
+   }
+   for(int ibin=nbin;ibin>=0;ibin--){
+      if(xbin[ibin]<-2) continue;
+      gr->SetPoint(np,xbin[ibin],ybin[ibin][1]);
+      np++;
+   }
+   gr->SetPoint(np,x0,y0);
+   if(np<1) {delete gr; return 0;}
+   else return gr;
+}
 WFMirrorArray* WFTelescopeArray::GetMirror(int iTel){
    if(!pct) return 0;
    if(iTel<0||iTel>=CTNumber) return 0;

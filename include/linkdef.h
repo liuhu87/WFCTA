@@ -3,10 +3,13 @@
 #pragma link off all classes;
 #pragma link off all functions;
 #pragma link C++ nestedclasses;
+#pragma link C++ class CommonTools+;
+
 #pragma link C++ class CorsikaIO+;
 #pragma link C++ class CorsikaChain+;
 #pragma link C++ class CorsikaEvent+;
 
+#pragma link C++ class WFTelescopeArray+;
 #pragma link C++ class WFTelescope+;
 #pragma link C++ class WFMirrorArray+;
 #pragma link C++ class WFMirror+;
@@ -24,4 +27,8 @@
 #pragma link C++ class EventNtuple+;
 
 #pragma link C++ class FluxModel+;
+
+#pragma link C++ class Cloud+;
+
+#pragma link C++ class LHChain+;
 #endif
