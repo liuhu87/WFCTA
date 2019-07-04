@@ -27,7 +27,9 @@ void LHChain::Init(WFCTAEvent* event){
        _EVENT = event;
      else
        _EVENT = new WFCTAEvent;
-     this->SetBranchAddress("Event",&_EVENT);
+       _EVENT->Head()=_EVENT;
+       this->SetBranchAddress(WFCTAEvent::BranchName(),&_EVENT);
+       _EVENT->Tree()=NULL;
    }
 }
 WFCTAEvent* LHChain::_getevent(Int_t entry, Bool_t kLocal){
@@ -53,17 +55,21 @@ WFCTAEvent* LHChain::_getevent(Int_t entry, Bool_t kLocal){
 
    if (GetTreeNumber()!=_TREENUMBER) {
      _TREENUMBER = GetTreeNumber();
-     //_EVENT->Init(GetTree());
-     //_EVENT->GetBranch(_EVENT->Tree());
+     _EVENT->InitTree(GetTree());
+     _EVENT->GetBranch(_EVENT->Tree());
    }
 
    //Read The Event
-   if(GetTree()){
-      if(GetTree()->GetEntry(m_tree_entry)==false){
-         delete _EVENT; _EVENT = NULL;
-         _ENTRY = -2;
-      }
+   if (_EVENT->GetAllContents(m_tree_entry)==false) {
+     delete _EVENT; _EVENT = NULL;
+     _ENTRY = -2;
    }
+   //if(GetTree()){
+   //   if(GetTree()->GetEntry(m_tree_entry)==false){
+   //      delete _EVENT; _EVENT = NULL;
+   //      _ENTRY = -2;
+   //   }
+   //}
    //if (_EVENT->ReadHeader(m_tree_entry)==false) {
    //  delete _EVENT; _EVENT = NULL;
    //  _ENTRY = -2;
