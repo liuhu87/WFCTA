@@ -159,12 +159,62 @@ void SiPM2SC_Channel(short mSiPM, short *mSC, short *mChannel)
 
 /*******************************************************************************
  * void SC_Channel2eSiPM(short fpga, short db, short channel, short *sipm)     *
- * change FPGA & DB & Channel to sipm in electron                              *
- * range of sipm is [1,1024]                                                   *
+ * change FPGA & DB & Channel to esipm                              *
+ * range of esipm is [1,1024]                                                   *
  *******************************************************************************/
 void SC_Channel2eSiPM(short fpga, short db, short channel, short *sipm)
 {
   *sipm = (fpga-1)*128+(db-1)*16+channel;
 }
+
+/*******************************************************************************
+ * void eSiPM2SC_Channel(short mSiPM, short *mSC, short *mChannel)             *
+ * change esipm to FPGA_DB & Channel                                            *
+ * range of esipm is [1,1024]                                                   *
+ *******************************************************************************/
+void eSiPM2SC_Channel(short mSiPM, short *mSC, short *mChannel)
+{
+  short modfpga;
+  short moddb;
+
+  short fpga;
+  short db;
+  short channel;
+
+  modfpga = mSiPM % 128;
+  moddb = (mSiPM % 128) % 16;
+  fpga = mSiPM / 128;
+  db = (mSiPM % 128) / 16;
+
+  if(modfpga!=0){
+    fpga += 1;
+    if(moddb!=0){
+      db += 1;
+      channel = (mSiPM % 128) % 16;
+    }
+    else{
+      channel = 16;
+    }
+  }
+  else{
+    db = 8;
+    channel = 16;
+  }
+
+  *mSC = db*10+fpga;
+  *mChannel = channel;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 

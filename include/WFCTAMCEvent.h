@@ -7,11 +7,11 @@
 class WFCTAMCEvent
 {
    public:
-   Int_t iuse; //!
+   Int_t iuse;
    vector<Int_t> RayTrace;
    Float_t TubeSignal[NCTMax][NSIPM];
-   Int_t TubeTrigger[NCTMax][NSIPM]; //!
-   Int_t TelTrigger[NCTMax]; //!
+   Int_t TubeTrigger[NCTMax][NSIPM];
+   Int_t TelTrigger[NCTMax];
 
    public:
    void Init(int size=0);

@@ -33,7 +33,7 @@ int main(int argc, char**argv)
   TFile *rootfile = new TFile(argv[2],"recreate");
   /*********************************************************************/
   TTree *eventShow = new TTree("eventShow","info of evnets");
-  eventShow -> Branch("Event","WFCTAEvent",wfctaEvent,32000,1);
+  wfctaEvent -> CreateBranch(eventShow,1);
   /*********************************************************************/
 
   WFCTADecode *wfctaDecode = new WFCTADecode();
@@ -87,6 +87,17 @@ int main(int argc, char**argv)
             wfctaEvent->myImageAdcHigh.push_back( wfctaDecode->GetmyImageAdcHigh(buf,sipm_position_iter->first) );
             wfctaEvent->myImageAdcLow.push_back( wfctaDecode->GetmyImageAdcLow(buf,sipm_position_iter->first) );
 	  }
+
+          ///just do some test to exam the reading program
+          //(wfctaEvent->mcevent).iuse=wfctaEvent->iEvent;
+          //(wfctaEvent->mcevent).RayTrace.push_back(wfctaEvent->iEvent*2);
+          //(wfctaEvent->mcevent).TelTrigger[0]=wfctaEvent->iEvent*3;
+          //(wfctaEvent->ledevent).Time=wfctaEvent->rabbitTime;
+          //(wfctaEvent->ledevent).Frequency=wfctaEvent->iEvent;
+          //(wfctaEvent->ledevent).DoorOpen=(wfctaEvent->iEvent%2);
+          //(wfctaEvent->laserevent).Time=wfctaEvent->rabbitTime;
+          //(wfctaEvent->laserevent).Frequency=wfctaEvent->iEvent;
+          //(wfctaEvent->laserevent).flux=wfctaEvent->iEvent*1.0;
 
           eventShow->Fill();
 	  wfctaEvent->EventInitial();
