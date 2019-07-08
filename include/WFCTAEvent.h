@@ -8,6 +8,7 @@
 #include "TObject.h"
 #include "TTree.h"
 #include "TBranch.h"
+#include "TH2Poly.h"
 
 #include "WFCTAMCEvent.h"
 #include "WFCTALedEvent.h"
@@ -84,6 +85,7 @@ public:
         void CreateBranch(TTree *tree, int branchSplit);
         void GetBranch(TTree *fChain);
         bool GetAllContents(int _Entry);
+	TH2Poly* Draw(int type=0,char* opt=(char*)"scat colz",double threshold=500.);
 
    ClassDef(WFCTAEvent,2);
 };

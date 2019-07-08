@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <iostream>
 #include "WFCTAEvent.h"
+#include "WFCamera.h"
+#include "TH2Poly.h"
 
 using namespace std;
 
@@ -205,3 +207,30 @@ bool WFCTAEvent::GetAllContents(int _Entry){
    return ncount>0;
 }
 
+TH2Poly* WFCTAEvent::Draw(int type,char* opt,double threshold){
+   TH2Poly* image=new TH2Poly();
+   for(int ii=0;ii<NSIPM;ii++){
+      int PixI=ii/PIX;
+      int PixJ=ii%PIX;
+      double ImageX,ImageY;
+      if(PixI%2==0) ImageX=PixJ+0.5-PIX/2.0;
+      else ImageX=PixJ+1.0-PIX/2.0;
+      ImageY=(PIX/2.0-PixI)-1/2.0;
+
+      ImageX=ImageX*16/32.0;
+      ImageY=ImageY*16/32.0;
+      ImageX-=0.31;
+      ImageY-=0.28;
+
+      image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
+   }
+   for(int ii=0;ii<iSiPM.size();ii++){
+      if(type==0) {image->SetBinContent(iSiPM.at(ii)+1,ADC_Cut.at(ii)>threshold?1.:0.); /*printf("bin%d cont=%f\n",iSiPM.at(ii)+1,ADC_Cut.at(ii));*/}
+      if(type==1) {image->SetBinContent(iSiPM.at(ii)+1,ImageAdcHigh.at(ii));}
+      if(type==2) {image->SetBinContent(iSiPM.at(ii)+1,ImageAdcLow.at(ii));}
+      if(type==3) {image->SetBinContent(iSiPM.at(ii)+1,myImageAdcHigh.at(ii));}
+      if(type==4) {image->SetBinContent(iSiPM.at(ii)+1,myImageAdcLow.at(ii));}
+   }
+   image->Draw(opt);
+   return image;
+}
