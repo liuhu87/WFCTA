@@ -31,4 +31,7 @@
 #pragma link C++ class Cloud+;
 
 #pragma link C++ class LHChain+;
+
+#pragma link C++ class Atmosphere+;
+#pragma link C++ class Laser+;
 #endif

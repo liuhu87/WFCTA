@@ -3,7 +3,7 @@
 #include "TSelector.h"
 #include "WFTelescope.h"
 #include "WFCamera.h"
-#define NCTMax 20
+#include "common.h"
 class WFCTAMCEvent
 {
    public:

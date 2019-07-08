@@ -14,6 +14,7 @@ Update to more c++ by Baiyang Bi at Jue. 9th, 2017
 #include <stdlib.h>
 #include <math.h>
 #include <iostream>
+#include "common.h"
 //#define PI 3.1415926535898
 using namespace std;
 class SquareCone

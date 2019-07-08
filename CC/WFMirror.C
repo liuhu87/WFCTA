@@ -1,6 +1,7 @@
 #include "WFMirror.h"
 #include "TMath.h"
 #include "TRandom.h"
+#include "common.h"
 int WFMirrorArray::NMirror[NCircle]={1,6,6,6,2,2,2};
 void WFMirrorArray::Init(){
    for(int ii=0;ii<NCircle;ii++){
@@ -28,16 +29,16 @@ void WFMirrorArray::SetMirror(){
     double z2,x2,z3,y3;
     double _L = WFMirror::length;
     double CURVATURE=WFMirror::CURVATURE;
-    double pi = TMath::Pi();
+    //double PI = TMath::Pi();
     double sqrt3 = sqrt(3);
 
-    fai[0]=pi;                               theta[0]=0;          num[0]=1;
-    fai[1]=pi-atan(sqrt3*_L/CURVATURE);      theta[1]=0;          num[1]=6;
-    fai[2]=pi-atan(2.*sqrt3*_L/CURVATURE);   theta[2]=0;          num[2]=6;
-    fai[3]=pi-atan(3.*_L/CURVATURE);         theta[3]=pi/6.;      num[3]=6;
-    fai[4]=pi-atan(sqrt(4.5*4.5+3./4.)*_L/CURVATURE);      theta[4]=pi/6.+atan(sqrt3/9);   num[4]=2;
-    fai[5]=pi-atan(sqrt(4.5*4.5+3./4.)*_L/CURVATURE);      theta[5]=5./6.*pi-atan(sqrt3/9);num[5]=2;
-    fai[6]=pi-atan(sqrt(4.5*4.5+3./4.)*_L/CURVATURE);      theta[6]=pi/6.-atan(sqrt3/9);   num[6]=2;
+    fai[0]=PI;                               theta[0]=0;          num[0]=1;
+    fai[1]=PI-atan(sqrt3*_L/CURVATURE);      theta[1]=0;          num[1]=6;
+    fai[2]=PI-atan(2.*sqrt3*_L/CURVATURE);   theta[2]=0;          num[2]=6;
+    fai[3]=PI-atan(3.*_L/CURVATURE);         theta[3]=PI/6.;      num[3]=6;
+    fai[4]=PI-atan(sqrt(4.5*4.5+3./4.)*_L/CURVATURE);      theta[4]=PI/6.+atan(sqrt3/9);   num[4]=2;
+    fai[5]=PI-atan(sqrt(4.5*4.5+3./4.)*_L/CURVATURE);      theta[5]=5./6.*PI-atan(sqrt3/9);num[5]=2;
+    fai[6]=PI-atan(sqrt(4.5*4.5+3./4.)*_L/CURVATURE);      theta[6]=PI/6.-atan(sqrt3/9);   num[6]=2;
     for(int i=0;i<NCircle;i++){
        // zenith angle for each circle in array
        mfai=fai[i];
@@ -45,9 +46,9 @@ void WFMirrorArray::SetMirror(){
        malfa=atan(sqrt3*_L/4/CURVATURE);
        for(int m=0;m<NMirror[i];m++){
           // azimuth angle for each mirror in array
-          if(i<4) ntheta=mtheta+2*pi/6.*m;
+          if(i<4) ntheta=mtheta+2*PI/6.*m;
           else{
-             ntheta=(m==0)?mtheta:(2*pi-mtheta);
+             ntheta=(m==0)?mtheta:(2*PI-mtheta);
           }
           omcenterx[i][m]=CURVATURE*sin(mfai)*cos(ntheta);
           omcentery[i][m]=CURVATURE*sin(mfai)*sin(ntheta);

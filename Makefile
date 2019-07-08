@@ -18,6 +18,7 @@ HEADERS  += $(INCDIR)/EventNtuple.h
 HEADERS  += $(INCDIR)/FluxModel.h
 HEADERS  += $(INCDIR)/Cloud.h
 HEADERS  += $(INCDIR)/LHChain.h
+HEADERS  += $(INCDIR)/Laser.h
 
 SOURCES  := $(SRCDIR)/common.C
 SOURCES  += $(SRCDIR)/CorsikaIO.C $(SRCDIR)/CorsikaChain.C $(SRCDIR)/CorsikaEvent.C 
@@ -30,6 +31,7 @@ SOURCES  += $(SRCDIR)/EventNtuple.C
 SOURCES  += $(SRCDIR)/FluxModel.C
 SOURCES  += $(SRCDIR)/Cloud.C
 SOURCES  += $(SRCDIR)/LHChain.C
+SOURCES  += $(SRCDIR)/Laser.C
 SOURCES  += event.C
 SOURCES  += status.C
 SOURCES  += read.C
@@ -47,6 +49,7 @@ OBJS     += $(OBJDIR)/EventNtuple.o
 OBJS     += $(OBJDIR)/FluxModel.o
 OBJS     += $(OBJDIR)/Cloud.o
 OBJS     += $(OBJDIR)/LHChain.o
+OBJS     += $(OBJDIR)/Laser.o
 OBJS     += $(OBJDIR)/dictionary.o
 
 DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) `root-config --cflags`

@@ -1,5 +1,9 @@
 #ifndef __COMMON__
 #define __COMMON__
+#define PI 3.14159265358979312
+#define RADDEG 180/PI
+const double hplank=6.62607015e-34;
+const double vlight=2.998e10;
   ///convert time
 class CommonTools {
    public:
@@ -11,4 +15,7 @@ class CommonTools {
    static bool GetFirstLastLine(const char* filename,char* firstline,char * lastline);
    static int GetTimeFromFileName(char* filename,int start,int length);
 };
+
+/// Max number of Telescopes
+#define NCTMax 20
 #endif
