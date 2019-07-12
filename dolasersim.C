@@ -27,11 +27,11 @@ int main(int argc, char**argv)
 
    WFTelescopeArray::jdebug=0;
    WFTelescopeArray::DoSim=true;
-   WFTelescopeArray::GetHead(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/default.inp"));
+   WFTelescopeArray::GetHead(Form("/afs/ihep.ac.cn/users/c/chenqh/sqn/WFCTA/default.inp"));
    Atmosphere::SetParameters();
-   Laser::scale=1.0;
-   Laser::spotrange = 0;//0.001;//0.001;//mm
-   Laser::divergence = 0.0573;//0.0573;
+   Laser::scale=1.0e-10;
+   //Laser::spotrange = 0;//0.001;//0.001;//mm
+   Laser::divergence = 1.;//0.0573;
    Laser* pl=new Laser(seed);
    if(!pl->pwfc) pl->pwfc=new WFCTAEvent();
    WFCTAEvent* pevt=(pl->pwfc);
@@ -49,8 +49,9 @@ int main(int argc, char**argv)
       for(int jj=0;jj<NSIPM;jj++){
          if(pevt->mcevent.TubeSignal[0][jj]>smax) smax=pevt->mcevent.TubeSignal[0][jj];
       }
-      printf("Evt=%d Ngen=%ld ngentel=%ld evtn=%d size=%d maxsignal=%lf\n\n",ii,pevt->mcevent.Ngen,ngentel,pevt->iEvent,pevt->mcevent.RayTrace.size(),smax);
+      printf("Evt=%d Ngen=%ld(%ld) ngentel=%ld evtn=%d size=%d maxsignal=%lf\n\n",ii,pevt->mcevent.Ngen,pl->count_gen,ngentel,pevt->iEvent,pevt->mcevent.RayTrace.size(),smax);
       tree->Fill();
+      pevt->EventInitial();
    }
 
    fout->cd();

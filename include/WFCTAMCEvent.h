@@ -8,7 +8,7 @@ class WFCTAMCEvent
 {
    public:
    Int_t iuse;
-   Int_t Ngen;
+   long int Ngen;
    Int_t Timegen;
    //vector<float> Coogen[3];
    //vector<float> Dirgen[3];

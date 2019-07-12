@@ -51,7 +51,7 @@ class Laser {
       double lasercoo[3];	//in cm
       ///pointing direction of the laser generator
       double laserdir[2];
-      int count_gen;
+      long int count_gen;
       int Time_gen;
       double time_gen;
       int ievent_gen;

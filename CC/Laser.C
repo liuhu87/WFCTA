@@ -115,9 +115,9 @@ double Laser::intensity_err = 0;
 double Laser::wavelength0 = 355;//nm
 double Laser::wavelength0_err = 0;
 double Laser::frequency = 1;
-double Laser::pulsetime = 0.01;
-double Laser::spotrange = 0.001;//0.001;//mm, the range of the initial laser spot
-double Laser::divergence = 0.0573;//0.0573;
+double Laser::pulsetime = 7.7e-9;
+double Laser::spotrange = 1.07;//0.001;//mm, the range of the initial laser spot
+double Laser::divergence = 1.0;//0.0573; //mrad
 
 void Laser::Init(int seed){
    if(!prandom) prandom = new TRandom3();
@@ -254,7 +254,7 @@ void Laser::PositionDis(double &xx,double &yy){
    yy=rr*sin(phi);
 }
 void Laser::DirectionDis(double &theta,double &phi){
-   double ran1=prandom->Uniform(1-divergence,1);
+   double ran1=prandom->Uniform(cos(divergence*1.0e-3),1);
    theta=acos(sqrt(ran1));
    phi=prandom->Uniform(0,2*PI);
 }

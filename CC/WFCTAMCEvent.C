@@ -11,10 +11,11 @@ void WFCTAMCEvent::Init(int size){
    //Wavegen.resize(size>0?size:1000000);
    RayTrace.resize(size>0?size:1000000);
    Reset();
+   Ngen=0;
 }
 void WFCTAMCEvent::Reset(){
    iuse=0;
-   Ngen=0;
+   //Ngen=0;
    Timegen=0;
    //for(int ii=0;ii<3;ii++){
    //   Coogen[ii].clear();
