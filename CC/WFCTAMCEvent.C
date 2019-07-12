@@ -4,19 +4,23 @@
 #include "WFCTAMCEvent.h"
 #include "EventNtuple.h"
 void WFCTAMCEvent::Init(int size){
-   iuse=0;
+   //for(int ii=0;ii<3;ii++){
+   //   Coogen[ii].resize(size>0?size:1000000);
+   //   Dirgen[ii].resize(size>0?size:1000000);
+   //}
+   //Wavegen.resize(size>0?size:1000000);
    RayTrace.resize(size>0?size:1000000);
-   RayTrace.clear();
-   for(int ict=0;ict<NCTMax;ict++){
-      for(int ii=0;ii<NSIPM;ii++){
-         TubeSignal[ict][ii]=0;
-         TubeTrigger[ict][ii]=0;
-      }
-      TelTrigger[ict]=0;
-   }
+   Reset();
 }
 void WFCTAMCEvent::Reset(){
    iuse=0;
+   Ngen=0;
+   Timegen=0;
+   //for(int ii=0;ii<3;ii++){
+   //   Coogen[ii].clear();
+   //   Dirgen[ii].clear();
+   //}
+   //Wavegen.clear();
    RayTrace.clear();
    for(int ict=0;ict<NCTMax;ict++){
       for(int ii=0;ii<NSIPM;ii++){
@@ -40,6 +44,7 @@ void WFCTAMCEvent::Copy(WFTelescopeArray* pct){
       pcame->AddNSB();
       for(int ii=0;ii<NSIPM;ii++){
          TubeSignal[ict][ii]=(pcame->TubeSignal).at(ii);
+         //printf("WFCTAMCEvent::Copy: T%d PMT%d signal=%lf\n",ict,ii,TubeSignal[ict][ii]);
       }
    }
 }

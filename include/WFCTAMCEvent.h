@@ -8,6 +8,11 @@ class WFCTAMCEvent
 {
    public:
    Int_t iuse;
+   Int_t Ngen;
+   Int_t Timegen;
+   //vector<float> Coogen[3];
+   //vector<float> Dirgen[3];
+   //vector<float> Wavegen;
    vector<Int_t> RayTrace;
    Float_t TubeSignal[NCTMax][NSIPM];
    Int_t TubeTrigger[NCTMax][NSIPM];

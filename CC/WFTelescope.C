@@ -177,7 +177,10 @@ int WFTelescopeArray::RayTrace(double x0, double y0, double z0, double m1, doubl
    ///Ray Trace
    int result=pct[whichct]->RayTrace(x0new,y0new,z0new,m1new,n1new,l1new,wavelength,t,itube,icell);
    if(jdebug>0) printf("WFTelescopeArray::RayTrace: From Door to SiPM. result=%d\n",result);
-   if(result>0) GetCamera(whichct)->Fill(itube,weight);
+   if(result>0){
+      GetCamera(whichct)->Fill(itube,weight);
+      if(jdebug>0) printf("WFTelescopeArray::RayTrace: Filling the camera itube=%d weight=%le\n",itube,weight);
+   }
    itel=whichct;
    return result>0?result:(result-2);
 }

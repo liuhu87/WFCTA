@@ -207,7 +207,7 @@ bool WFCTAEvent::GetAllContents(int _Entry){
    return ncount>0;
 }
 
-TH2Poly* WFCTAEvent::Draw(int type,char* opt,double threshold){
+TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
    TH2Poly* image=new TH2Poly();
    for(int ii=0;ii<NSIPM;ii++){
       int PixI=ii/PIX;

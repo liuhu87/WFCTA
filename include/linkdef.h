@@ -34,4 +34,6 @@
 
 #pragma link C++ class Atmosphere+;
 #pragma link C++ class Laser+;
+
+#pragma link C++ class StatusDB+;
 #endif

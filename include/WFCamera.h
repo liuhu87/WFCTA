@@ -32,7 +32,7 @@ class WCamera
   static float NSB;
   public:
 
-  vector<int> TubeSignal;
+  vector<double> TubeSignal;
   vector<int> TubeTrigger;
   int TelTrigger;
   //int **Trigger;

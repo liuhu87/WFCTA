@@ -11,8 +11,6 @@ The class for absorbtion and scatter process calculation
 */
 class Atmosphere {
    public:
-      ///random number generator
-      static TRandom3* prandom;
       ///extinction coefficient
       static double aod_air;
       static double aod_aerosol;
@@ -26,8 +24,8 @@ class Atmosphere {
       static void SetParameters(char* filename=0);
       static double ZDependence(double z,int type=0);
       static double DeltaZ(double z);
-      static void RayScatterAngle(double wavelength, double &theta, double &phi);
-      static void MieScatterAngle(double wavelength, double &theta, double &phi);
+      static bool RayScatterAngle(double wavelength, double &theta, double &phi);
+      static bool MieScatterAngle(double wavelength, double &theta, double &phi);
       static double FreeIntgLength();
       static double FreePathLength(double z0,double dir0[3]);
       static int IsScattering(double z0);
@@ -38,6 +36,7 @@ class Laser {
    public:
       static TRandom3* prandom;
       static double TelSimDist;
+      static double scale;
       static double unittime;
       static double intensity;
       static double intensity_err;
@@ -67,6 +66,7 @@ class Laser {
       int Telindex;
       double coor_out[3];
       double dir_out[3];
+      vector<double> prodis;
       vector<int> votel;
       vector<double> vocoo[3];
       vector<double> vodir[3];
@@ -79,17 +79,18 @@ class Laser {
       void Reset();
       Laser(int seed=0) {Init(seed);}
       ~Laser() { Release(); }
-      static void cross(double dir1[3],double dir2[3],double dir3[3]);
-      static bool CartesianFrame(double zero[3],double coor_in[3],double dir_in[3],double xdir[3],double ydir[3],double zdir[3]);
-      static double mindist(double zero[3],double coor_in[3],double dir_in[3],double coor_min[3],bool &decrease);
-      static double mindist(double coor_in[3],double dir_in[3],int &whichtel,double coor_min[3],bool &decrease);
+      void SetParameters(char* filename=0);
+      static void cross(double dir1[3],double dir2[3],double *dir3);
+      static bool CartesianFrame(double zero[3],double coor_in[3],double dir_in[3],double *xdir,double *ydir,double *zdir);
+      static double mindist(double zero[3],double coor_in[3],double dir_in[3],double *coor_min,bool &decrease);
+      static double mindist(double coor_in[3],double dir_in[3],int &whichtel,double *coor_min,bool &decrease);
       static void PositionDis(double &xx,double &yy);
       static void DirectionDis(double &theta,double &phi);
       double WaveLengthGen();
       bool InitialGen();
-      int EventGen(int &Time,double &time);
-      int Propagate();
-      bool DoWFCTASim();
+      long int EventGen(int &Time,double &time);
+      int Propagate(double &distance);
+      bool DoWFCTASim(double weight=1.0);
 };
 
 #endif
