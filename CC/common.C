@@ -152,7 +152,7 @@ int CommonTools::GetTelIndex(const char* filename,int start,int length){
       timebuff[np++]='\0';
       int itel=atoi(timebuff);
       int time=GetTimeFromFileName(filename,46,12);
-      if(time<InvConvert(190517160000)) itel+=3;
+      if(time<Convert(190517160000)) itel+=3;
       return itel;
    }
 }
