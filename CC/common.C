@@ -44,7 +44,7 @@ int CommonTools::Convert(double time){
 //inverse of convert
 double CommonTools::InvConvert(int time){
    int time0=time-946656000;
-   if(time0<=0) return 0;
+   if(time0<0) return 0;
    int year,month,day,h,min,sec;
    year=0;
    while(true){
@@ -99,21 +99,7 @@ int CommonTools::TimeFlag(double time,int type){
 }
 int CommonTools::TimeFlag(int time,int type){
    double time0=InvConvert(time);
-   int year=int(time0/10000000000);
-   double time1=(time0-year*10000000000);
-   int month=int(time1/100000000);
-   int time2=int(time1-month*100000000);
-   int day=(time2%100000000)/1000000;
-   int h=(time2%1000000)/10000;
-   int min=(time2%10000)/100;
-   int sec=time2%100;
-   if(type==1) return year;
-   else if(type==2) return month;
-   else if(type==3) return day;
-   else if(type==4) return h;
-   else if(type==5) return min;
-   else if(type==6) return sec;
-   else return -1;
+   return TimeFlag(time0,type);
 }
 bool CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * lastline){
    const int maxlen=300;
@@ -133,7 +119,7 @@ bool CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * l
    strcpy(lastline,buff);
    return res;
 }
-int CommonTools::GetTimeFromFileName(char* filename,int start,int length){
+int CommonTools::GetTimeFromFileName(const char* filename,int start,int length){
    int strlength=strlen(filename);
    if(start<0) return 0;
    else if(start+length>strlength) return 0;
@@ -153,4 +139,49 @@ int CommonTools::GetTimeFromFileName(char* filename,int start,int length){
       return time;
    }
 }
+int CommonTools::GetTelIndex(const char* filename,int start,int length){
+   int strlength=strlen(filename);
+   if(start<0) return 0;
+   else if(start+length>strlength) return 0;
+   else{
+      char timebuff[100];
+      int np=0;
+      for(int ii=start;ii<start+length;ii++){
+         timebuff[np++]=filename[ii];
+      }
+      timebuff[np++]='\0';
+      int itel=atoi(timebuff);
+      int time=GetTimeFromFileName(filename,46,12);
+      if(time<Convert(190517160000)) itel+=3;
+      return itel;
+   }
+}
 
+int CommonTools::get_file_size_time(const char* filename){
+   struct stat statbuf;
+   if(stat(filename,&statbuf) == -1) return -1;
+   if(S_ISDIR(statbuf.st_mode)) return 1;
+   if(S_ISREG(statbuf.st_mode)) return 0;
+}
+void CommonTools::getFiles(string path,vector<string>& files){
+   files.clear();
+   string end(".dat");
+
+   DIR* dirp;
+   struct dirent *direntp;
+   int status;
+   char buf[300];
+   if(((status = get_file_size_time(path.data())) == 0) || (status == -1) ) return;
+   if( (dirp=opendir(path.data())) == NULL) return;
+   while((direntp=readdir(dirp))!=NULL){
+      sprintf(buf,"%s/%s",path.data(),direntp->d_name);
+      //printf("read %s\n",buf);
+      if(get_file_size_time(buf)==-1) break;
+      string filename(buf);
+      if( filename.length()>=end.length() && end == filename.substr(filename.length()-end.length(),end.length())){
+         files.push_back(filename);
+      }
+      else continue;
+   }
+   closedir(dirp);
+}

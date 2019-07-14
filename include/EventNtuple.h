@@ -1,5 +1,6 @@
 #ifndef __EventNtuple__
 #define __EventNtuple__
+#include "common.h"
 #include "CorsikaEvent.h"
 #include "WFCTAEvent.h"
 #include "TFile.h"

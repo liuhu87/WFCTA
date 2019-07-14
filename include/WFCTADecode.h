@@ -16,6 +16,7 @@ public:
     ~WFCTADecode();
 
     uint8_t StatusPackCheck(uint8_t *begin, int bufsize);
+    int StatusPackCheck(uint8_t *begin, int bufsize,int type);
 
     bool bigPackCheck(uint8_t *begin, int bufsize);
     void Find_SiPMs(uint8_t *begin, int packsize);

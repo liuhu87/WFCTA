@@ -18,6 +18,8 @@ HEADERS  += $(INCDIR)/EventNtuple.h
 HEADERS  += $(INCDIR)/FluxModel.h
 HEADERS  += $(INCDIR)/Cloud.h
 HEADERS  += $(INCDIR)/LHChain.h
+HEADERS  += $(INCDIR)/Laser.h
+HEADERS  += $(INCDIR)/StatusDB.h
 
 SOURCES  := $(SRCDIR)/common.C
 SOURCES  += $(SRCDIR)/CorsikaIO.C $(SRCDIR)/CorsikaChain.C $(SRCDIR)/CorsikaEvent.C 
@@ -30,11 +32,14 @@ SOURCES  += $(SRCDIR)/EventNtuple.C
 SOURCES  += $(SRCDIR)/FluxModel.C
 SOURCES  += $(SRCDIR)/Cloud.C
 SOURCES  += $(SRCDIR)/LHChain.C
+SOURCES  += $(SRCDIR)/Laser.C
+SOURCES  += $(SRCDIR)/StatusDB.C
 SOURCES  += event.C
 SOURCES  += status.C
 SOURCES  += read.C
 SOURCES  += dosim.C
 SOURCES  += showcloudmap.C
+SOURCES  += dolasersim.C
 
 OBJS     := $(OBJDIR)/common.o
 OBJS     += $(OBJDIR)/CorsikaIO.o $(OBJDIR)/CorsikaChain.o $(OBJDIR)/CorsikaEvent.o 
@@ -47,6 +52,8 @@ OBJS     += $(OBJDIR)/EventNtuple.o
 OBJS     += $(OBJDIR)/FluxModel.o
 OBJS     += $(OBJDIR)/Cloud.o
 OBJS     += $(OBJDIR)/LHChain.o
+OBJS     += $(OBJDIR)/Laser.o
+OBJS     += $(OBJDIR)/StatusDB.o
 OBJS     += $(OBJDIR)/dictionary.o
 
 DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) `root-config --cflags`
@@ -58,7 +65,7 @@ CXXFLAGS := -O3 -fPIC
 LDFLAGS  := `root-config --libs`
 # -lRGL -lEve -lGeom -lMinuit -lTMVA -lXMLIO -lMLP -lTreePlayer -lXrdClient -lGpad -lNet -lHist -lHistPainter -lGraf -lMatrix -lRooFit
 
-all:event.exe status.exe read.exe dosim.exe showcloudmap.exe $(LIBDIR)/lib.so
+all:event.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe $(LIBDIR)/lib.so
 
 event.exe: $(OBJDIR)/event.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
@@ -73,6 +80,9 @@ dosim.exe: $(OBJDIR)/dosim.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 showcloudmap.exe: $(OBJDIR)/showcloudmap.o $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+dolasersim.exe: $(OBJDIR)/dolasersim.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(LIBDIR)/lib.so: $(OBJS)
@@ -96,6 +106,10 @@ $(OBJDIR)/dosim.o: dosim.C
 	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 
 $(OBJDIR)/showcloudmap.o: showcloudmap.C
+	mkdir -p $(OBJDIR)
+	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
+
+$(OBJDIR)/dolasersim.o: dolasersim.C
 	mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 

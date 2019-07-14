@@ -126,7 +126,7 @@ void Cloud::Reset(){
    }
    cloudmap=new TH2Poly();
    int npt=10;
-   double pi=3.1415926;
+   //double PI=3.1415926;
 
    int nbin=0;
    for(int ii=0;ii<Cntheta;ii++){
@@ -138,21 +138,21 @@ void Cloud::Reset(){
          TGraph* gr=new TGraph();
          for(int kk=0;kk<npt;kk++){
             double rr=theta1+(theta2-theta1)/npt*kk;
-            gr->SetPoint(gr->GetN(),rr*cos(phi1/180*pi),rr*sin(phi1/180*pi));
+            gr->SetPoint(gr->GetN(),rr*cos(phi1/180*PI),rr*sin(phi1/180*PI));
          }
          for(int kk=0;kk<npt;kk++){
             double angle=phi1+(phi2-phi1)/npt*kk;
-            gr->SetPoint(gr->GetN(),theta2*cos(angle/180*pi),theta2*sin(angle/180*pi));
+            gr->SetPoint(gr->GetN(),theta2*cos(angle/180*PI),theta2*sin(angle/180*PI));
          }
          for(int kk=0;kk<npt;kk++){
             double rr=theta2+(theta1-theta2)/npt*kk;
-            gr->SetPoint(gr->GetN(),rr*cos(phi2/180*pi),rr*sin(phi2/180*pi));
+            gr->SetPoint(gr->GetN(),rr*cos(phi2/180*PI),rr*sin(phi2/180*PI));
          }
          for(int kk=0;kk<npt&&theta1>0;kk++){
             double angle=phi2+(phi1-phi2)/npt*kk;
-            gr->SetPoint(gr->GetN(),theta1*cos(angle/180*pi),theta1*sin(angle/180*pi));
+            gr->SetPoint(gr->GetN(),theta1*cos(angle/180*PI),theta1*sin(angle/180*PI));
          }
-         //gr->SetPoint(gr->GetN(),theta1*cos(phi1/180*pi),theta1*sin(phi1/180*pi));
+         //gr->SetPoint(gr->GetN(),theta1*cos(phi1/180*PI),theta1*sin(phi1/180*PI));
          cloudmap->AddBin((TObject*)gr);
          //graphlist.push_back(gr);//delete gr;
          nbin++;
@@ -199,15 +199,15 @@ TGraph* Cloud::TelView(WFTelescopeArray* pct,int iTel){
       TGraph* gr=pct->TelView(iTel);
       if(!gr) return 0;
       TGraph* gr2=new TGraph();
-      double pi=3.1415926;
+      //double PI=3.1415926;
       for(int ii=0;ii<gr->GetN();ii++){
          double xx=gr->GetX()[ii];
          double yy=gr->GetY()[ii];
          double zz=sqrt(1-xx*xx-yy*yy);
-         double theta=TMath::ACos(zz)/pi*180.;
-	 double phi=(xx==0)?(yy>=0?pi/2.:-pi/2.):TMath::ATan(yy/xx);
-         if(xx<0) phi+=pi;
-         if(phi<0) phi+=2*pi;
+         double theta=TMath::ACos(zz)/PI*180.;
+	 double phi=(xx==0)?(yy>=0?PI/2.:-PI/2.):TMath::ATan(yy/xx);
+         if(xx<0) phi+=PI;
+         if(phi<0) phi+=2*PI;
          gr2->SetPoint(ii,theta*cos(phi),theta*sin(phi));
       }
       delete gr;
@@ -223,7 +223,7 @@ void Cloud::AveTemp(double &avetemp,double &mintemp,TGraph* gr){
    double tempmin=100;
    double tempave=0;
 
-   double pi=3.1415926;
+   //double PI=3.1415926;
    int nbins=0;
    for(int ii=0;ii<Cntheta;ii++){
       nbins+=Cnbinphi[ii];
@@ -231,7 +231,7 @@ void Cloud::AveTemp(double &avetemp,double &mintemp,TGraph* gr){
    for(int ibin=1;ibin<=nbins;ibin++){
       double theta,phi;
       Convert(ibin,theta,phi);
-      bool inside=gr->IsInside(theta*cos(phi/180*pi),theta*sin(phi/180*pi));
+      bool inside=gr->IsInside(theta*cos(phi/180*PI),theta*sin(phi/180*PI));
       if(inside){
          double xi=cloudmap->GetBinContent(ibin);
          if(xi<tempmin) tempmin=xi;

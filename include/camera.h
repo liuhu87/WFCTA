@@ -175,7 +175,7 @@ void SC_Channel2eSiPM(short fpga, short db, short channel, short *sipm)
 void eSiPM2SC_Channel(short mSiPM, short *mSC, short *mChannel)
 {
   short modfpga;
-  short modfpga;
+  short moddb;
 
   short fpga;
   short db;

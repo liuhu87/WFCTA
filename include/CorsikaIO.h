@@ -5,6 +5,7 @@
 #include "TObject.h"
 #include "TSelector.h"
 #include "math.h"
+#include "common.h"
 using namespace std;
 
 class CorsikaEvent;
@@ -31,8 +32,8 @@ class CorsikaEvent;
 //use number of primary particle
 #define Nuse 20
 
-#define PI 3.14159265358979312
-#define RADDEG 180/PI
+//#define PI 3.14159265358979312
+//#define RADDEG 180/PI
 
 ///the event general information in the corsika output file
 struct EveInfo{

@@ -121,7 +121,7 @@ void SquareCone::SquareRaytracing()
           distance[surfn]=Norm_vector(tRay_vector);
           break;
         default:
-          const double PI=3.1415926;
+          //const double PI=3.1415926;
           beta=(surfn-2)*PI/2;
           ptix=*ptemp*cos(beta)+*(ptemp+1)*sin(beta);
           ptiy=*ptemp*(-sin(beta))+*(ptemp+1)*cos(beta);
@@ -178,7 +178,7 @@ void SquareCone::SquareRaytracing()
     }
     else 
     {
-      const double PI=3.1415926;
+      //const double PI=3.1415926;
       beta=(surfnum-2)*PI/2;
       ptix=*ptemp*cos(beta)+*(ptemp+1)*sin(beta);
       ptiy=*ptemp*(-sin(beta))+*(ptemp+1)*cos(beta);

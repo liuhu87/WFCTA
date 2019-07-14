@@ -112,7 +112,8 @@ void WCamera::AddNSB()
   double nsb;
   for(int itube=0; itube<NSIPM; itube++){
     nsb = gRandom->Poisson(NSB);
-    TubeSignal[itube] +=int(nsb);
+    //TubeSignal[itube] +=int(nsb);
+    TubeSignal[itube] +=nsb;
   }
 }
 
