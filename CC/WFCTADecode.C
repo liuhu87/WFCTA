@@ -54,16 +54,15 @@ uint8_t WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize)
     return 0;
 }
 
-bool WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize,int type)
+int WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize,int type)
 {
-    bool find=false;
+    int find=-1;
     readPos = 0;
     if(type>=1&&type<=9){
-       if(type==9) type=0;
        while(readPos+63<bufsize){
-          if( *(begin+readPos+0)==0x12 && *(begin+readPos+1)==0x34 && *(begin+readPos+62)==0xab && *(begin+readPos+63)==0xcd && *(begin+readPos+2)==type ){
+          if( *(begin+readPos+0)==0x12 && *(begin+readPos+1)==0x34 && *(begin+readPos+62)==0xab && *(begin+readPos+63)==0xcd && *(begin+readPos+2)==(type==9?0:type) ){
              packSize = readPos+64;
-             find=true;
+             find=readPos;
              break;
           }
           readPos++;
@@ -73,7 +72,7 @@ bool WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize,int type)
        while(readPos+71<bufsize){
           if( *(begin+readPos+0)==0x12 && *(begin+readPos+1)==0x34 && *(begin+readPos+70)==0xab && *(begin+readPos+71)==0xcd && *(begin+readPos+3)==type ){
              packSize = readPos+72;
-             find=true;
+             find=readPos;
              break;
           }
           readPos++;
@@ -83,7 +82,7 @@ bool WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize,int type)
        while(readPos+73<bufsize){
           if( *(begin+readPos+0)==0x12 && *(begin+readPos+1)==0x34 && *(begin+readPos+72)==0xab && *(begin+readPos+73)==0xcd && *(begin+readPos+3)==type ){
              packSize = readPos+74;
-             find=true;
+             find=readPos;
              break;
           }
           readPos++;
