@@ -54,29 +54,29 @@ class StatusDB {
    ~StatusDB(){Release();}
    static void SetDirectory(const char* dirname);
    static StatusDB* GetHead();
-   static FILE* LocateFile(int Time,double time=0);
+   static FILE* LocateFile(int iTel,int Time,double time=0);
    static bool LocateBlk(int Time,double time=0);
    static void ResetBuffer();
    static void Fill();
-   static bool Locate(int Time,double time=0);
+   static bool Locate(int iTel,int Time,double time=0);
 
-   static int   GetVersion(int Time,int i);
-   static long  GetClbInitTime(int Time);
-   static double GetClbInittime(int Time);
-   static int   GetFiredTube(int Time);
-   static long  GetReadbackTime(int Time);
-   static double GetReadbacktime(int Time);
-   static short GetSingleThrd(int Time,int i);
-   static short GetRecordThrd(int Time,int i);
-   static long  GetSingleCount(int Time,int i);
-   static float GetDbTemp(int Time,int i);
-   static long  GetSingleTime(int Time,int i);
-   static float GetHV(int Time,int i);
-   static float GetPreTemp(int Time,int i);
-   static float GetBigR(int Time,int i);
-   static float GetSmallR(int Time,int i);
-   static long  GetClbTime(int Time,int i);
-   static float GetClbTemp(int Time,int i);
+   static int   GetVersion(int iTel,int Time,int i);
+   static long  GetClbInitTime(int iTel,int Time);
+   static double GetClbInittime(int iTel,int Time);
+   static int   GetFiredTube(int iTel,int Time);
+   static long  GetReadbackTime(int iTel,int Time);
+   static double GetReadbacktime(int iTel,int Time);
+   static short GetSingleThrd(int iTel,int Time,int i);
+   static short GetRecordThrd(int iTel,int Time,int i);
+   static long  GetSingleCount(int iTel,int Time,int i);
+   static float GetDbTemp(int iTel,int Time,int i);
+   static long  GetSingleTime(int iTel,int Time,int i);
+   static float GetHV(int iTel,int Time,int i);
+   static float GetPreTemp(int iTel,int Time,int i);
+   static float GetBigR(int iTel,int Time,int i);
+   static float GetSmallR(int iTel,int Time,int i);
+   static long  GetClbTime(int iTel,int Time,int i);
+   static float GetClbTemp(int iTel,int Time,int i);
 };
 
 #endif

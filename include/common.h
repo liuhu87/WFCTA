@@ -26,6 +26,7 @@ class CommonTools {
    static int TimeFlag(int time,int type);
    static bool GetFirstLastLine(const char* filename,char* firstline,char * lastline);
    static int GetTimeFromFileName(const char* filename,int start,int length);
+   static int GetTelIndex(const char* filename,int start,int length);
    static int get_file_size_time(const char* filename);
    static void getFiles(string path,vector<string>& files);
 };

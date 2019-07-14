@@ -86,11 +86,13 @@ StatusDB* StatusDB::GetHead(){
    if(!_Head) _Head=new StatusDB();
    return _Head;
 }
-FILE* StatusDB::LocateFile(int Time,double time){
+FILE* StatusDB::LocateFile(int iTel,int Time,double time){
    for(int ii=0;ii<containtime.size();ii++){
       if(Time==containtime.at(ii)){
          if(!fp) {printf("StatusDB::LocateFile: containtime error! time=%d\n",Time); return 0;}
-         return fp;
+         int itel=CommonTools::GetTelIndex(FILENAME,42,1);
+         if(itel==iTel) return fp;
+         else break;
       }
    }
    double time0=CommonTools::InvConvert(Time);
@@ -111,6 +113,8 @@ FILE* StatusDB::LocateFile(int Time,double time){
    int itar=-1;
    int cfiletime=0;
    for(int ii=0;ii<namebuff.size();ii++){
+      int itel=CommonTools::GetTelIndex(namebuff.at(ii).data(),42,1);
+      if(itel!=iTel) continue;
       int filetime=CommonTools::GetTimeFromFileName(namebuff.at(ii).data(),46,12);
       //printf("index=%d %s %s time=%d\n",ii,dirpath.data(),namebuff.at(ii).data(),filetime);
       if(Time>=filetime){
@@ -123,12 +127,12 @@ FILE* StatusDB::LocateFile(int Time,double time){
    if(abs(cfiletime-Time)<600){ //one file contains at most 1 hour data
       string cfilename(FILENAME);
       if(cfilename==namebuff.at(itar)){ //in the current file
-         if(jdebug>0) printf("StatusDB::LocateFile: find current file: %d %s time=(%d,%d)\n",itar,namebuff.at(itar).data(),Time,cfiletime);
+         if(jdebug>0) printf("StatusDB::LocateFile: find current file: %d %s time=(%d,%d) Tel=%d\n",itar,namebuff.at(itar).data(),Time,cfiletime,iTel);
          containtime.push_back(Time);
          return fp;
       }
       else{ //in a new file
-         if(jdebug>0) printf("StatusDB::LocateFile: find new file: %d %s time=(%d,%d)\n",itar,namebuff.at(itar).data(),Time,cfiletime);
+         if(jdebug>0) printf("StatusDB::LocateFile: find new file: %d %s time=(%d,%d) Tel=%d\n",itar,namebuff.at(itar).data(),Time,cfiletime,iTel);
          if(fp) fclose(fp);
          strcpy(FILENAME,namebuff.at(itar).data());
          fp=fopen(FILENAME,"rb");
@@ -138,7 +142,7 @@ FILE* StatusDB::LocateFile(int Time,double time){
       }
    }
    else{ //there is no file contains this Time 
-      if(jdebug>0) printf("StatusDB::LocateFile: Couldn't find file for time=%d\n",Time);
+      if(jdebug>0) printf("StatusDB::LocateFile: Couldn't find file for time=%d Tel=%d\n",Time,iTel);
       return 0;
    }
 }
@@ -432,76 +436,76 @@ void StatusDB::Fill(){
    }
 }*/
 
-bool StatusDB::Locate(int Time,double time){
-   if(!LocateFile(Time,time)) return false;
+bool StatusDB::Locate(int iTel,int Time,double time){
+   if(!LocateFile(iTel,Time,time)) return false;
    return LocateBlk(Time,time);
 }
 
-int StatusDB::GetVersion(int Time,int i){
-   if(!Locate(Time)) return -1000;
+int StatusDB::GetVersion(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return fpgaVersion[i];
 }
-long StatusDB::GetClbInitTime(int Time){
-   if(!Locate(Time)) return 0;
+long StatusDB::GetClbInitTime(int iTel,int Time){
+   if(!Locate(iTel,Time)) return 0;
    return clb_initial_Time;
 }
-double StatusDB::GetClbInittime(int Time){
-   if(!Locate(Time)) return 0;
+double StatusDB::GetClbInittime(int iTel,int Time){
+   if(!Locate(iTel,Time)) return 0;
    return clb_initial_time;
 }
-int StatusDB::GetFiredTube(int Time){
-   if(!Locate(Time)) return 0;
+int StatusDB::GetFiredTube(int iTel,int Time){
+   if(!Locate(iTel,Time)) return 0;
    return fired_tube;
 }
-long StatusDB::GetReadbackTime(int Time){
-   if(!Locate(Time)) return 0;
+long StatusDB::GetReadbackTime(int iTel,int Time){
+   if(!Locate(iTel,Time)) return 0;
    return status_readback_Time;
 }
-double StatusDB::GetReadbacktime(int Time){
-   if(!Locate(Time)) return 0;
+double StatusDB::GetReadbacktime(int iTel,int Time){
+   if(!Locate(iTel,Time)) return 0;
    return status_readback_time;
 }
-short StatusDB::GetSingleThrd(int Time,int i){
-   if(!Locate(Time)) return -1000;
+short StatusDB::GetSingleThrd(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return single_thresh[i];
 }
-short StatusDB::GetRecordThrd(int Time,int i){
-   if(!Locate(Time)) return -1000;
+short StatusDB::GetRecordThrd(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return record_thresh[i];
 }
-long StatusDB::GetSingleCount(int Time,int i){
-   if(!Locate(Time)) return -1000;
+long StatusDB::GetSingleCount(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return single_count[i];
 }
-float StatusDB::GetDbTemp(int Time,int i){
-   if(!Locate(Time)) return -1000;
+float StatusDB::GetDbTemp(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return single_count[i];
 }
-long StatusDB::GetSingleTime(int Time,int i){
-   if(!Locate(Time)) return -1000;
+long StatusDB::GetSingleTime(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return single_time[i];
 }
-float StatusDB::GetHV(int Time,int i){
-   if(!Locate(Time)) return -1000;
+float StatusDB::GetHV(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return HV[i];
 }
-float StatusDB::GetPreTemp(int Time,int i){
-   if(!Locate(Time)) return -1000;
+float StatusDB::GetPreTemp(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return PreTemp[i];
 }
-float StatusDB::GetBigR(int Time,int i){
-   if(!Locate(Time)) return -1000;
+float StatusDB::GetBigR(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return BigResistence[i];
 }
-float StatusDB::GetSmallR(int Time,int i){
-   if(!Locate(Time)) return -1000;
+float StatusDB::GetSmallR(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return SmallResistence[i];
 }
-long StatusDB::GetClbTime(int Time,int i){
-   if(!Locate(Time)) return -1000;
+long StatusDB::GetClbTime(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return ClbTime[i];
 }
-float StatusDB::GetClbTemp(int Time,int i){
-   if(!Locate(Time)) return -1000;
+float StatusDB::GetClbTemp(int iTel,int Time,int i){
+   if(!Locate(iTel,Time)) return -1000;
    return ClbTemp[i];
 }

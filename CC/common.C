@@ -139,6 +139,23 @@ int CommonTools::GetTimeFromFileName(const char* filename,int start,int length){
       return time;
    }
 }
+int CommonTools::GetTelIndex(const char* filename,int start,int length){
+   int strlength=strlen(filename);
+   if(start<0) return 0;
+   else if(start+length>strlength) return 0;
+   else{
+      char timebuff[100];
+      int np=0;
+      for(int ii=start;ii<start+length;ii++){
+         timebuff[np++]=filename[ii];
+      }
+      timebuff[np++]='\0';
+      int itel=atoi(timebuff);
+      int time=GetTimeFromFileName(filename,46,12);
+      if(time<InvConvert(190517160000)) itel+=3;
+      return itel;
+   }
+}
 
 int CommonTools::get_file_size_time(const char* filename){
    struct stat statbuf;
