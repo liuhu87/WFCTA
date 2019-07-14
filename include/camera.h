@@ -169,8 +169,8 @@ void SC_Channel2eSiPM(short fpga, short db, short channel, short *sipm)
 
 /*******************************************************************************
  * void eSiPM2SC_Channel(short mSiPM, short *mSC, short *mChannel)             *
- * change esipm to FPGA_DB & Channel                                            *
- * range of esipm is [1,1024]                                                   *
+ * change esipm to FPGA_DB & Channel                                           *
+ * range of esipm is [1,1024]                                                  *
  *******************************************************************************/
 void eSiPM2SC_Channel(short mSiPM, short *mSC, short *mChannel)
 {
