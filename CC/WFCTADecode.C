@@ -125,7 +125,7 @@ void WFCTADecode::Getthresh(uint8_t *begin, int packsize, short *single_thresh, 
 /*******************************
  * **deal status package of 22**
  * *****************************/
-void WFCTADecode::Deal22Pack(uint8_t *begin, int packsize, long *single_count)//Deal22Package
+void WFCTADecode::Deal22Pack(uint8_t *begin, int packsize, long *single_count)//Deal22Package get single count [channel 1-8]
 {
     head = packsize - 72;
     short sipm;
@@ -152,7 +152,7 @@ void WFCTADecode::Deal22Pack(uint8_t *begin, int packsize, long *single_count)//
 /*******************************
  * **deal status package of 23**
  * *****************************/
-void WFCTADecode::Deal23Pack(uint8_t *begin, int packsize, long *single_count, long *single_time)//Deal23Package
+void WFCTADecode::Deal23Pack(uint8_t *begin, int packsize, long *single_count, long *single_time)//Deal23Package get single [channel 9-16] count and single time
 {
     head = packsize - 72;
     short sipm;
