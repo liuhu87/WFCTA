@@ -311,6 +311,48 @@ void WFCTADecode::GetPreTemp(uint8_t *begin, int packsize, float *PreTemp)//Deal
 
 }
 
+void WFCTADecode::GetBigRes(uint8_t *begin, int packsize, float *BigResistence)//Deal83Package
+{
+    head = packsize - 72;
+
+    short sipm;
+    short fpga = (short)begin[head+2]&0x0f;
+    short db = ((short)begin[head+2])>>4;
+    short sc = db*10+fpga;
+
+    for(int i=0;i<4;i++)
+    {
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        *(BigResistence+sipm) = (float)( ((int16_t)begin[head+13+i*2]<<8) | (int16_t)begin[head+14+i*2] ) *50/256.;
+    }
+    SC_Channel2SiPM(sc,5,&sipm);
+    *(BigResistence+sipm) = (float)( ((int16_t)begin[head+13+4*2]<<8) | (int16_t)begin[head+14+5*2] ) *50/256.;
+    for(int i=5;i<16;i++)
+    {
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        *(BigResistence+sipm) = (float)( ((int16_t)begin[head+13+(i+1)*2]<<8) | (int16_t)begin[head+14+(i+1)*2] ) *50/256.;
+    }
+
+}
+
+void WFCTADecode::GetSmallRes(uint8_t *begin, int packsize, float *SmallResistence)//Deal84Package
+{
+    head = packsize - 72;
+
+    short sipm;
+    short fpga = (short)begin[head+2]&0x0f;
+    short db = ((short)begin[head+2])>>4;
+    short sc = db*10+fpga;
+
+    SC_Channel2SiPM(sc,1,&sipm);
+    *(SmallResistence+sipm) = (float)( ((int16_t)begin[head+13]<<8) | (int16_t)begin[head+14+2] )  *10/1024.;
+    for(int i=1;i<16;i++)
+    {
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        *(SmallResistence+sipm) = (float)( ((int16_t)begin[head+13+(i+1)*2]<<8) | (int16_t)begin[head+14+(i+1)*2] ) *10/1024.;
+    }
+}
+
 /********************************
  * ***get clb board temperature**
  * ******************************/
@@ -333,6 +375,28 @@ void WFCTADecode::GetClbTemp(uint8_t *begin, int packsize, float *ClbTemp)//Deal
         //SC_Channel2eSiPM(fpga, db, i+1, &sipm); sipm -= 1;
         *(ClbTemp+sipm) = m_ClbTemp;
     }
+}
+
+void WFCTADecode::GetClbTime(uint8_t *begin, int packsize, long *ClbTime)//Deal85pack
+{
+    head = packsize - 74;
+    
+    short sipm;
+    short fpga = (short)begin[head+2]&0x0f;
+    short db = ((short)begin[head+2])>>4;
+    short sc = db*10+fpga;
+
+    long m_ClbTime = (long)( ((uint64_t)begin[head+10]<<32)|
+                             ((uint64_t)begin[head+11]<<24)|
+	   	     	     ((uint64_t)begin[head+12]<<16)|
+		     	     ((uint64_t)begin[head+13]<<8)|
+		     	     (uint64_t)begin[head+14] );
+    for(int i=0;i<16;i++)
+    {
+        SC_Channel2SiPM(sc,i+1,&sipm);
+        *(ClbTime+sipm) = m_ClbTime;
+    }
+    
 }
 
 /**********************

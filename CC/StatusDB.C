@@ -327,12 +327,12 @@ void StatusDB::Fill(){
              nfilled++;
              break;
            case 0x83:
-             //wfctaDecode->Deal83Package((float *)BigResistence);
+             wfctaDecode->GetBigRes(buf,offset+packSize,(float *)BigResistence);
              if(jdebug>5) printf("StatusDB::Fill:packetpos=%5ld, Fill 0x83 packet\n",offset+packSize);
              nfilled++;
              break;
            case 0x84:
-             //wfctaDecode->Deal84Package((float *)SmallResistence);
+             wfctaDecode->GetSmallRes(buf,offset+packSize,(float *)SmallResistence);
              if(jdebug>5) printf("StatusDB::Fill:packetpos=%5ld, Fill 0x84 packet\n",offset+packSize);
              nfilled++;
              break;

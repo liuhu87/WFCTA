@@ -49,11 +49,14 @@ public:
     
 
     void Getthresh(uint8_t *begin, int packsize, short *single_thresh, short *record_thresh);//Deal21Package
-    void Deal22Pack(uint8_t *begin, int packsize, long *single_count);//Deal22Package
-    void Deal23Pack(uint8_t *begin, int packsize, long *single_count, long *single_time);//Deal23Package
+    void Deal22Pack(uint8_t *begin, int packsize, long *single_count);//Deal22Package get single count [channel 1-8]
+    void Deal23Pack(uint8_t *begin, int packsize, long *single_count, long *single_time);//Deal23Package get single [channel 9-16] count and single time
     void GetHV(uint8_t *begin, int packsize, float *HV);//Deal81Package
     void GetPreTemp(uint8_t *begin, int packsize, float *PreTemp);//Deal82Package
+    void GetBigRes(uint8_t *begin, int packsize, float *BigResistence);//Deal83Package
+    void GetSmallRes(uint8_t *begin, int packsize, float *SmallResistence);//Deal84Package
     void GetClbTemp(uint8_t *begin, int packsize, float *ClbTemp);//Deal85pack
+    void GetClbTime(uint8_t *begin, int packsize, long *ClbTime);//Deal85pack
 
     uint64_t GetclbInitialTime(uint8_t *begin, int packsize);
     double GetclbInitialtime(uint8_t *begin, int packsize);
