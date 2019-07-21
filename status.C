@@ -49,6 +49,7 @@ int main(int argc, char**argv)
   WFCTAEvent *wfctaEvent = new WFCTAEvent();
   TFile *rootfile = new TFile(argv[2],"recreate");
   /*********************************************************************/
+
   /*********************************************************************/
 
   WFCTADecode *wfctaDecode = new WFCTADecode();
