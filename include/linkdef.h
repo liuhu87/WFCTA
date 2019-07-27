@@ -36,4 +36,7 @@
 #pragma link C++ class Laser+;
 
 #pragma link C++ class StatusDB+;
+
+#pragma link C++ class ReadTrack+;
+#pragma link C++ class ShowerPlot+;
 #endif

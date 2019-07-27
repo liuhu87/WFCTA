@@ -1,5 +1,6 @@
 #include "CorsikaEvent.h"
 #include "EventNtuple.h"
+#include "ReadTrack.h"
 void CorsikaEvent::Init(){
    run=-1;
    date=0;
@@ -219,7 +220,7 @@ bool CorsikaEvent::DoWFCTASim(){
 
          x0=cx.at(icer)-corex[whichcore];
          y0=cy.at(icer)-corey[whichcore];
-         z0=0.;
+         z0=oheight;
          ///not quite sure about this direction
          m1=-cu.at(icer);
          n1=-cv.at(icer);
@@ -248,6 +249,9 @@ void CorsikaEvent::Fill(){
          TSelector* pevt0[]={this,0};
          EventNtuple::GetHead()->Fill(pevt0);
       }
+   }
+   if(ReadTrack::GetHead()&&ReadTrack::DoPlot){ //Copy Shower information to ReadTrack to do plot
+      ReadTrack::GetHead()->Copy(this);
    }
    Reset();
 }

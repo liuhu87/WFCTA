@@ -116,12 +116,14 @@ class CorsikaIO{
    ///construction function
    CorsikaIO();
    ///construction function, type is the type of the input file(cerenkov light or particle),which is used to fill ftype
-   CorsikaIO(char* inputfile,int type=0);
+   CorsikaIO(const char* inputfile,int type=0);
    ///deconstruction function
    virtual ~CorsikaIO();
 
    ///init the data(type=0:init all data,type=1:init only cer and par data,type=2:init only cer data,type=3:init only par data)
    void Init(int type=0);
+   ///start from the beginning
+   void Reset();
    ///read all the record data (beg is the index of beginning record to read,end is the index of ending record to read. equal to 0 means read all the records)
    Int_t ReadAll(int beg=0,int end=0,CorsikaEvent* pevt=0);
    ///read one record data

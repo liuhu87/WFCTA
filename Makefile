@@ -20,6 +20,8 @@ HEADERS  += $(INCDIR)/Cloud.h
 HEADERS  += $(INCDIR)/LHChain.h
 HEADERS  += $(INCDIR)/Laser.h
 HEADERS  += $(INCDIR)/StatusDB.h
+HEADERS  += $(INCDIR)/ReadTrack.h
+HEADERS  += $(INCDIR)/ShowerPlot.h
 
 SOURCES  := $(SRCDIR)/common.C
 SOURCES  += $(SRCDIR)/CorsikaIO.C $(SRCDIR)/CorsikaChain.C $(SRCDIR)/CorsikaEvent.C 
@@ -34,6 +36,8 @@ SOURCES  += $(SRCDIR)/Cloud.C
 SOURCES  += $(SRCDIR)/LHChain.C
 SOURCES  += $(SRCDIR)/Laser.C
 SOURCES  += $(SRCDIR)/StatusDB.C
+SOURCES  += $(SRCDIR)/ReadTrack.C
+SOURCES  += $(SRCDIR)/ShowerPlot.C
 SOURCES  += event.C
 SOURCES  += status.C
 SOURCES  += read.C
@@ -54,6 +58,8 @@ OBJS     += $(OBJDIR)/Cloud.o
 OBJS     += $(OBJDIR)/LHChain.o
 OBJS     += $(OBJDIR)/Laser.o
 OBJS     += $(OBJDIR)/StatusDB.o
+OBJS     += $(OBJDIR)/ReadTrack.o
+OBJS     += $(OBJDIR)/ShowerPlot.o
 OBJS     += $(OBJDIR)/dictionary.o
 
 DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) `root-config --cflags`

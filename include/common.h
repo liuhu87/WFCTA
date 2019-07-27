@@ -14,7 +14,8 @@ using namespace std;
 
 #define PI 3.14159265358979312
 #define RADDEG 180/PI
-const double hplank=6.62607015e-34;
+const double hplank=6.62607015e-34; //in J*s
+const double hplank_gev=4.1356676969e-24; //in GeV*s
 const double vlight=2.998e10;
   ///convert time
 class CommonTools {

@@ -16,7 +16,7 @@ CorsikaIO::CorsikaIO(){
    nrec=0;
    for(int ii=0;ii<4;ii++) flag[ii]=0;
 }
-CorsikaIO::CorsikaIO(char* inputfile,int type){
+CorsikaIO::CorsikaIO(const char* inputfile,int type){
    Init(0);
    nrec=0;
    for(int ii=0;ii<4;ii++) flag[ii]=0;
@@ -76,6 +76,13 @@ void CorsikaIO::Init(int type){
       Evt.irun=-1;
       Evt.ievent=-1;
    }
+}
+void CorsikaIO::Reset(){
+   nrec=0;
+   for(int ii=0;ii<4;ii++) flag[ii]=0;
+   Evt.irun=-1;
+   Evt.ievent=-1;
+   if(fin) fin->seekg(0,ios::beg);
 }
 Int_t CorsikaIO::ReadAll(int beg,int end,CorsikaEvent* pevt){
    if(ftype<0) return 0;
@@ -186,7 +193,7 @@ Int_t CorsikaIO::FillBlk(int iblk_beg,int iblk_end,CorsikaEvent* pevt){
         Evt.height = recbuff.f[iptr+5+1];
         Evt.version = recbuff.f[iptr+4];
         if(jdebug>2){
-           printf("%f %f %f %f %f\n",recbuff.f[iptr+2],recbuff.f[iptr+3],recbuff.f[iptr+4],recbuff.f[iptr+5],recbuff.f[iptr+272]);
+           printf("%f %f %f %f %f\n",recbuff.f[iptr+2],recbuff.f[iptr+3],recbuff.f[iptr+4],recbuff.f[iptr+5],recbuff.f[iptr+5+1]);
            cout << "Run number: "                  << Evt.irun << endl;
            cout << "Date of the run: "             << Evt.idate << endl;
            cout << "Version of CORSIKA: "          << Evt.version << endl;
@@ -229,8 +236,8 @@ Int_t CorsikaIO::FillBlk(int iblk_beg,int iblk_end,CorsikaEvent* pevt){
         Evt.corex[ii-1]=recbuff.f[iptr+98+ii];
         Evt.corey[ii-1]=recbuff.f[iptr+118+ii];
         }
-        Firstheight = -(Firstheight+430000.);
-        Firstheight = sqrt(Firstheight*Firstheight+corex*corex+corey*corey);
+        //Firstheight = -(Firstheight+430000.);
+        //Firstheight = sqrt(Firstheight*Firstheight+corex*corex+corey*corey);
         if (jdebug>2) {
           printf("%f %f %f %f %f %f %f\n",(Firstheight)/lightspeed,Firstheight,recbuff.f[iptr+11], lightspeed, Evt.pzp, corex, corey);
           printf("corex %f corey %f ievent %d\n",recbuff.f[iptr+98+1],recbuff.f[iptr+118+1],Evt.ievent);
