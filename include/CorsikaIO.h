@@ -122,6 +122,8 @@ class CorsikaIO{
 
    ///init the data(type=0:init all data,type=1:init only cer and par data,type=2:init only cer data,type=3:init only par data)
    void Init(int type=0);
+   ///Initial the fin
+   bool OpenFile(const char* inputfile);
    ///start from the beginning
    void Reset();
    ///read all the record data (beg is the index of beginning record to read,end is the index of ending record to read. equal to 0 means read all the records)

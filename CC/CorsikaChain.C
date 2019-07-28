@@ -1,10 +1,22 @@
 #include "CorsikaChain.h"
 #include "EventNtuple.h"
 void CorsikaChain::Init(){
-   CorsikaIO::Init();
+   CorsikaIO::Init(0);
+   fin=0;
+   nrec=0;
+   for(int ii=0;ii<4;ii++) flag[ii]=0;
+   ftype=-1;
+
    nfiles=0;
    filename=0;
    ifile=0;
+}
+void CorsikaChain::Reset(){
+   CorsikaIO::Reset();
+   if(ifile!=0){
+      ifile=0;
+      if(nfiles>0) OpenFile(filename[ifile]);
+   }
 }
 void CorsikaChain::Add(char* inputfile){
    if(!inputfile) return;
@@ -32,6 +44,7 @@ void CorsikaChain::Add(char* inputfile){
    return;
 }
 CorsikaChain::CorsikaChain(char* filelist,int first,int last,int type){
+   Init();
    ifstream ff;
    bool failed=(last<first);
    if(!filelist) failed=true;
@@ -40,7 +53,6 @@ CorsikaChain::CorsikaChain(char* filelist,int first,int last,int type){
       if(!ff.is_open()) failed=true;
       else ff.seekg(0,ios::beg);
    }
-   Init();
    if(failed) return;
    char buff[charsize];
    int nline=-1;
@@ -55,35 +67,12 @@ CorsikaChain::CorsikaChain(char* filelist,int first,int last,int type){
       nline++;
    }
    //init the ifstream for CorsikaIO class
-   ftype=-1;
-   ifile=0;
-   CorsikaIO::Init(0);
-   nrec=0;
-   for(int ii=0;ii<4;ii++) flag[ii]=0;
    if(type<0||type>2){
      printf("CorsikaChain::CorsikaChain: the inputfile type is wrong type=%d\n",type);
      return;
    }
-   fin=new std::ifstream(filename[ifile]);
-   if(!fin->is_open()){
-      printf("CorsikaChain::CorsikaChain:Error in opening file %s\n",filename[ifile]);
-      delete fin; fin=0;
-      return;
-   }
-   else{
-      fin->seekg(0,ios::end);
-      size_t filesize = fin->tellg();
-      if (jdebug>0) printf("The file size of %s is %d bytes\n",filename[ifile],filesize);
-      if (!filesize) {
-        printf("Warning: The file is empty!\n");
-        fin->close();
-        delete fin; fin=0;
-        return;
-      }
-      fin->seekg(0,ios::beg);
-      ftype=type;
-      return;
-   }
+   bool opened=nfiles>0?OpenFile(filename[0]):false;
+   if(opened) ftype=type;
 }
 void CorsikaChain::Clear(){
    if(filename){

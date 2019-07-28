@@ -7,6 +7,7 @@ int ReadTrack::particle=-1;
 float ReadTrack::elimit[2]={0,0};
 float ReadTrack::climit[3][2]={{0,0},{0,0},{0,0}};
 float ReadTrack::tlimit[2]={0,0};
+float ReadTrack::IniRange[4][2]={{1.0e9,-1.0e9},{1.0e9,-1.0e9},{1.0e9,-1.0e9},{1.0e9,-1.0e9}};
 void ReadTrack::SetHead(ReadTrack* head){
    _Head=head;
 }
@@ -31,15 +32,22 @@ void ReadTrack::Init(){
       arrc1[ii].clear();
       arrc2[ii].resize(nsize);
       arrc2[ii].clear();
-      plotrange[ii][0]=1.0e10;
-      plotrange[ii][1]=-1.0e10;
+      plotrange[ii][0]=IniRange[ii][0];
+      plotrange[ii][1]=IniRange[ii][1];
    }
+   plotrange[3][0]=IniRange[3][0];
+   plotrange[3][1]=IniRange[3][1];
    for(int ii=0;ii<10;ii++) recbuff.f[ii]=0;
 }
 void ReadTrack::Reset(){
-   if(fin) fin->seekg(0,ios::beg);
+   if(fin){
+      fin->clear();
+      fin->seekg(0,ios::beg);
+   }
    if(plot){
-      plot->Delete();
+      //plot->Delete();
+      delete plot;
+      plot=new TObjArray();
    }
    nrec=0;
    arrid.clear();
@@ -49,9 +57,11 @@ void ReadTrack::Reset(){
    for(int ii=0;ii<3;ii++){
       arrc1[ii].clear();
       arrc2[ii].clear();
-      plotrange[ii][0]=1.0e10;
-      plotrange[ii][1]=-1.0e10;
+      plotrange[ii][0]=IniRange[ii][0];
+      plotrange[ii][1]=IniRange[ii][1];
    }
+   plotrange[3][0]=IniRange[3][0];
+   plotrange[3][1]=IniRange[3][1];
 }
 void ReadTrack::Release(){
    if(fin){
@@ -108,8 +118,14 @@ int ReadTrack::ReadRec(){
    if(nrec==0) fin->read(padding.c,4);
    else fin->read(padding.c,8);
    if (!fin->good()){
-      printf("ReadTrack::ReadRec: Error in reading track file. The file is empty?\n");
-      return -2;
+      if(nrec>0){
+         printf("ReadTrack::ReadRec: reading track file finished.\n");
+         return nrec;
+      }
+      else{
+         printf("ReadTrack::ReadRec: Error in reading track file. The file is empty? nrec=%d pos=%ld\n",nrec,fin->tellg());
+         return -2;
+      }
    }
    if(jdebug>1) printf("ReadTrack::ReadRec: size of this record(%d) %d(%d %s)\n",nrec+1,padding.i[0],padding.i[1],padding.c);
    if(padding.i[0]!=40){
@@ -154,13 +170,19 @@ int ReadTrack::ReadRec(){
       arren.push_back(energy);
       arrt1.push_back(t1);
       arrt2.push_back(t2);
+      if(t1<plotrange[3][0]) plotrange[3][0]=t1;
+      if(t2<plotrange[3][0]) plotrange[3][0]=t2;
+      if(t1>plotrange[3][1]) plotrange[3][1]=t1;
+      if(t2>plotrange[3][1]) plotrange[3][1]=t2;
       for(int ii=0;ii<3;ii++){
          arrc1[ii].push_back(coo1[ii]);
          arrc2[ii].push_back(coo2[ii]);
+         if(plotrange[ii][0]>=plotrange[ii][1]){
          if(coo1[ii]<plotrange[ii][0]) plotrange[ii][0]=coo1[ii];
          if(coo2[ii]<plotrange[ii][0]) plotrange[ii][0]=coo2[ii];
          if(coo1[ii]>plotrange[ii][1]) plotrange[ii][1]=coo1[ii];
          if(coo2[ii]>plotrange[ii][1]) plotrange[ii][1]=coo2[ii];
+         }
       }
       if(jdebug>1) printf("ReadTrack::ReadRec: fill the track nrec=%d partid=%d\n",nrec,partid);
    }
@@ -170,6 +192,7 @@ int ReadTrack::ReadAll(int beg,int end){
    if(!fin) return -1;
    int nrec0=nrec;
    while(fin->good()){
+      if(jdebug>4) printf("ReadTrack::ReadAll: Begin to Read No. %d Record\n",nrec+1);
       if(nrec+1>end&&(end>=beg&&end>0)) break;
       int irec=ReadRec();
       if(irec<=0){
@@ -222,13 +245,19 @@ void ReadTrack::Copy(CorsikaEvent* pevt){
          arren.push_back(energy);
          arrt1.push_back(t1);
          arrt2.push_back(t2);
+         if(t1<plotrange[3][0]) plotrange[3][0]=t1;
+         if(t2<plotrange[3][0]) plotrange[3][0]=t2;
+         if(t1>plotrange[3][1]) plotrange[3][1]=t1;
+         if(t2>plotrange[3][1]) plotrange[3][1]=t2;
          for(int ii=0;ii<3;ii++){
             arrc1[ii].push_back(coo1[ii]);
             arrc2[ii].push_back(coo2[ii]);
+            if(plotrange[ii][0]>=plotrange[ii][1]){
             if(coo1[ii]<plotrange[ii][0]) plotrange[ii][0]=coo1[ii];
             if(coo2[ii]<plotrange[ii][0]) plotrange[ii][0]=coo2[ii];
             if(coo1[ii]>plotrange[ii][1]) plotrange[ii][1]=coo1[ii];
             if(coo2[ii]>plotrange[ii][1]) plotrange[ii][1]=coo2[ii];
+            }
          }
          if(jdebug>1) printf("ReadTrack::Copy: fill the cer track nrec=%d partid=%d\n",ic,partid);
       }

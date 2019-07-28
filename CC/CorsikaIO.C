@@ -12,26 +12,20 @@ Bool_t CorsikaIO::WLFlag=true;
 Int_t CorsikaIO::jdebug=0;
 CorsikaIO::CorsikaIO(){
    Init(0);
+   nrec=0;
+   for(int ii=0;ii<4;ii++) flag[ii]=0;
    fin=0;
-   nrec=0;
-   for(int ii=0;ii<4;ii++) flag[ii]=0;
+   ftype=-1;
 }
-CorsikaIO::CorsikaIO(const char* inputfile,int type){
-   Init(0);
-   nrec=0;
-   for(int ii=0;ii<4;ii++) flag[ii]=0;
-   if(type<0||type>2){
-     printf("CorsikaIO::CorsikaIO: the inputfile type is wrong type=%d\n",type);
-     ftype=-1;
-     return;
-   }
+bool CorsikaIO::OpenFile(const char* inputfile){
+   if(fin){fin->close(); delete fin;}
    if(inputfile) fin=new std::ifstream(inputfile);
    else fin=0;
-   if(!fin) return;
+   if(!fin) return false;
    if(!fin->is_open()){
       printf("CorsikaIO::CorsikaIO:Error in opening file %s\n",inputfile);
       delete fin; fin=0;
-      return;
+      return false;
    }
    else{
       fin->seekg(0,ios::end);
@@ -41,12 +35,24 @@ CorsikaIO::CorsikaIO(const char* inputfile,int type){
         printf("Warning: The file is empty!\n");
         fin->close();
         delete fin; fin=0;
-        return;
+        return false;
       }
       fin->seekg(0,ios::beg);
-      ftype=type;
-      return;
+      return true;
    }
+}
+CorsikaIO::CorsikaIO(const char* inputfile,int type){
+   Init(0);
+   nrec=0;
+   for(int ii=0;ii<4;ii++) flag[ii]=0;
+   fin=0;
+   ftype=-1;
+   if(type<0||type>2){
+     printf("CorsikaIO::CorsikaIO: the inputfile type is wrong type=%d\n",type);
+     return;
+   }
+   bool opened=OpenFile(inputfile);
+   if(opened) ftype=type;
 }
 
 CorsikaIO::~CorsikaIO(){
@@ -82,7 +88,10 @@ void CorsikaIO::Reset(){
    for(int ii=0;ii<4;ii++) flag[ii]=0;
    Evt.irun=-1;
    Evt.ievent=-1;
-   if(fin) fin->seekg(0,ios::beg);
+   if(fin){
+      fin->clear();
+      fin->seekg(0,ios::beg);
+   }
 }
 Int_t CorsikaIO::ReadAll(int beg,int end,CorsikaEvent* pevt){
    if(ftype<0) return 0;

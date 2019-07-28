@@ -7,6 +7,7 @@
 #include "TLegend.h"
 class ShowerPlot{
    public:
+   static int jdebug;
    static char tpname[NShowerTrack][20];
    char primary[20];
    char filename[NShowerTrack][100];
@@ -22,7 +23,7 @@ class ShowerPlot{
    ~ShowerPlot() {Release();}
    bool Add(const char* filename,int type);
    bool Read();
-   void Draw();
+   TCanvas* Draw(int ViewOpt=0);
 };
 
 #endif

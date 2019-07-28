@@ -18,6 +18,8 @@ class CorsikaChain : public CorsikaIO{
    public:
    ///Init the class
    void Init();
+   ///Reset the class to read from the beginning of first file
+   void Reset();
    ///Constructor without filelist
    CorsikaChain() {Init();}
    ///Constructor with filelist (process the files from first to last, first<0&&last<0 means process all the files,first or last vary from 0 to nline-1)

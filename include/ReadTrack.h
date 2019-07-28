@@ -32,6 +32,7 @@ class ReadTrack{
    static float elimit[2];
    static float climit[3][2];
    static float tlimit[2];
+   static float IniRange[4][2];
    int nrec;
 
    vector<int> arrid;
@@ -42,7 +43,7 @@ class ReadTrack{
    vector<float> arrt2;
 
    TObjArray* plot;
-   float plotrange[3][2];
+   float plotrange[4][2];
 
    public:
    static void SetHead(ReadTrack* head);
