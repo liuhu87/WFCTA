@@ -189,10 +189,10 @@ int main(int argc, char**argv)
   while(true)
   {
       size_of_read = fread((uint8_t *)buf,1,BUF_LEN,fp);
-      fseek(fp,-size_of_read,1);
+      //fseek(fp,-size_of_read,1);
       if(size_of_read==0){break;}
-      //dumpPacket(buf,size_of_read,16);
-
+      dumpPacket(buf,size_of_read,16);
+/*
       if(wfctaDecode->bigPackCheck(buf,BUF_LEN))
       {
 	  //get info eventID and rabbit_time//
@@ -236,10 +236,12 @@ int main(int argc, char**argv)
           }
           fseek(fp,packSize,1);
       }
+
       else
       {
           fseek(fp,1,1);
       }
+*/
   }
   fclose(fp);
 

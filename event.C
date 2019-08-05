@@ -52,7 +52,7 @@ int main(int argc, char**argv)
       fseek(fp,-size_of_read,1);
       if(size_of_read==0){break;}
       //dumpPacket(buf,size_of_read,16);
-
+printf("test\n");
       if(wfctaDecode->bigPackCheck(buf,int(size_of_read)))
       {
 	  //get info eventID and rabbit_time//
@@ -69,23 +69,17 @@ int main(int argc, char**argv)
 	  //get info of each sipm: q, base, peakposition...//
 	  for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){
 	    wfctaEvent->iSiPM.push_back( sipm_position_iter->first );
-	    wfctaEvent->peak.push_back( wfctaDecode->GetPeak(buf,sipm_position_iter->first) );
-	    wfctaEvent->Single_Threshold.push_back( wfctaDecode->GetSingle_Thresh(buf,sipm_position_iter->first) );
-	    wfctaEvent->Record_Threshold.push_back( wfctaDecode->GetRecord_Thresh(buf,sipm_position_iter->first) );
+	    wfctaEvent->ievent.push_back( wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first) );
 	    wfctaEvent->Over_Single_Marker.push_back( wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first) );
 	    wfctaEvent->Over_Record_Marker.push_back( wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first) );
 	    wfctaEvent->ImageBaseHigh.push_back( wfctaDecode->BaseHigh(buf,sipm_position_iter->first) );
-            wfctaEvent->ImageBaseLow.push_back( wfctaDecode->BaseLow(buf,sipm_position_iter->first) );
-            wfctaEvent->ImageAdcHigh.push_back( wfctaDecode->AdcHigh(buf,sipm_position_iter->first) );
-            wfctaEvent->ImageAdcLow.push_back( wfctaDecode->AdcLow(buf,sipm_position_iter->first) );
-	    //wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)pulsehigh, (int *)pulselow);
-	    wfctaEvent->gain_marker.push_back( wfctaDecode->Getgain_marker(buf,sipm_position_iter->first) );
-	    wfctaEvent->mypeak.push_back( wfctaDecode->Getmypeak(buf,sipm_position_iter->first) );
-            wfctaEvent->ADC_Cut.push_back( wfctaDecode->GetADC_Cut(buf,sipm_position_iter->first) );
-	    wfctaEvent->myImageBaseHigh.push_back( wfctaDecode->GetmyImageBaseHigh(buf,sipm_position_iter->first) );
-            wfctaEvent->myImageBaseLow.push_back( wfctaDecode->GetmyImageBaseLow(buf,sipm_position_iter->first) );
-            wfctaEvent->myImageAdcHigh.push_back( wfctaDecode->GetmyImageAdcHigh(buf,sipm_position_iter->first) );
-            wfctaEvent->myImageAdcLow.push_back( wfctaDecode->GetmyImageAdcLow(buf,sipm_position_iter->first) );
+printf("%d %d:\n",wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first),sipm_position_iter->first);
+	    wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)pulsehigh, (int *)pulselow);
+	    wfctaEvent->mypeak.push_back( wfctaDecode->Getwavepeak(buf,sipm_position_iter->first) );
+	    wfctaEvent->myImageBaseHigh.push_back( wfctaDecode->GetwaveImageBaseHigh(buf,sipm_position_iter->first) );
+            wfctaEvent->myImageBaseLow.push_back( wfctaDecode->GetwaveImageBaseLow(buf,sipm_position_iter->first) );
+            wfctaEvent->myImageAdcHigh.push_back( wfctaDecode->GetwaveImageAdcHigh(buf,sipm_position_iter->first) );
+            wfctaEvent->myImageAdcLow.push_back( wfctaDecode->GetwaveImageAdcLow(buf,sipm_position_iter->first) );
 	  }
 
           ///just do some test to exam the reading program

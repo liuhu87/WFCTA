@@ -69,6 +69,7 @@ void WFCTAEvent::Init()
    rabbitTime=0;
    rabbittime=0;
    iSiPM.clear();
+   ievent.clear();
    gain_marker.clear();
    peak.clear();
    mypeak.clear();
@@ -96,6 +97,7 @@ void WFCTAEvent::EventInitial()
    rabbitTime=0;
    rabbittime=0;
    iSiPM.clear();
+   ievent.clear();
    gain_marker.clear();
    peak.clear();
    mypeak.clear();

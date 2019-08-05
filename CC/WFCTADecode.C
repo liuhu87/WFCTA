@@ -539,13 +539,22 @@ void WFCTADecode::Find_SiPMs(uint8_t *begin, int packsize)
  * ********************/
 uint64_t WFCTADecode::eventId(uint8_t *begin)
 {
-    uint64_t evtid = ((uint64_t)begin[head+8]<<24)|
-                      ((uint64_t)begin[head+9]<<16)|
-                      ((uint64_t)begin[head+10]<<8)|
-                      ((uint64_t)begin[head+11]);
+    uint64_t evtid = ((uint64_t)begin[head+12]<<24)|
+                      ((uint64_t)begin[head+13]<<16)|
+                      ((uint64_t)begin[head+14]<<8)|
+                      ((uint64_t)begin[head+15]);
     //dumpPacket(begin,24,16);
     //printf("event:%llu\n",evtid);
     return evtid;
+}
+
+/************************
+ * ** get Npix in data **
+ * **********************/
+int8_t WFCTADecode::nFired(uint8_t *begin)
+{
+    int8_t nfired = ((int8_t)begin[head+22]<<8) | ((int8_t)begin[head+23]);
+    return nfired;
 }
 
 /**********************
@@ -572,47 +581,44 @@ double WFCTADecode::Rabbittime(uint8_t *begin)
     return rab_time;
 }
 
-/****************************
- * **get wave peak position**
- * **************************/
-uint8_t WFCTADecode::GetPeak(uint8_t *begin, short isipm)
-{
+/*-------------------------------------------------------------------------------*/
+//little package message//
+/*-------------------------------------------------------------------------------*/
+
+/********************************************
+ * ** get event id in each channel package **
+ * ******************************************/
+uint64_t WFCTADecode::eventId_in_channel(uint8_t *begin, short isipm)
+{   
     m_sipm_position_iter = m_sipm_position.find(isipm);
-    uint8_t m_peak = ((uint8_t)begin[m_sipm_position_iter->second+2]*64)|
-	     ((uint8_t)begin[m_sipm_position_iter->second+3]>>2);
-    //dumpPacket(begin+m_sipm_position_iter->second,128,16);
-    return m_peak;
+    int packposition = m_sipm_position_iter->second;
+    
+    uint64_t evtid_in_channel = ((uint64_t)begin[packposition+2]<<2)|
+				((uint64_t)begin[packposition+3]>>6);
+    return evtid_in_channel;
 }
 
-/**********************
- * **single threshold**
- * ********************/
-uint16_t WFCTADecode::GetSingle_Thresh(uint8_t *begin, short isipm)
+/****************************************************************
+ * ** get zip mode, 00 represent 4 point zipped into one point **
+ * **************************************************************/
+uint8_t WFCTADecode::zipMode(uint8_t *begin, short isipm)
 {
     m_sipm_position_iter = m_sipm_position.find(isipm);
-    uint16_t m_Single_Threshold = ((uint16_t)begin[m_sipm_position_iter->second+120]<<8)|
-			       ((uint16_t)begin[m_sipm_position_iter->second+121]);
-    return m_Single_Threshold;
+    int packposition = m_sipm_position_iter->second;
+
+    int8_t zip_mode = (((int8_t)begin[packposition+2]&0x3f)>>4);
+    return zip_mode;
 }
 
-/**********************
- * **record threshold**
- * ********************/
-uint16_t WFCTADecode::GetRecord_Thresh(uint8_t *begin, short isipm)
-{
-    m_sipm_position_iter = m_sipm_position.find(isipm);
-    uint16_t m_Record_Threshold = ((uint16_t)begin[m_sipm_position_iter->second+122]<<8)|
-                               ((uint16_t)begin[m_sipm_position_iter->second+123]);
-    return m_Record_Threshold;
-}
-
-/************************
- * **over single marker**
- * **********************/
+/**********************************************
+ * ** get trigger marker, over_single_marker **
+ * ********************************************/
 bool WFCTADecode::GetOver_Single_Mark(uint8_t *begin, short isipm)
 {
     m_sipm_position_iter = m_sipm_position.find(isipm);
-    bool m_Over_Single_Mark = begin[m_sipm_position_iter->second+3]&0x2;
+    int packposition = m_sipm_position_iter->second;
+
+    bool m_Over_Single_Mark = (begin[packposition+3]&0x2); 
     return m_Over_Single_Mark;
 }
 
@@ -622,128 +628,65 @@ bool WFCTADecode::GetOver_Single_Mark(uint8_t *begin, short isipm)
 bool WFCTADecode::GetOver_Record_Mark(uint8_t *begin, short isipm)
 {
     m_sipm_position_iter = m_sipm_position.find(isipm);
+    int packposition = m_sipm_position_iter->second;
+
     bool m_Over_Record_Mark = begin[m_sipm_position_iter->second+3]&0x1;
     return m_Over_Record_Mark;
 }
 
-/***********************
- * **   high gain Q   **
- * *********************/
-float WFCTADecode::AdcHigh(uint8_t *begin, short isipm)
-{
-    m_sipm_position_iter = m_sipm_position.find(isipm);
-    m_adc_high = (float)( ((uint64_t)begin[m_sipm_position_iter->second+104]<<24)|
-		          ((uint64_t)begin[m_sipm_position_iter->second+105]<<16)|
-		          ((uint64_t)begin[m_sipm_position_iter->second+106]<<8)|
-		          ((uint64_t)begin[m_sipm_position_iter->second+107]) ) - m_base_high*64.;
-    return m_adc_high;
-}
-/**********************
- * **   low gian Q   **
- * ********************/
-float WFCTADecode::AdcLow(uint8_t *begin, short isipm)
-{
-    m_sipm_position_iter = m_sipm_position.find(isipm);
-    m_adc_low = (float)( ((uint64_t)begin[m_sipm_position_iter->second+108]<<24)|
-                         ((uint64_t)begin[m_sipm_position_iter->second+109]<<16)|
-                         ((uint64_t)begin[m_sipm_position_iter->second+110]<<8)|
-                         ((uint64_t)begin[m_sipm_position_iter->second+111]) ) - m_base_low*64.;
-    return m_adc_low;
-}
 /**********************
  * ** high gain base **
  * ********************/
 float WFCTADecode::BaseHigh(uint8_t *begin, short isipm)
 {
     m_sipm_position_iter = m_sipm_position.find(isipm);
-    m_base_high = (float)( ((uint64_t)begin[m_sipm_position_iter->second+112]<<24)|
-                          ((uint64_t)begin[m_sipm_position_iter->second+113]<<16)|
-                          ((uint64_t)begin[m_sipm_position_iter->second+114]<<8)|
-                          ((uint64_t)begin[m_sipm_position_iter->second+115]) ) / 256;
-    return m_base_high;
-}
-/***********************
- * **  low gain base  **
- * *********************/
-float WFCTADecode::BaseLow(uint8_t *begin, short isipm)
-{
-    m_sipm_position_iter = m_sipm_position.find(isipm);
-    m_base_low = (float)( ((uint64_t)begin[m_sipm_position_iter->second+116]<<24)|
-                         ((uint64_t)begin[m_sipm_position_iter->second+117]<<16)|
-                         ((uint64_t)begin[m_sipm_position_iter->second+118]<<8)|
-                         ((uint64_t)begin[m_sipm_position_iter->second+119]) ) / 256;
-    return m_base_low;
-}
+    int packposition = m_sipm_position_iter->second;
 
-/***********************
- * ** H|L gain marker **
- * *********************/
-bool WFCTADecode::Getgain_marker(uint8_t *begin, short isipm)
-{
-    WFCTADecode::waveform(begin,isipm);
-    bool m_gain_marker = 0;
-    for(int i=0;i<29;i++){
-	if(pulsehigh[i]>4000){m_gain_marker = 1;}
-    }
-    return m_gain_marker;
+    m_base_high = (float)( ((uint64_t)begin[packposition+120]<<24)|
+                          ((uint64_t)begin[packposition+121]<<16)|
+                          ((uint64_t)begin[packposition+122]<<8)|
+                          ((uint64_t)begin[packposition+123]) ) / 256.;
+    return m_base_high;
 }
 
 
 /****************************
  * ** get peak in waveform **
  * **************************/
-uint8_t WFCTADecode::Getmypeak(uint8_t *begin, short isipm)
+uint8_t WFCTADecode::Getwavepeak(uint8_t *begin, short isipm)
 {
     WFCTADecode::waveform(begin,isipm);
     double sumhighmax = -1000;
     double sumhigh;
-    for(int i=0;i<29;i++){
-	sumhigh = pulsehigh[i]+pulsehigh[i+1]+pulsehigh[i+2]+pulsehigh[i+3];
-        sumhigh /=4.;
-	if(sumhighmax<sumhigh) {sumhighmax = sumhigh; m_mypeak = i+1;}
+    for(int i=0;i<28;i++){
+	sumhigh = pulsehigh[i];
+	if(sumhighmax<sumhigh) {sumhighmax = sumhigh; m_wavepeak = i;}
     }
-    return m_mypeak;
-}
-
-/*********************************************
- * ** get maximum calculation of four point **
- * *******************************************/
-float WFCTADecode::GetADC_Cut(uint8_t *begin, short isipm)
-{
-    WFCTADecode::waveform(begin,isipm);
-    double Four_Point_Q = -1000;
-    double sum_4;
-    for(int i=0;i<29;i++){
-        sum_4 = pulsehigh[i]+pulsehigh[i+1]+pulsehigh[i+2]+pulsehigh[i+3];
-        if(Four_Point_Q<sum_4) {Four_Point_Q = sum_4;}
-    }
-    Four_Point_Q -= (4. * m_base_high);
-    return Four_Point_Q;
-
+    return m_wavepeak;
 }
 
 /*****************************************************************
  * ** get qhigh/qlow/basehigh/baselow, which calc from waveform **
  * ***************************************************************/
-float WFCTADecode::GetmyImageBaseHigh(uint8_t *begin, short isipm)
+float WFCTADecode::GetwaveImageBaseHigh(uint8_t *begin, short isipm)
 {
     WFCTADecode::Calc_Q_Base(begin,isipm);
     return m_Basehigh;
 }
 
-float WFCTADecode::GetmyImageBaseLow(uint8_t *begin, short isipm)
+float WFCTADecode::GetwaveImageBaseLow(uint8_t *begin, short isipm)
 {   
     WFCTADecode::Calc_Q_Base(begin,isipm);
     return m_Baselow;
 }
 
-float WFCTADecode::GetmyImageAdcHigh(uint8_t *begin, short isipm)
+float WFCTADecode::GetwaveImageAdcHigh(uint8_t *begin, short isipm)
 {
     WFCTADecode::Calc_Q_Base(begin,isipm);
     return m_Adchigh;
 }
 
-float WFCTADecode::GetmyImageAdcLow(uint8_t *begin, short isipm)
+float WFCTADecode::GetwaveImageAdcLow(uint8_t *begin, short isipm)
 {
     WFCTADecode::Calc_Q_Base(begin,isipm);
     return m_Adclow;
@@ -754,7 +697,18 @@ float WFCTADecode::GetmyImageAdcLow(uint8_t *begin, short isipm)
  * ****************************/
 void WFCTADecode::GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pulsel)
 {
-//dumpPacket(begin+m_sipm_position_iter->second+6,54,3);
+    WFCTADecode::Getwavepeak(begin,isipm);
+    for(int i=0;i<28;i++)
+    {
+        printf("%5d ",pulsehigh[i]);
+    }
+printf("\n");
+    for(int i=0;i<28;i++)
+    {
+        printf("%5d ",pulselow[i]);
+    }
+printf("\n");
+//dumpPacket(begin+m_sipm_position_iter->second+6,112,16);
 //dumpPacket(begin+m_sipm_position_iter->second+60,5);
 //dumpPacket(begin+m_sipm_position_iter->second+65,39,3);
 }
@@ -767,33 +721,32 @@ void WFCTADecode::GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pul
  * ***********************************/
 void WFCTADecode::Calc_Q_Base(uint8_t *begin, short isipm)
 {
-    WFCTADecode::Getmypeak(begin,isipm);
+    WFCTADecode::Getwavepeak(begin,isipm);
     m_Basehigh = 0;
     m_Baselow = 0;
     m_Adchigh = 0;
     m_Adclow = 0;
-    if(m_mypeak<8)
+    if(m_wavepeak<3)
     {
-        for(int i=31;i>21;i--)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
-        m_Basehigh = m_Basehigh/10.;
-        m_Baselow = m_Baselow/10.;
-	for(int i=0;i<m_mypeak+9;i++) { m_Adchigh += pulsehigh[i]-m_Basehigh; m_Adclow += pulselow[i]-m_Baselow;}
+        for(int i=6;i<28;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
+	for(int i=0;i<6;i++) { m_Adchigh += pulsehigh[i]; m_Adclow += pulselow[i];}
     }
-    else if(m_mypeak>22)
+    else if(m_wavepeak>23)
     {
-        for(int i=0;i<10;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
-        m_Basehigh = m_Basehigh/10.;
-        m_Baselow = m_Baselow/10.;
-        for(int i=m_mypeak-6;i<32;i++) { m_Adchigh += pulsehigh[i]-m_Basehigh; m_Adclow += pulselow[i]-m_Baselow;}
+        for(int i=0;i<22;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
+        for(int i=22;i<28;i++) { m_Adchigh += pulsehigh[i]; m_Adclow += pulselow[i];}
     }
     else
     {
-        for(int i=0;i<5;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
-        for(int i=31;i>26;i--)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
-        m_Basehigh = m_Basehigh/10.;
-        m_Baselow = m_Baselow/10.;
-        for(int i=m_mypeak-6;i<m_mypeak+9;i++) { m_Adchigh += pulsehigh[i]-m_Basehigh; m_Adclow += pulselow[i]-m_Baselow;}
+        for(int i=0;i<m_wavepeak-2;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
+        for(int i=m_wavepeak+4;i<28;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
+        for(int i=m_wavepeak-2;i<m_wavepeak+4;i++) { m_Adchigh += pulsehigh[i]; m_Adclow += pulselow[i];}
     }
+    //m_Basehigh = m_Basehigh/88.;
+    //m_Baselow = m_Baselow/88.;
+    //m_Adchigh -= m_Basehigh*24;
+    //m_Adclow -= m_Baselow*24;
+
 }
 
 /******************************
@@ -802,27 +755,20 @@ void WFCTADecode::Calc_Q_Base(uint8_t *begin, short isipm)
 void WFCTADecode::waveform(uint8_t *begin, short isipm)
 {   
     m_sipm_position_iter = m_sipm_position.find(isipm);
-    int waveStart1 = 6;
-    int waveEnd1 = 58;
-    int waveStart2 = 65;
-    int waveEnd2 = 104;
-    int middleWave = 60;
-    int ipoint = 0;
-    
-    for(int i=waveStart1; i<waveEnd1; i = i+3)
+    int packposition = m_sipm_position_iter->second;
+    int waveStart1 = packposition+6;
+    int waveStart2 = packposition+8;
+
+    for(int i=0; i<14; i++)
     {   
-        pulsehigh[ipoint] = ((int)begin[m_sipm_position_iter->second+i]<<4)|((int)begin[m_sipm_position_iter->second+i+1]>>4);
-        pulselow[ipoint] = (((int)begin[m_sipm_position_iter->second+i+1]&0x0f)<<8)|((int)begin[m_sipm_position_iter->second+i+2]);
-        ipoint++;
+        pulsehigh[i] = ((int)begin[waveStart1+i*4]<<8)|((int)begin[waveStart1+i*4+1]);
+        pulselow[i]  = ((int)begin[waveStart1+i*4+2]<<8)|((int)begin[waveStart1+i*4+3]);
     }   
-        pulsehigh[ipoint] = ((int)begin[m_sipm_position_iter->second+middleWave]<<4)|((int)begin[m_sipm_position_iter->second+middleWave+1]>>4);
-        pulselow[ipoint] = (((int)begin[m_sipm_position_iter->second+middleWave+1]&0x0f)<<8)|((int)begin[m_sipm_position_iter->second+middleWave+4]);
-        ipoint++;
-    for(int i=waveStart2; i<waveEnd2; i = i+3)
+
+    for(int i=14; i<28; i++)
     {   
-        pulsehigh[ipoint] = ((int)begin[m_sipm_position_iter->second+i]<<4)|((int)begin[m_sipm_position_iter->second+i+1]>>4);
-        pulselow[ipoint] = (((int)begin[m_sipm_position_iter->second+i+1]&0x0f)<<8)|((int)begin[m_sipm_position_iter->second+i+2]);
-        ipoint++;
+        pulsehigh[i] = ((int)begin[waveStart2+i*4]<<8)|((int)begin[waveStart2+i*4+1]);
+        pulselow[i]  = ((int)begin[waveStart2+i*4+2]<<8)|((int)begin[waveStart2+i*4+3]);
     }
 }
 
