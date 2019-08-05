@@ -177,7 +177,7 @@ int ReadTrack::ReadRec(){
       for(int ii=0;ii<3;ii++){
          arrc1[ii].push_back(coo1[ii]);
          arrc2[ii].push_back(coo2[ii]);
-         if(plotrange[ii][0]>=plotrange[ii][1]){
+         if(IniRange[ii][0]>=IniRange[ii][1]){
          if(coo1[ii]<plotrange[ii][0]) plotrange[ii][0]=coo1[ii];
          if(coo2[ii]<plotrange[ii][0]) plotrange[ii][0]=coo2[ii];
          if(coo1[ii]>plotrange[ii][1]) plotrange[ii][1]=coo1[ii];
@@ -216,17 +216,17 @@ void ReadTrack::Copy(CorsikaEvent* pevt){
       double coo1[3];
       double coo2[3];
       double t1,t2;
-      t2=pevt->ct.at(ic);
-      coo2[0]=pevt->cx.at(ic);
-      coo2[1]=pevt->cy.at(ic);
-      coo2[2]=pevt->oheight;
+      t1=pevt->ct.at(ic);
+      coo1[0]=pevt->cx.at(ic);
+      coo1[1]=pevt->cy.at(ic);
       coo1[2]=pevt->height.at(ic);
+      coo2[2]=pevt->oheight;
       double dxdr=-pevt->cu.at(ic);
       double dydr=-pevt->cv.at(ic);
       double dzdr=(1-dxdr*dxdr-dydr*dydr>=0)?-sqrt(1-dxdr*dxdr-dydr*dydr):-1;
-      coo1[0]=(coo1[2]-coo2[2])/dzdr*dxdr+coo2[0];
-      coo1[1]=(coo1[2]-coo2[2])/dzdr*dydr+coo2[1];
-      t1=t2-sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+      coo2[0]=(coo2[2]-coo1[2])/dzdr*dxdr+coo1[0];
+      coo2[1]=(coo2[2]-coo1[2])/dzdr*dydr+coo1[1];
+      t2=t1+sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
       bool inside=true;
       if(particle>=0) inside=inside&&(partid==particle);
       if(elimit[1]>elimit[0]) inside=inside&&(energy>=elimit[0]&&energy<=elimit[1]);
@@ -252,14 +252,17 @@ void ReadTrack::Copy(CorsikaEvent* pevt){
          for(int ii=0;ii<3;ii++){
             arrc1[ii].push_back(coo1[ii]);
             arrc2[ii].push_back(coo2[ii]);
-            if(plotrange[ii][0]>=plotrange[ii][1]){
+            if(IniRange[ii][0]>=IniRange[ii][1]){
             if(coo1[ii]<plotrange[ii][0]) plotrange[ii][0]=coo1[ii];
             if(coo2[ii]<plotrange[ii][0]) plotrange[ii][0]=coo2[ii];
             if(coo1[ii]>plotrange[ii][1]) plotrange[ii][1]=coo1[ii];
             if(coo2[ii]>plotrange[ii][1]) plotrange[ii][1]=coo2[ii];
             }
          }
-         if(jdebug>1) printf("ReadTrack::Copy: fill the cer track nrec=%d partid=%d\n",ic,partid);
+         if(jdebug>1) printf("ReadTrack::Copy: fill the cer track nrec=%d partid=%d range={{%f,%f},{%f,%f},{%f,%f}}\n",ic,partid,plotrange[0][0],plotrange[0][1],plotrange[1][0],plotrange[1][1],plotrange[2][0],plotrange[2][1]);
+         if(jdebug>3){
+            printf("ReadTrack::Copy: Content partid=%d energy=%f start={%f,%f,%f,%f} end={%f,%f,%f,%f}\n",partid,energy,coo1[0],coo1[1],coo1[2],t1,coo2[0],coo2[1],coo2[2],t2);
+         }
       }
    }
 }

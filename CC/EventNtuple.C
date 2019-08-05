@@ -28,6 +28,12 @@ bool EventNtuple::FromIDtoAZ(int PID,int &AA,int &ZZ){
       return true;
    }
 }
+EventNtuple* EventNtuple::GetHead(){
+   return _Head;
+}
+void EventNtuple::SetHead(EventNtuple* head){
+   _Head=head;
+}
 EventNtuple* EventNtuple::GetHead(char* filename,int style){
    if(_Head) return _Head;
    else{

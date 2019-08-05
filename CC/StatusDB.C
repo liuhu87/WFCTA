@@ -178,7 +178,7 @@ bool StatusDB::LocateBlk(int Time,double time){
             Time0 = wfctaDecode->GetStatusReadbackTime(buf,packSize);
             time0 = wfctaDecode->GetStatusReadbacktime(buf,packSize);
          }
-         if(abs(Time-Time0)<=timemargin){ //find it
+         if(abs(Time-(int)Time0)<=timemargin){ //find it
             if(jdebug>1) printf("StatusDB::LocateBlk: find Time=%d in the right(readtime=%d readtime_new=%d)\n",Time,readtime,Time0);
             readtime=Time0;
             buflength=(unsigned long)size_of_read;
@@ -217,7 +217,7 @@ bool StatusDB::LocateBlk(int Time,double time){
             Time0 = wfctaDecode->GetStatusReadbackTime(buf,packSize);
             time0 = wfctaDecode->GetStatusReadbacktime(buf,packSize);
          }
-         if(abs(Time-Time0)<=timemargin){ //find it
+         if(abs(Time-(int)Time0)<=timemargin){ //find it
             if(jdebug>1) printf("StatusDB::LocateBlk: find Time=%d in the left(readtime=%d readtime_new=%d)\n",Time,readtime,Time0);
             readtime=Time0;
             buflength=(long int)size_of_read;
