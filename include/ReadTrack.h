@@ -28,7 +28,7 @@ class ReadTrack{
    public:
    static bool DoPlot;
    static int jdebug;
-   static int particle;
+   static long int particle;
    static float elimit[2];
    static float climit[3][2];
    static float tlimit[2];
@@ -54,6 +54,7 @@ class ReadTrack{
    ReadTrack(const char* inputfile);
    ~ReadTrack() {Release();}
    bool Exist();
+   static long int GetParticleID(int partid);
    int ReadRec();
    int ReadAll(int beg=0,int end=0);
    void Copy(CorsikaEvent* pevt);

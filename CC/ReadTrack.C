@@ -3,7 +3,7 @@
 ReadTrack* ReadTrack::_Head=0;
 bool ReadTrack::DoPlot=false;
 int ReadTrack::jdebug=0;
-int ReadTrack::particle=-1;
+long int ReadTrack::particle=-1;
 float ReadTrack::elimit[2]={0,0};
 float ReadTrack::climit[3][2]={{0,0},{0,0},{0,0}};
 float ReadTrack::tlimit[2]={0,0};
@@ -109,6 +109,19 @@ ReadTrack::ReadTrack(const char* inputfile){
 bool ReadTrack::Exist(){
    return (bool)fin;
 }
+long int ReadTrack::GetParticleID(int partid){
+   if(partid<=15){
+      return (1<<partid);
+   }
+   else if(partid<200){
+      return (1<<16);
+   }
+   else{
+      int AA=partid/100;
+      int ZZ=partid%100;
+      return (1<<(17+ZZ));
+   }
+}
 int ReadTrack::ReadRec(){
    if(!fin) return -3;
    union{
@@ -151,7 +164,7 @@ int ReadTrack::ReadRec(){
       printf("ReadTrack::ReadRec: Content partid=%d energy=%f start={%f,%f,%f,%f} end={%f,%f,%f,%f}\n",partid,energy,x1,y1,z1,t1,x2,y2,z2,t2);
    }
    bool inside=true;
-   if(particle>=0) inside=inside&&(partid==particle);
+   if(particle>=0) inside=inside&&(particle&GetParticleID(partid));
    if(elimit[1]>elimit[0]) inside=inside&&(energy>=elimit[0]&&energy<=elimit[1]);
    if(tlimit[1]>tlimit[0]){
       inside=inside&&(t1>=tlimit[0]&&t1<=tlimit[1]);
@@ -216,7 +229,7 @@ void ReadTrack::Copy(CorsikaEvent* pevt){
       double coo1[3];
       double coo2[3];
       double t1,t2;
-      t1=pevt->ct.at(ic);
+      t1=pevt->ct.at(ic)*1.0e-9;
       coo1[0]=pevt->cx.at(ic);
       coo1[1]=pevt->cy.at(ic);
       coo1[2]=pevt->height.at(ic);
@@ -228,7 +241,7 @@ void ReadTrack::Copy(CorsikaEvent* pevt){
       coo2[1]=(coo2[2]-coo1[2])/dzdr*dydr+coo1[1];
       t2=t1+sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
       bool inside=true;
-      if(particle>=0) inside=inside&&(partid==particle);
+      if(particle>=0) inside=inside&&(particle&GetParticleID(partid));
       if(elimit[1]>elimit[0]) inside=inside&&(energy>=elimit[0]&&energy<=elimit[1]);
       if(tlimit[1]>tlimit[0]){
          inside=inside&&(t1>=tlimit[0]&&t1<=tlimit[1]);
