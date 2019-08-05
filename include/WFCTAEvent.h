@@ -51,27 +51,29 @@ public:
 	long iEvent;
 	long rabbitTime;
 	double rabbittime;
-	vector<float> ADC_Cut;
-	vector<float> ImageBaseHigh;
-	vector<float> ImageBaseLow;
-	vector<float> ImageAdcHigh;
-	vector<float> ImageAdcLow;
+
+	vector<long> ievent;
+	vector<float> ADC_Cut;  //!
+	vector<float> ImageBaseHigh;  
+	vector<float> ImageBaseLow;  //!
+	vector<float> ImageAdcHigh;  //!
+	vector<float> ImageAdcLow;  //!
 	vector<float> myImageBaseHigh;
 	vector<float> myImageBaseLow;
 	vector<float> myImageAdcHigh;
 	vector<float> myImageAdcLow;
         vector<short> iSiPM;
-	vector<short> Single_Threshold;
-	vector<short> Record_Threshold;
-	vector<char> peak;
+	vector<short> Single_Threshold;  //!
+	vector<short> Record_Threshold;  //!
+	vector<char> peak;  //!
 	vector<char> mypeak;
-	vector<bool> gain_marker;
+	vector<bool> gain_marker;  //!
 	vector<bool> Over_Single_Marker;
 	vector<bool> Over_Record_Marker;
 
-        WFCTAMCEvent mcevent;
-        WFCTALedEvent ledevent;
-        WFCTALaserEvent laserevent;
+        WFCTAMCEvent mcevent;  //!
+        WFCTALedEvent ledevent;  //!
+        WFCTALaserEvent laserevent;  //!
 
 public:
         WFCTAEvent();

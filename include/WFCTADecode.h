@@ -25,26 +25,29 @@ public:
     map<short, int>& GetSiPM_Position() {return m_sipm_position;};
 
     uint64_t eventId(uint8_t *begin);
+    int8_t nFired(uint8_t *begin);
     uint64_t RabbitTime(uint8_t *begin);
     //uint64_t Rabbittime(uint8_t *begin);
     double Rabbittime(uint8_t *begin);
 
-    uint8_t GetPeak(uint8_t *begin, short isipm);
-    bool Getgain_marker(uint8_t *begin, short isipm);
-    uint8_t Getmypeak(uint8_t *begin, short isipm);
-    uint16_t GetSingle_Thresh(uint8_t *begin, short isipm);
-    uint16_t GetRecord_Thresh(uint8_t *begin, short isipm);
+    uint64_t eventId_in_channel(uint8_t *begin, short isipm);
+    uint8_t zipMode(uint8_t *begin, short isipm);
+    //uint8_t GetPeak(uint8_t *begin, short isipm);
+    //bool Getgain_marker(uint8_t *begin, short isipm);
+    uint8_t Getwavepeak(uint8_t *begin, short isipm);
+    //uint16_t GetSingle_Thresh(uint8_t *begin, short isipm);
+    //uint16_t GetRecord_Thresh(uint8_t *begin, short isipm);
     bool GetOver_Single_Mark(uint8_t *begin, short isipm);
     bool GetOver_Record_Mark(uint8_t *begin, short isipm);
-    float GetADC_Cut(uint8_t *begin, short isipm);
-    float AdcHigh(uint8_t *begin, short isipm);
-    float AdcLow(uint8_t *begin, short isipm);
+    //float GetADC_Cut(uint8_t *begin, short isipm);
+    //float AdcHigh(uint8_t *begin, short isipm);
+    //float AdcLow(uint8_t *begin, short isipm);
     float BaseHigh(uint8_t *begin, short isipm);
-    float BaseLow(uint8_t *begin, short isipm);
-    float GetmyImageBaseHigh(uint8_t *begin, short isipm);
-    float GetmyImageBaseLow(uint8_t *begin, short isipm);
-    float GetmyImageAdcHigh(uint8_t *begin, short isipm);
-    float GetmyImageAdcLow(uint8_t *begin, short isipm);
+    //float BaseLow(uint8_t *begin, short isipm);
+    float GetwaveImageBaseHigh(uint8_t *begin, short isipm);
+    float GetwaveImageBaseLow(uint8_t *begin, short isipm);
+    float GetwaveImageAdcHigh(uint8_t *begin, short isipm);
+    float GetwaveImageAdcLow(uint8_t *begin, short isipm);
     void GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pulsel);
     
 
@@ -91,10 +94,10 @@ private:
     float m_Adchigh;
     float m_Adclow;
 
-    uint8_t m_mypeak;
+    uint8_t m_wavepeak;
 
-    int pulsehigh[32];
-    int pulselow[32];
+    int pulsehigh[28];
+    int pulselow[28];
 
   ClassDef(WFCTADecode,1);
 };
