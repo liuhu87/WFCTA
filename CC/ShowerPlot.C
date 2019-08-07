@@ -119,12 +119,13 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
    for(int ii=0;ii<4;ii++){
       if(!ptrk[ii]) continue;
       if(!ptrk[ii]->plot) continue;
-      if(ptrk[ii]->plot->GetEntries()<=0) continue;
+      if(ptrk[ii]->plot->GetEntries()<=1) continue;
       for(int ia=0;ia<4;ia++){
          if(ptrk[ii]->plotrange[ia][0]<plotrange[ia][0]) plotrange[ia][0]=ptrk[ii]->plotrange[ia][0];
          if(ptrk[ii]->plotrange[ia][1]>plotrange[ia][1]) plotrange[ia][1]=ptrk[ii]->plotrange[ia][1];
          if(jdebug>10) printf("ShowerPlot::Draw rminmax: ii=%d ic=%d min={%f,%f} max={%f,%f}\n",ii,ia,ptrk[ii]->plotrange[ia][0],plotrange[ia][0],ptrk[ii]->plotrange[ia][1],plotrange[ia][1]);
       }
+      if(ii==2) continue;
       leg->AddEntry(ptrk[ii]->plot->At(0),tpname[ii],"l");
    }
    double rmin[3]={plotrange[0][0],plotrange[1][0],plotrange[2][0]};

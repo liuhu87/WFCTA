@@ -35,6 +35,7 @@ class ReadTrack{
    static float tlimit[2];
    static float IniRange[4][2];
    int nrec;
+   int type;
 
    vector<int> arrid;
    vector<float> arren;

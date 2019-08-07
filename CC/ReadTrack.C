@@ -17,6 +17,7 @@ ReadTrack* ReadTrack::GetHead(){
 }
 void ReadTrack::Init(){
    fin=0;
+   type=-1;
    plot=0;
    nrec=0;
    int nsize=1000000;
@@ -104,6 +105,12 @@ ReadTrack::ReadTrack(const char* inputfile){
         return;
       }
       fin->seekg(0,ios::beg);
+      if(strstr(inputfile,"em")) type=0;
+      else if(strstr(inputfile,"mu")) type=1;
+      else if(strstr(inputfile,"hd")) type=2;
+      else if(strstr(inputfile,"CER")) type=3;
+      else type=4;
+      if(jdebug>0) printf("ReadTrack::ReadTrack filename=%s type=%d\n",inputfile,type);
       return;
    }
 }
@@ -322,9 +329,15 @@ int ReadTrack::Color(int partid){
    if(partid<0) return 1;
    else if(partid==0) return 6;
    else if(partid<=3) return 2;
-   else if(partid<=3) return 2;
-   else if(partid<=9) return 3;
-   else return 4;
+   else if((partid>=13&&partid<=15)||(partid>=116&&partid<=128)||partid>=200) return 4;
+   else return 3;
+
+   //if(partid<0) return 1;
+   //else if(partid==0) return 2;
+   //else if(partid==1) return 3;
+   //else if(partid==2) return 4;
+   //else if(partid==3) return 6;
+   //else return 1;
 }
 int ReadTrack::Style(int partid){
    return 1;
@@ -350,6 +363,7 @@ void ReadTrack::Draw(TCanvas* cc,const char* option){
       line->SetPoint(0, arrc1[0].at(ii), arrc1[1].at(ii), arrc1[2].at(ii));
       line->SetPoint(1, arrc2[0].at(ii), arrc2[1].at(ii), arrc2[2].at(ii));
       line->SetLineColor(Color(arrid.at(ii)));
+      //line->SetLineColor(type);
       line->SetLineStyle(Style(arrid.at(ii)));
       line->SetLineWidth(Width(arrid.at(ii)));
       plot->Add(line);
