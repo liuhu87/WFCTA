@@ -2,6 +2,7 @@
 #include "CorsikaEvent.h"
 ReadTrack* ReadTrack::_Head=0;
 bool ReadTrack::DoPlot=false;
+int ReadTrack::headbyte=16;
 int ReadTrack::jdebug=0;
 long int ReadTrack::particle=-1;
 float ReadTrack::elimit[2]={0,0};
@@ -125,11 +126,12 @@ long int ReadTrack::GetParticleID(int partid){
 int ReadTrack::ReadRec(){
    if(!fin) return -3;
    union{
-      int i[2];
-      char c[8];
+      int i[4];
+      char c[16];
    } padding;
-   if(nrec==0) fin->read(padding.c,4);
-   else fin->read(padding.c,8);
+   for(int ii=0;ii<4;ii++) padding.i[ii]=0;
+   if(nrec==0) fin->read(padding.c,headbyte/2);
+   else fin->read(padding.c,headbyte);
    if (!fin->good()){
       if(nrec>0){
          printf("ReadTrack::ReadRec: reading track file finished.\n");
@@ -141,11 +143,13 @@ int ReadTrack::ReadRec(){
       }
    }
    if(jdebug>1) printf("ReadTrack::ReadRec: size of this record(%d) %d(%d %s)\n",nrec+1,padding.i[0],padding.i[1],padding.c);
-   if(padding.i[0]!=40){
-      printf("ReadTrack::ReadRec: Error of the record size(%d,%f)\n",padding.i[0],padding.i[0]);
+   //int readsize=(nrec==0)?padding.i[0]:padding.i[1];
+   int readsize=padding.i[0];
+   if(readsize!=40){
+      printf("ReadTrack::ReadRec: Error of the record size(%d,%d)\n",padding.i[0],padding.i[1]);
       return -1;
    }
-   else fin->read(recbuff.c,(int)padding.i[0]);
+   else fin->read(recbuff.c,readsize);
    nrec++;
 
    int partid;
@@ -337,7 +341,7 @@ void ReadTrack::Draw(TCanvas* cc,const char* option){
    //   cc->SetView(view);
    //}
    if(plot) {
-      plot->Delete();
+      //plot->Delete();
       delete plot;
    }
    plot=new TObjArray();

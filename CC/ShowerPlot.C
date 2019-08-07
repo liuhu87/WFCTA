@@ -114,7 +114,7 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
 
    for(int ii=0;ii<4;ii++){
       plotrange[ii][0]=5.0e9;
-      plotrange[ii][0]=-5.0e9;
+      plotrange[ii][1]=-5.0e9;
    }
    for(int ii=0;ii<4;ii++){
       if(!ptrk[ii]) continue;

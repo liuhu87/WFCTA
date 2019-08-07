@@ -28,6 +28,7 @@ class ReadTrack{
    public:
    static bool DoPlot;
    static int jdebug;
+   static int headbyte;
    static long int particle;
    static float elimit[2];
    static float climit[3][2];
