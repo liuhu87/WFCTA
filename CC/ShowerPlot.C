@@ -3,6 +3,10 @@
 int ShowerPlot::jdebug=0;
 char ShowerPlot::tpname[NShowerTrack][20]={"electrons","muons","hadrons","cer light"};
 void ShowerPlot::Init(const char* priname){
+   for(int ii=0;ii<4;ii++){
+      plotrange[ii][0]=0;
+      plotrange[ii][0]=0;
+   }
    if(priname) strcpy(primary,priname);
    for(int ii=0;ii<NShowerTrack;ii++){
       strcpy(filename[ii],"");
@@ -108,7 +112,10 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
    leg->SetHeader(Form("Primary: %s",primary));
    leg->SetTextSize(0.02);
 
-   float plotrange[4][2]={{5.0e9,-5.0e9},{5.0e9,-5.0e9},{5.0e9,-5.0e9},{5.0e9,-5.0e9}};
+   for(int ii=0;ii<4;ii++){
+      plotrange[ii][0]=5.0e9;
+      plotrange[ii][0]=-5.0e9;
+   }
    for(int ii=0;ii<4;ii++){
       if(!ptrk[ii]) continue;
       if(!ptrk[ii]->plot) continue;

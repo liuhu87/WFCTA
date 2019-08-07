@@ -15,10 +15,10 @@
    //ReadTrack::IniRange[2][1]=5.4e6;
 
    ShowerPlot* gplot=new ShowerPlot("Proton");
-   //gplot->Add("/home/huliu/Downloads/software/corsika-76900/run/DAT000002.track_em",0);
-   //gplot->Add("/home/huliu/Downloads/software/corsika-76900/run/DAT000002.track_mu",1);
-   //gplot->Add("/home/huliu/Downloads/software/corsika-76900/run/DAT000002.track_hd",2);
-   gplot->Add("/home/huliu/Downloads/software/corsika-76900/run/CER000002",3);
+   gplot->Add("/home/huliu/Downloads/software/corsika-76900/run/DAT000002.track_em",0);
+   gplot->Add("/home/huliu/Downloads/software/corsika-76900/run/DAT000002.track_mu",1);
+   gplot->Add("/home/huliu/Downloads/software/corsika-76900/run/DAT000002.track_hd",2);
+   //gplot->Add("/home/huliu/Downloads/software/corsika-76900/run/CER000002",3);
    gplot->Read();
    TCanvas* cc=gplot->Draw(0);
    if(cc) cc->SaveAs("test.png");
