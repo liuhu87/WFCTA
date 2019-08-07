@@ -253,6 +253,7 @@ void CorsikaEvent::Fill(){
    if(ReadTrack::GetHead()&&ReadTrack::DoPlot){ //Copy Shower information to ReadTrack to do plot
       ReadTrack::GetHead()->Copy(this);
    }
+   if(CorsikaIO::jdebug>=10) printf("CorsikaEvent::Fill: totally %d cer lights and %d particles\n",cx.size(),px.size());
    Reset();
 }
 int CorsikaEvent::CountParticle(){

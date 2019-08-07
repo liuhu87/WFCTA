@@ -395,7 +395,7 @@ Int_t CorsikaIO::FillPar(int iblk,int ipar,CorsikaEvent* pevt){
            Cer.t = recbuff.f[iptrnow+6];
            Cer.height = recbuff.f[iptrnow+7];
            if (jdebug>4) {
-             cout << "nclight = " << Cer.nclight << endl;
+             cout << "nclight = " << Cer.nclight << "  wavelength = " << Cer.wavelength << endl;
              cout << "u, v, height = " << Cer.u << " " << Cer.v << " " << Cer.height << endl;
              cout << "x, y, t = " << Cer.x << " " << Cer.y << " " << Cer.t << endl;
              cout << "weight = " << Cer.weight << endl;

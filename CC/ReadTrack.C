@@ -218,8 +218,9 @@ int ReadTrack::ReadAll(int beg,int end){
 void ReadTrack::Copy(CorsikaEvent* pevt){
    if(!pevt) return;
    if(plot) {
-      plot->Delete();
+      //plot->Delete();
       delete plot;
+      plot=new TObjArray();
    }
    plot=new TObjArray();
    int size=pevt->cx.size();
@@ -229,18 +230,51 @@ void ReadTrack::Copy(CorsikaEvent* pevt){
       double coo1[3];
       double coo2[3];
       double t1,t2;
-      t1=pevt->ct.at(ic)*1.0e-9;
+      double dxdr=-pevt->cu.at(ic);
+      double dydr=-pevt->cv.at(ic);
+      double dzdr=(1-dxdr*dxdr-dydr*dydr>=0)?-sqrt(1-dxdr*dxdr-dydr*dydr):-1;
       coo1[0]=pevt->cx.at(ic);
       coo1[1]=pevt->cy.at(ic);
       coo1[2]=pevt->height.at(ic);
       coo2[2]=pevt->oheight;
-      double dxdr=-pevt->cu.at(ic);
-      double dydr=-pevt->cv.at(ic);
-      double dzdr=(1-dxdr*dxdr-dydr*dydr>=0)?-sqrt(1-dxdr*dxdr-dydr*dydr):-1;
       coo2[0]=(coo2[2]-coo1[2])/dzdr*dxdr+coo1[0];
       coo2[1]=(coo2[2]-coo1[2])/dzdr*dydr+coo1[1];
+      t1=pevt->ct.at(ic)*1.0e-9;
       t2=t1+sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+      //t2=pevt->ct.at(ic)*1.0e-9;
+      //t1=t2-sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+
+      //coo2[0]=pevt->cx.at(ic);
+      //coo2[1]=pevt->cy.at(ic);
+      //coo2[2]=pevt->oheight;
+      //coo1[2]=pevt->height.at(ic);
+      //coo1[0]=(coo1[2]-coo2[2])/dzdr*dxdr+coo2[0];
+      //coo1[1]=(coo1[2]-coo2[2])/dzdr*dydr+coo2[1];
+      //t2=pevt->ct.at(ic)*1.0e-9;
+      //t1=t2-sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+
       bool inside=true;
+      if(tlimit[1]>tlimit[0]){
+         double dxdt=(coo2[0]-coo1[0])/(t2-t1);
+         double dydt=(coo2[1]-coo1[1])/(t2-t1);
+         double dzdt=(coo2[2]-coo1[2])/(t2-t1);
+         double t1new=(tlimit[0]<t1)?t1:tlimit[0]; //maximum between t1 and tlimit[0]
+         double t2new=(tlimit[1]>t2)?t2:tlimit[1]; //minimum between t2 and tlimit[1]
+         if(t1!=t1new){
+            coo1[0]=coo1[0]+dxdt*(t1new-t1);
+            coo1[1]=coo1[1]+dydt*(t1new-t1);
+            coo1[2]=coo1[2]+dzdt*(t1new-t1);
+         }
+         if(t2!=t2new){
+            coo2[0]=coo2[0]+dxdt*(t2new-t2);
+            coo2[1]=coo2[1]+dydt*(t2new-t2);
+            coo2[2]=coo2[2]+dzdt*(t2new-t2);
+         }
+         t1=t1new;
+         t2=t2new;
+         if(t2<=t1) inside=false;
+      }
+
       if(particle>=0) inside=inside&&(particle&GetParticleID(partid));
       if(elimit[1]>elimit[0]) inside=inside&&(energy>=elimit[0]&&energy<=elimit[1]);
       if(tlimit[1]>tlimit[0]){
