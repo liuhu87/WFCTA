@@ -11,12 +11,19 @@ double Atmosphere::aod_air = 0;
 double Atmosphere::aod_aerosol = 0;
 double Atmosphere::scat_air = 0;
 double Atmosphere::scat_aerosol = 0;
+TGraph* Atmosphere::gRayScatAngle=0;
+TGraph* Atmosphere::gMieScatAngle=0;
 
 void Atmosphere::Init(int seed){
-;
+   TFile* fin=TFile::Open(Form("%s/ScatterAngle.root",getenv("WFCTADataDir")));
+   if(!fin) return;
+   gRayScatAngle=(TGraph*)fin->Get("RayScat");
+   gMieScatAngle=(TGraph*)fin->Get("MieScat");
+   fin->Close();
 }
 void Atmosphere::Release(){
-;
+   if(gRayScatAngle) {delete gRayScatAngle; gRayScatAngle=0;}
+   if(gMieScatAngle) {delete gMieScatAngle; gMieScatAngle=0;}
 }
 
 void Atmosphere::SetParameters(char* filename){
@@ -27,16 +34,24 @@ void Atmosphere::SetParameters(char* filename){
 bool Atmosphere::RayScatterAngle(double wavelength, double &theta, double &phi){
    if(!Laser::prandom) return false;
    phi=Laser::prandom->Uniform(0,2*PI);
-   double costheta=Laser::prandom->Uniform(-1,1);
-   theta=acos(costheta);
+   double xxx=Laser::prandom->Uniform(0,1);
+   if(!gRayScatAngle){
+      printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated\n");
+      return false;
+   }
+   theta=gRayScatAngle->Eval(xxx);
    return true;
 }
 
 bool Atmosphere::MieScatterAngle(double wavelength, double &theta, double &phi){
    if(!Laser::prandom) return false;
    phi=Laser::prandom->Uniform(0,2*PI);
-   double costheta=Laser::prandom->Uniform(-1,1);
-   theta=acos(costheta);
+   double xxx=Laser::prandom->Uniform(0,1);
+   if(!gMieScatAngle){
+      printf("Atmosphere::MieScatterAngle: No Mie Scatter Angle Calculated\n");
+      return false;
+   }
+   theta=gMieScatAngle->Eval(xxx);
    return true;
 }
 

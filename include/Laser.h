@@ -3,6 +3,8 @@
 #include "common.h"
 #include "WFTelescope.h"
 #include "TRandom3.h"
+#include "TGraph.h"
+#include "TFile.h"
 
 class WFCTAEvent;
 
@@ -16,6 +18,8 @@ class Atmosphere {
       static double aod_aerosol;
       static double scat_air;
       static double scat_aerosol;
+      static TGraph* gRayScatAngle;
+      static TGraph* gMieScatAngle;
    public:
       void Init(int seed=0);
       void Release();
