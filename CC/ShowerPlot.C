@@ -116,6 +116,7 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
       plotrange[ii][0]=5.0e9;
       plotrange[ii][1]=-5.0e9;
    }
+   bool exist[NShowerTrack]={0,0,0,0};
    for(int ii=0;ii<NShowerTrack;ii++){
       if(!ptrk[ii]) continue;
       if(!ptrk[ii]->plot) continue;
@@ -127,7 +128,12 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
       }
       int color=((TPolyLine3D*)(ptrk[ii]->plot->At(0)))->GetLineColor();
       if(color<=0) continue;
-      leg->AddEntry(ptrk[ii]->plot->At(0),tpname[color],"l");
+      int type=ReadTrack::GetLegType(color);
+      if(type<0||type>=NShowerTrack) continue;
+      if(exist[type]) continue;
+      exist[type]=true;
+      //printf("type=%d color=%d\n",ii,color);
+      leg->AddEntry(ptrk[ii]->plot->At(0),tpname[type],"l");
    }
    double rmin[3]={plotrange[0][0],plotrange[1][0],plotrange[2][0]};
    double rmax[3]={plotrange[0][1],plotrange[1][1],plotrange[2][1]};
