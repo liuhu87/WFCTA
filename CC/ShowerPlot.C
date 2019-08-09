@@ -85,14 +85,14 @@ bool ShowerPlot::Read(){
       }
       TObjArray* buff=ptrk[ii]->plot;
       if(buff->GetEntries()>0) result=true;
-      if(!plot){
-         plot=new TObjArray(*buff);
-      }
-      else{
-         for(int iel=0;iel<buff->GetEntries();iel++){
-            plot->Add(buff->At(iel));
-         }
-      }
+      //if(!plot){
+      //   plot=new TObjArray(*buff);
+      //}
+      //else{
+      //   for(int iel=0;iel<buff->GetEntries();iel++){
+      //      plot->Add(buff->At(iel));
+      //   }
+      //}
    }
    return result;
 }
@@ -116,7 +116,7 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
       plotrange[ii][0]=5.0e9;
       plotrange[ii][1]=-5.0e9;
    }
-   for(int ii=0;ii<4;ii++){
+   for(int ii=0;ii<NShowerTrack;ii++){
       if(!ptrk[ii]) continue;
       if(!ptrk[ii]->plot) continue;
       if(ptrk[ii]->plot->GetEntries()<=1) continue;
@@ -138,42 +138,48 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
    cc->SetView(view);
    if(jdebug>0) printf("ShowerPlot::Draw: Pos Range={{%+6.1e,%+6.1e},{%+6.1e,%+6.1e},{%+6.1e,%+6.1e}} Time Range={%+7.1e,%+7.1e}\n",rmin[0],rmax[0],rmin[1],rmax[1],rmin[2],rmax[2],plotrange[3][0],plotrange[3][1]);
 
-   if(plot){
-      plot->Draw();
-      TAxis3D *axis = TAxis3D::GetPadAxis();
-      axis->SetLabelColor(kBlack);
-      axis->SetAxisColor(kBlack);
-      axis->SetLabelSize(0.03,"X");
-      axis->SetLabelSize(0.03,"Y");
-      axis->SetLabelSize(0.03,"Z");
-      axis->SetXTitle("X [cm]");
-      axis->SetYTitle("Y [cm]");
-      axis->SetZTitle("Z [cm]");
-      axis->SetTitleOffset(2.,"X");
-      axis->SetTitleOffset(2.,"Y");
-      axis->SetTitleOffset(2.,"Z");
-      if(ViewOpt<1||ViewOpt>3){
-      axis->SetLabelOffset(0.006,"X");
-      axis->SetLabelOffset(0.008,"Y");
-      axis->SetLabelOffset(0.008,"Z");
-      axis->SetTitleOffset(1.2,"X");
-      axis->SetTitleOffset(2.0,"Y");
-      axis->SetTitleOffset(1.2,"Z");
-      }
-      else if(ViewOpt==1){
-      axis->SetLabelOffset(-0.08,"X");
-      axis->SetLabelOffset(0.03,"Z");
-      axis->SetTitleOffset(1.3,"X");
-      }
-      else if(ViewOpt==2){
-      axis->SetLabelOffset(-0.08,"Y");
-      axis->SetLabelOffset(0.03,"Z");
-      axis->SetTitleOffset(1.3,"Y");
-      }
-      else if(ViewOpt==3){
-      axis->SetLabelOffset(0.03,"X");
-      axis->SetLabelOffset(0.03,"Y");
-      }
+   for(int ii=0;ii<NShowerTrack;ii++){
+      if(!ptrk[ii]) continue;
+      if(!ptrk[ii]->plot) continue;
+      if(ptrk[ii]->plot->GetEntries()<1) continue;
+      ptrk[ii]->plot->Draw();
+   }
+   //if(plot){
+   //   plot->Draw();
+   //}
+   TAxis3D *axis = TAxis3D::GetPadAxis();
+   axis->SetLabelColor(kBlack);
+   axis->SetAxisColor(kBlack);
+   axis->SetLabelSize(0.03,"X");
+   axis->SetLabelSize(0.03,"Y");
+   axis->SetLabelSize(0.03,"Z");
+   axis->SetXTitle("X [cm]");
+   axis->SetYTitle("Y [cm]");
+   axis->SetZTitle("Z [cm]");
+   axis->SetTitleOffset(2.,"X");
+   axis->SetTitleOffset(2.,"Y");
+   axis->SetTitleOffset(2.,"Z");
+   if(ViewOpt<1||ViewOpt>3){
+   axis->SetLabelOffset(0.006,"X");
+   axis->SetLabelOffset(0.008,"Y");
+   axis->SetLabelOffset(0.008,"Z");
+   axis->SetTitleOffset(1.2,"X");
+   axis->SetTitleOffset(2.0,"Y");
+   axis->SetTitleOffset(1.2,"Z");
+   }
+   else if(ViewOpt==1){
+   axis->SetLabelOffset(-0.08,"X");
+   axis->SetLabelOffset(0.03,"Z");
+   axis->SetTitleOffset(1.3,"X");
+   }
+   else if(ViewOpt==2){
+   axis->SetLabelOffset(-0.08,"Y");
+   axis->SetLabelOffset(0.03,"Z");
+   axis->SetTitleOffset(1.3,"Y");
+   }
+   else if(ViewOpt==3){
+   axis->SetLabelOffset(0.03,"X");
+   axis->SetLabelOffset(0.03,"Y");
    }
    leg->Draw("same");
    if(leg_time) leg_time->Draw("same");
