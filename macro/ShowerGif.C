@@ -13,17 +13,17 @@
    //char* type=argc[2];
    //int run=atoi(argc[3]);
 
-   const char* dir="/home/huliu/Downloads/ShowerImageData/electron/1E14";
-   const char* type="electron";
+   const char* dir="/home/sunqn/Downloads/ShowerImageData/iron/1E14";
+   const char* type="iron";
    int run=2;
-   bool deterrange=true;
-   int ipng=0;
+   bool deterrange=false;
+   int ipng=-1;
 
    ShowerPlot* gplot=new ShowerPlot(type);
    gplot->Add(Form("%s/DAT%06d.track_em",dir,run),0);
    gplot->Add(Form("%s/DAT%06d.track_mu",dir,run),1);
    gplot->Add(Form("%s/DAT%06d.track_hd",dir,run),2);
-   gplot->Add(Form("%s/CER%06d",dir,run),3);
+   //gplot->Add(Form("%s/CER%06d",dir,run),3);
    //printf("Adding %s/DAT%06d.track_em\n",dir,run);
 
    //define the range
@@ -45,10 +45,31 @@
       return 1;
    }
 
-   coomax=514724.076563;
-   zcoomax=11847064.950000;
+   ////electron
+   //coomax=514724.076563;
+   //zcoomax=11847064.950000;
+   //tminmax[0]=0;
+   //tminmax[1]=0.000543;
+
+   ////gamma
+   //coomax=5.1e5;
+   //zcoomax=11847064.950000;
+   //tminmax[0]=0;
+   //tminmax[1]=0.000543;
+
+   ////proton
+   //coomax=514724.076563;
+   //zcoomax=11847064.950000;
+   //tminmax[0]=0;
+   //tminmax[1]=0.000543;
+
+   //iron
+   coomax=1907663.362500;
+   zcoomax=11847066.;
    tminmax[0]=0;
-   tminmax[1]=0.000543;
+   //tminmax[1]=0.000434;
+
+   tminmax[1]=1;
 
    ReadTrack::IniRange[0][0]=-coomax;
    ReadTrack::IniRange[0][1]=coomax;
@@ -63,7 +84,7 @@
    gplot->Read();
    TCanvas* cc=gplot->Draw(0);
    if(cc) cc->SetName("png_canvas");
-   if(cc) cc->SaveAs(Form("%s/plot.png",dir));
+   if(cc) cc->SaveAs(Form("%s/%s.png",dir,type));
    return 1;
    }
 
