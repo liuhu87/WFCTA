@@ -11,9 +11,9 @@ bool CommonTools::Is366(int year){
 }
 ///convert the time to second since 1970-01-01 08:00:00
 int CommonTools::Convert(double time){
-   int year=int(time/10000000000);
-   if(year>=100) year=year%100;
+   int year=int(time*1.e-10);
    double time1=(time-year*10000000000);
+   if(year>=100) year=year%100;
    int month=int(time1/100000000);
    int time2=int(time1-month*100000000);
    int day=(time2%100000000)/1000000;

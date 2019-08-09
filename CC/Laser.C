@@ -106,6 +106,7 @@ int Atmosphere::IsScattering(double z0){
 The class for laser photon propagation
 */
 
+int Laser::jdebug=0;
 TRandom3* Laser::prandom = 0;
 double Laser::TelSimDist=400.; //in cm
 double Laser::scale=1.0e-4;
@@ -338,7 +339,7 @@ long int Laser::EventGen(int &Time,double &time){
          vodir[ii].push_back(res>=0?dir_out[ii]:0);
       }
    }
-   printf("EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld\n",ngen0,acctime,ngen,ngentel);
+   if(jdebug>0) printf("Laser::EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld scale=%le\n",ngen0,acctime,ngen,ngentel,scale);
    //if(!exist) return 0;
    bool dosim=DoWFCTASim(1./scale);
    ievent_gen++;
@@ -485,6 +486,7 @@ bool Laser::DoWFCTASim(double weight){
          if(res>0){
             avet+=t;
             nt++;
+            if(jdebug>1) printf("Laser::DoWFCTASim: the photon go through the pmt %d, iphoton=%d\n",itube,il);
          }
          //printf("pushing back tracing il=%d whichtel=%d res=%d\n",il,whichtel,res);
       }

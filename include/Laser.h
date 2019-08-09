@@ -34,6 +34,7 @@ class Atmosphere {
 
 class Laser {
    public:
+      static int jdebug;
       static TRandom3* prandom;
       static double TelSimDist;
       static double scale;
