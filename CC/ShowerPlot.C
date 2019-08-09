@@ -125,8 +125,9 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
          if(ptrk[ii]->plotrange[ia][1]>plotrange[ia][1]) plotrange[ia][1]=ptrk[ii]->plotrange[ia][1];
          if(jdebug>10) printf("ShowerPlot::Draw rminmax: ii=%d ic=%d min={%f,%f} max={%f,%f}\n",ii,ia,ptrk[ii]->plotrange[ia][0],plotrange[ia][0],ptrk[ii]->plotrange[ia][1],plotrange[ia][1]);
       }
-      if(ii==2) continue;
-      leg->AddEntry(ptrk[ii]->plot->At(0),tpname[ii],"l");
+      int color=((TPolyLine3D*)(ptrk[ii]->plot->At(0)))->GetLineColor();
+      if(color<=0) continue;
+      leg->AddEntry(ptrk[ii]->plot->At(0),tpname[color],"l");
    }
    double rmin[3]={plotrange[0][0],plotrange[1][0],plotrange[2][0]};
    double rmax[3]={plotrange[0][1],plotrange[1][1],plotrange[2][1]};

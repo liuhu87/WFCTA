@@ -339,6 +339,14 @@ int ReadTrack::Color(int partid){
    //else if(partid==3) return 6;
    //else return 1;
 }
+int ReadTrack::GetLegType(int color){ //Reverse of ReadTrack::Color
+   if(color==1) return -1;
+   else if(color==6) return 3;
+   else if(color==2) return 0;
+   else if(color==4) return 2;
+   else if(color==3) return 1;
+   else return -1;
+}
 int ReadTrack::Style(int partid){
    return 1;
 }

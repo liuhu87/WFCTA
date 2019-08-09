@@ -61,6 +61,7 @@ class ReadTrack{
    int ReadAll(int beg=0,int end=0);
    void Copy(CorsikaEvent* pevt);
    static int Color(int partid);
+   static int GetLegType(int color);
    static int Style(int partid);
    static int Width(int partid);
    void Draw(TCanvas* cc=0,const char* option="al");
