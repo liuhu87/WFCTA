@@ -32,7 +32,7 @@ int main(int argc, char**argv)
    Laser::scale=1.0e-10;
    //Laser::spotrange = 0;//0.001;//0.001;//mm
    Laser::divergence = 1.;//0.0573;
-   Laser::jdebug=2;
+   Laser::jdebug=6;
    Laser* pl=new Laser(seed);
    if(!pl->pwfc) pl->pwfc=new WFCTAEvent();
    WFCTAEvent* pevt=(pl->pwfc);

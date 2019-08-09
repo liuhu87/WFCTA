@@ -329,7 +329,7 @@ long int Laser::EventGen(int &Time,double &time){
       }
       double distance;
       int res=Propagate(distance);
-      //printf("Propagate igen=%d res=%d\n",igen,res);
+      if(jdebug>3) printf("Laser::EventGen: Propagate igen=%d res=%d distance=%lf lasercoo={%f,%f,%f} laserdir={%f,%f,%f}\n",igen,res,distance,coor_gen[0],coor_gen[1],coor_gen[2],dir_gen[0],dir_gen[1],dir_gen[2]);
       if(res<0) Telindex=res-20;
       else ngentel++;
       prodis.push_back(distance);
@@ -363,6 +363,7 @@ int Laser::Propagate(double &distance){
       double dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
       double dist2=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
       distance=dist2;
+      if(jdebug>4) printf("Laser::Propagate: absorb dist=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
       if(decrease&&dist<TelSimDist){
          if(dist2<freelength){
             Telindex=whichtel;
@@ -370,30 +371,27 @@ int Laser::Propagate(double &distance){
                coor_out[ii]=coor_min[ii];
                dir_out[ii]=dir_gen[ii];
             }
-            //printf("Propagate: absorb dist=%lf(free length=%lf) coo={%lf,%lf,%lf}\n",dist,freelength,coor_out[0],coor_out[1],coor_out[2]);
             return 0;
          }
          else return -2;
       }
       else{
-         //printf("Propagate: absorb dist=%lf(free length=%lf)\n",dist,freelength);
          return -1;
       }
    }
    else if(scatter>2){ //no absorbtion, no scatter
       double dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
       distance=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
+      if(jdebug>4) printf("Laser::Propagate: no absorb, no scatt dist=%lf decrease=%d coo={%lf,%lf,%lf}\n",dist,decrease,coor_min[0],coor_min[1],coor_min[2]);
       if(decrease&&dist<TelSimDist){
          Telindex=whichtel;
          for(int ii=0;ii<3;ii++){
             coor_out[ii]=coor_min[ii];
             dir_out[ii]=dir_gen[ii];
          }
-         //printf("Propagate: no absorb, no scatt dist=%lf(free length=%lf) coo={%lf,%lf,%lf}\n",dist,freelength,coor_out[0],coor_out[1],coor_out[2]);
          return 0;
       }
       else{
-         //printf("Propagate: no absorb, no scatt dist=%lf(free length=%lf)\n",dist,freelength);
          return -1;
       }
    }
@@ -423,6 +421,7 @@ int Laser::Propagate(double &distance){
       //the distance to the closest telescope
       double dist=mindist(coor_scat,dir_scat,whichtel,coor_min,decrease);
       distance=freelength+sqrt(pow(coor_scat[0]-coor_min[0],2)+pow(coor_scat[1]-coor_min[1],2)+pow(coor_scat[2]-coor_min[2],2));
+      if(jdebug>4) printf("Laser::Propagate: scatter dist=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
       if(decrease&&dist<TelSimDist){ //inside the field of view of one telescope after scattering
          double freelength2=Atmosphere::FreePathLength(coor_scat[2],dir_scat);
          if(dist<freelength2){
@@ -431,13 +430,11 @@ int Laser::Propagate(double &distance){
                coor_out[ii]=coor_min[ii];
                dir_out[ii]=dir_scat[ii];
             }
-            //printf("Propagate: scatter dist=%lf(free length=%lf) coo={%lf,%lf,%lf}\n",dist,freelength,coor_out[0],coor_out[1],coor_out[2]);
             return scatter;
          }
          else return -2;
       }
       else{
-         //printf("Propagate: scatter dist=%lf(free length=%lf)\n",dist,freelength);
          return -1;
       }
    }
@@ -483,7 +480,7 @@ bool Laser::DoWFCTASim(double weight){
          double t=prodis.at(il)/vlight;
          int res=pct->RayTrace(x0,y0,z0,m1,n1,l1,weight,wave,whichtel,t,itube,icell);
          (pwfc->mcevent).RayTrace.push_back(res);
-         if(res>0){
+         if(res>=0){
             avet+=t;
             nt++;
             if(jdebug>1) printf("Laser::DoWFCTASim: the photon go through the pmt %d, iphoton=%d\n",itube,il);
