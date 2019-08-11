@@ -343,9 +343,10 @@ void EventNtuple::Fill(TSelector** pevt){
                for(int i0=0;i0<fillcont;i0++) ((TH1F*)hlist->FindObject(Form("Hsn")))->Fill(i0*1.,cweight);
                double eng=padd0->ep;
                for(int i0=0;i0<fillcont;i0++) ((TH2F*)hlist->FindObject(Form("Hsne")))->Fill(eng,i0*1.,cweight);
-               double posx=padd0->cx.at(ii)-padd0->corex[padd->iuse];
+               int whichcore=padd0->WhichCore(padd0->cx.at(ii),padd0->cy.at(ii));
+               double posx=padd0->cx.at(ii)-padd0->corex[whichcore];
                for(int i0=0;i0<fillcont;i0++) ((TH2F*)hlist->FindObject(Form("Hsnposx")))->Fill(posx,i0*1.,cweight);
-               double posy=padd0->cy.at(ii)-padd0->corey[padd->iuse];
+               double posy=padd0->cy.at(ii)-padd0->corey[whichcore];
                for(int i0=0;i0<fillcont;i0++) ((TH2F*)hlist->FindObject(Form("Hsnposy")))->Fill(posy,i0*1.,cweight);
                double dirx=padd0->cu.at(ii);
                double diry=padd0->cv.at(ii);

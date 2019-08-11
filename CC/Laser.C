@@ -15,11 +15,7 @@ TGraph* Atmosphere::gRayScatAngle=0;
 TGraph* Atmosphere::gMieScatAngle=0;
 
 void Atmosphere::Init(int seed){
-   TFile* fin=TFile::Open(Form("%s/ScatterAngle.root",getenv("WFCTADataDir")));
-   if(!fin) return;
-   gRayScatAngle=(TGraph*)fin->Get("RayScat");
-   gMieScatAngle=(TGraph*)fin->Get("MieScat");
-   fin->Close();
+;
 }
 void Atmosphere::Release(){
    if(gRayScatAngle) {delete gRayScatAngle; gRayScatAngle=0;}
@@ -28,7 +24,15 @@ void Atmosphere::Release(){
 
 void Atmosphere::SetParameters(char* filename){
    aod_air = 0.04*1.0e-5;
-   scat_air = 0.03*1.0e-5;
+   scat_air = 0.039*1.0e-5;
+   if((!gRayScatAngle)||(!gMieScatAngle)){
+      TFile* fin=TFile::Open(Form("%s/ScatterAngle.root",getenv("WFCTADataDir")));
+      if(!fin) return;
+      gRayScatAngle=fin?(TGraph*)fin->Get("RayScat"):0;
+      gMieScatAngle=fin?(TGraph*)fin->Get("MieScat"):0;
+      printf("Atmosphere: Scattering Database Initialed %p %p %p\n",fin,gRayScatAngle,gMieScatAngle);
+      fin->Close();
+   }
 }
 
 bool Atmosphere::RayScatterAngle(double wavelength, double &theta, double &phi){
@@ -36,7 +40,7 @@ bool Atmosphere::RayScatterAngle(double wavelength, double &theta, double &phi){
    phi=Laser::prandom->Uniform(0,2*PI);
    double xxx=Laser::prandom->Uniform(0,1);
    if(!gRayScatAngle){
-      printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated\n");
+      //printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
       return false;
    }
    theta=gRayScatAngle->Eval(xxx);
@@ -124,6 +128,7 @@ The class for laser photon propagation
 int Laser::jdebug=0;
 TRandom3* Laser::prandom = 0;
 double Laser::TelSimDist=400.; //in cm
+double Laser::TelSimAngl=12.; //in degree
 double Laser::scale=1.0e-4;
 double Laser::unittime=1600.; //in ns
 double Laser::intensity = 2;//mj
@@ -150,7 +155,7 @@ void Laser::Release(){
    if(pwfc) delete pwfc;
 }
 void Laser::Reset(){
-   //count_gen=0;
+   count_gen=0;
    Time_gen=10000;
    time_gen=0;
    //ievent_gen=0;
@@ -163,6 +168,7 @@ void Laser::Reset(){
       vgdir[ii].clear();
    }
    Telindex=-2;
+   votim.clear();
    votel.clear();
    for(int ii=0;ii<3;ii++){
       coor_out[ii]=0;
@@ -263,6 +269,7 @@ double Laser::mindist(double coor_in[3],double dir_in[3],int &whichtel,double *c
    return min;
 }
 void Laser::PositionDis(double &xx,double &yy){
+   //xx=0; yy=0; return;
    double ran1=prandom->Uniform(0,spotrange*0.1);
    double rr=ran1;
    double phi=prandom->Uniform(0,2*PI);
@@ -270,8 +277,10 @@ void Laser::PositionDis(double &xx,double &yy){
    yy=rr*sin(phi);
 }
 void Laser::DirectionDis(double &theta,double &phi){
-   double ran1=prandom->Uniform(cos(divergence*1.0e-3),1);
-   theta=acos(sqrt(ran1));
+   //double ran1=prandom->Uniform(cos(divergence*1.0e-3),1);
+   //theta=acos(sqrt(ran1));
+   double ran1=prandom->Gaus(0,divergence*1.0e-3);
+   theta=fabs(ran1);
    phi=prandom->Uniform(0,2*PI);
 }
 bool Laser::InitialGen(){
@@ -303,29 +312,39 @@ bool Laser::InitialGen(){
    return true;
 }
 double Laser::WaveLengthGen(){
-   return prandom->Gaus(wavelength0,wavelength0_err);
+   return wavelength0;
+   //return prandom->Gaus(wavelength0,wavelength0_err);
 }
 
-long int Laser::EventGen(int &Time,double &time){
+long int Laser::EventGen(int &Time,double &time,bool SimPulse){
    if(!prandom) return 0;
-   double acctime=0;
-   double time1=Time+time*20*1.0e-9;
-   double time2=Time+time*20*1.0e-9+unittime*1.0e-9;
-   int nn1=(int)(time1*frequency);
-   int nn2=(int)(time2*frequency);
-   if(nn1==nn2){
-      double xx1=TMath::Max(nn1/frequency,time1);
-      double xx2=TMath::Min(nn1/frequency+pulsetime,time2);
-      if(xx2>xx1) acctime+=(xx2-xx1);
+   double acctime,time1,time2,ngen0;
+   if(!SimPulse){
+      acctime=0;
+      time1=Time+time*20*1.0e-9;
+      time2=Time+time*20*1.0e-9+unittime*1.0e-9;
+      int nn1=(int)(time1*frequency);
+      int nn2=(int)(time2*frequency);
+      if(nn1==nn2){
+         double xx1=TMath::Max(nn1/frequency,time1);
+         double xx2=TMath::Min(nn1/frequency+pulsetime,time2);
+         if(xx2>xx1) acctime+=(xx2-xx1);
+      }
+      else{
+         acctime+=nn1/frequency+pulsetime-TMath::Min(time1,nn1/frequency+pulsetime);
+         acctime+=TMath::Min(nn2/frequency+pulsetime,time2)-nn2/frequency;
+         if(nn2>nn1+1) acctime+=(nn2-nn1-1)*pulsetime;
+      }
+      if(acctime<=0) return 0;
+      acctime*=1.0e6;
+      ngen0=intensity*1.0e-3/(hplank*vlight/(wavelength0*1.0e-7))/pulsetime*1.0e-6*scale;
    }
    else{
-      acctime+=nn1/frequency+pulsetime-TMath::Min(time1,nn1/frequency+pulsetime);
-      acctime+=TMath::Min(nn2/frequency+pulsetime,time2)-nn2/frequency;
-      if(nn2>nn1+1) acctime+=(nn2-nn1-1)*pulsetime;
+      acctime=pulsetime;
+      time1=Time+time*20*1.0e-9;
+      time2=time1+acctime;
+      ngen0=intensity*1.0e-3/(hplank*vlight/(wavelength0*1.0e-7))/pulsetime*scale;
    }
-   if(acctime<=0) return 0;
-   acctime*=1.0e6;
-   double ngen0=intensity*1.0e-3/(hplank*vlight/(wavelength0*1.0e-7))/pulsetime*1.0e-6*scale;
 
    Reset();
    long int ngen=(long int)(acctime*ngen0);
@@ -336,34 +355,41 @@ long int Laser::EventGen(int &Time,double &time){
       bool dogen=InitialGen();
       if(!dogen) continue;
       double time0=time1+(time2-time1)/ngen*(igen+0.5);
-      count_gen+=1./scale;
       vgwav.push_back(wavelength_gen);
       for(int ii=0;ii<3;ii++){
          vgcoo[ii].push_back(coor_gen[ii]);
          vgdir[ii].push_back(dir_gen[ii]);
       }
+      if((igen%(1000000)==0)&&jdebug>0) printf("Laser::EventGen: %ld(count_gen=%le) of %ld generated\n",igen,count_gen,ngen);
       double distance;
       int res=Propagate(distance);
+      //continue;
       if(jdebug>3) printf("Laser::EventGen: Propagate igen=%d res=%d distance=%lf lasercoo={%f,%f,%f} laserdir={%f,%f,%f}\n",igen,res,distance,coor_gen[0],coor_gen[1],coor_gen[2],dir_gen[0],dir_gen[1],dir_gen[2]);
-      if(res<0) Telindex=res-20;
-      else ngentel++;
-      prodis.push_back(distance);
+      if(res<0) Telindex=res-15;
+      else{  //the telescope index has been calculated in Propagate
+         ngentel++;
+      }
+      votim.push_back(time0+distance/vlight);
       votel.push_back(Telindex);
       for(int ii=0;ii<3;ii++){
          vocoo[ii].push_back(res>=0?coor_out[ii]:0);
          vodir[ii].push_back(res>=0?dir_out[ii]:0);
       }
+      count_gen+=1./scale;
    }
    if(jdebug>0) printf("Laser::EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld scale=%le\n",ngen0,acctime,ngen,ngentel,scale);
-   //if(!exist) return 0;
    bool dosim=DoWFCTASim(1./scale);
    ievent_gen++;
 
-   time+=unittime;
-   if(time>=1.0){
-      Time++;
-      time-=1.0;
+   if(!SimPulse){
+      time+=unittime/20;
+      if((time*20*1e-9)>=1.0){
+         Time++;
+         time-=1.0/(20*1.0e-9);
+      }
    }
+   else Time++;
+
    return ngentel;
 }
 
@@ -372,31 +398,68 @@ int Laser::Propagate(double &distance){
    int whichtel;
    bool decrease;
    double freelength=Atmosphere::FreePathLength(coor_gen[2],dir_gen);
+   double dist;
+   bool simpleprop=false;
+   //some quick check
+   if(true){
+      dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
+      distance=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
+      if(!decrease) return -1; //too far away from the telescope
+      else if(dist<TelSimDist){
+         simpleprop=true;
+      }
+      else{ //too far away, check the scatter angle range
+         simpleprop=true;
+         WFTelescopeArray* pta=WFTelescopeArray::GetHead();
+         WFTelescope* pt=(pta&&whichtel>=0)?pta->pct[whichtel]:0;
+         if(pt){
+            double dir_tel[2]={pt->TelZ_,pt->TelA_};
+            double dir_scatin[3]={coor_min[0],coor_min[1],coor_min[2]};
+            if(distance==0){
+               for(int ii=0;ii<3;ii++) dir_scatin[ii]=-dir_gen[ii];
+            }
+            double norm=fabs(pow(dir_scatin[0],2)+pow(dir_scatin[1],2)+pow(dir_scatin[2],2));
+            double costheta_scatin=(dir_scatin[0]*sin(pt->TelZ_)*cos(pt->TelA_)+dir_scatin[1]*sin(pt->TelZ_)*sin(pt->TelA_)+dir_scatin[2]*cos(pt->TelZ_))/norm;
+            if(costheta_scatin<cos(TelSimAngl/180.*PI)) return -5; //outside field view of telescope
+         }
+      }
+   }
+   //return -1;
+
+   if(!simpleprop){
+      dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
+      distance=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
+   }
+   if(decrease&&(dist<TelSimDist)&&freelength>distance){ //arrive to telescope before doing something
+      if(jdebug>4) printf("Laser::Propagate: no interaction in freelength dist=%lf decrease=%d coo={%lf,%lf,%lf}\n",dist,decrease,coor_min[0],coor_min[1],coor_min[2]);
+      Telindex=whichtel;
+      for(int ii=0;ii<3;ii++){
+         coor_out[ii]=coor_min[ii];
+         dir_out[ii]=dir_gen[ii];
+      }
+      return 0; //pass through nearby of the telescope without any interaction
+   }
+
    double znew=coor_gen[2]+dir_gen[2]/sqrt(pow(dir_gen[0],2)+pow(dir_gen[1],2)+pow(dir_gen[2],2))*freelength;
    int scatter=Atmosphere::IsScattering(znew);
    if(scatter<=0){ //absorbed
-      double dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
-      double dist2=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
-      distance=dist2;
       if(jdebug>4) printf("Laser::Propagate: absorb dist=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
       if(decrease&&dist<TelSimDist){
-         if(dist2<freelength){
+         if(distance<freelength){
             Telindex=whichtel;
             for(int ii=0;ii<3;ii++){
                coor_out[ii]=coor_min[ii];
                dir_out[ii]=dir_gen[ii];
             }
-            return 0;
+            return 0; //pass through nearby of the telescope without scattering
          }
-         else return -2;
+         else return -3; //absorbed before arriving to the telescope,without scattering
       }
-      else{
+      else{ //too far away from the telescope, without scattering
          return -1;
       }
    }
    else if(scatter>2){ //no absorbtion, no scatter
-      double dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
-      distance=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
       if(jdebug>4) printf("Laser::Propagate: no absorb, no scatt dist=%lf decrease=%d coo={%lf,%lf,%lf}\n",dist,decrease,coor_min[0],coor_min[1],coor_min[2]);
       if(decrease&&dist<TelSimDist){
          Telindex=whichtel;
@@ -404,9 +467,9 @@ int Laser::Propagate(double &distance){
             coor_out[ii]=coor_min[ii];
             dir_out[ii]=dir_gen[ii];
          }
-         return 0;
+         return 0; //pass through nearby of the telescope without scattering
       }
-      else{
+      else{ //too far away from the telescope, without scattering
          return -1;
       }
    }
@@ -434,7 +497,7 @@ int Laser::Propagate(double &distance){
       for(int ii=0;ii<3;ii++) dir_scat[ii]/=norm;
 
       //the distance to the closest telescope
-      double dist=mindist(coor_scat,dir_scat,whichtel,coor_min,decrease);
+      dist=mindist(coor_scat,dir_scat,whichtel,coor_min,decrease);
       distance=freelength+sqrt(pow(coor_scat[0]-coor_min[0],2)+pow(coor_scat[1]-coor_min[1],2)+pow(coor_scat[2]-coor_min[2],2));
       if(jdebug>4) printf("Laser::Propagate: scatter dist=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
       if(decrease&&dist<TelSimDist){ //inside the field of view of one telescope after scattering
@@ -445,12 +508,12 @@ int Laser::Propagate(double &distance){
                coor_out[ii]=coor_min[ii];
                dir_out[ii]=dir_scat[ii];
             }
-            return scatter;
+            return scatter; //pass through nearby of the telescope after one scattering
          }
-         else return -2;
+         else return -4; //absorbed before arriving to the telescope, after one scattering
       }
-      else{
-         return -1;
+      else{ //too far away from the telescope after one scattering
+         return -2;
       }
    }
 }
@@ -476,36 +539,37 @@ bool Laser::DoWFCTASim(double weight){
 
          whichtel=votel.at(il);
          if(whichtel<0||whichtel>=WFTelescopeArray::CTNumber){
-            (pwfc->mcevent).RayTrace.push_back(-100+whichtel);
+            if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(whichtel);
+            (pwfc->mcevent).hRayTrace->Fill(whichtel,weight);
             //printf("pushing back tracing il=%d whichtel=%d\n",il,whichtel);
             continue;
          }
          WFTelescope* pt=pct->pct[whichtel];
          if(!pt) continue;
-         findtel=true;
 
          x0=vocoo[0].at(il)-pt->Telx_;
          y0=vocoo[1].at(il)-pt->Tely_;
          z0=vocoo[2].at(il);
-         ///not quite sure about this direction
          m1=vodir[0].at(il);
          n1=vodir[1].at(il);
          l1=vodir[2].at(il);
          wave=vgwav.at(il);
-         double t=prodis.at(il)/vlight;
+         double t=votim.at(il); //in second
          int res=pct->RayTrace(x0,y0,z0,m1,n1,l1,weight,wave,whichtel,t,itube,icell);
-         (pwfc->mcevent).RayTrace.push_back(res);
+         if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(res);
+         (pwfc->mcevent).hRayTrace->Fill(res,weight);
          if(res>=0){
+            findtel=true;
             avet+=t;
             nt++;
-            if(jdebug>1) printf("Laser::DoWFCTASim: the photon go through the pmt %d, iphoton=%d\n",itube,il);
+            if(jdebug>4) printf("Laser::DoWFCTASim: the photon go through the pmt %d, iphoton=%d\n",itube,il);
          }
          //printf("pushing back tracing il=%d whichtel=%d res=%d\n",il,whichtel,res);
       }
       if(pwfc){
-         //printf("Laser::DoWFCTASim: Filling the event %d\n",ievent_gen);
+         if(jdebug>1) printf("Laser::DoWFCTASim: Filling the event %d\n",ievent_gen);
          pwfc->iEvent=ievent_gen;
-         double t0=(nt==0)?(Time_gen+time_gen*20*1.0e-9):(Time_gen+time_gen*20*1.0e-9+avet/nt);
+         double t0=(nt==0)?(Time_gen+time_gen*20*1.0e-9):(avet/nt);
          pwfc->rabbitTime=(int)t0; //should use the arrival time
          pwfc->rabbittime=(t0-pwfc->rabbitTime)/(20*1.0e-9); //should use the arrival time
 
@@ -518,6 +582,7 @@ bool Laser::DoWFCTASim(double weight){
          //(pwfc->mcevent).Wavegen.insert((pwfc->mcevent).Wavegen.begin(),vgwav.begin(),vgwav.end());
          if(findtel){
             (pwfc->mcevent).Copy(pct);
+            pwfc->CalculateADC();
             (pwfc->mcevent).GetTubeTrigger();
             (pwfc->mcevent).GetTelescopeTrigger(pct);
          }

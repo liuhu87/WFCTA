@@ -3,7 +3,12 @@
 #include <set>
 #include "WFCTAMCEvent.h"
 #include "EventNtuple.h"
+bool WFCTAMCEvent::RecordRayTrace=false;
+double WFCTAMCEvent::fAmpLow=10.;
+double WFCTAMCEvent::fAmpHig=10.;
+TH1D* WFCTAMCEvent::hRayTrace=new TH1D("MCRayTrace","Ray Trace Result",35,-25-0.5,10-0.5);
 void WFCTAMCEvent::Init(int size){
+   //hRayTrace=new TH1D("MCRayTrace","Ray Trace Result",35,-25-0.5,10-0.5);
    //for(int ii=0;ii<3;ii++){
    //   Coogen[ii].resize(size>0?size:1000000);
    //   Dirgen[ii].resize(size>0?size:1000000);
@@ -11,12 +16,12 @@ void WFCTAMCEvent::Init(int size){
    //Wavegen.resize(size>0?size:1000000);
    RayTrace.resize(size>0?size:1000000);
    Reset();
-   Ngen=0;
+   //Ngen=0;
 }
 void WFCTAMCEvent::Reset(){
-   iuse=0;
-   //Ngen=0;
+   Ngen=0;
    Timegen=0;
+   if(hRayTrace) hRayTrace->Reset();
    //for(int ii=0;ii<3;ii++){
    //   Coogen[ii].clear();
    //   Dirgen[ii].clear();
@@ -26,6 +31,11 @@ void WFCTAMCEvent::Reset(){
    for(int ict=0;ict<NCTMax;ict++){
       for(int ii=0;ii<NSIPM;ii++){
          TubeSignal[ict][ii]=0;
+         eTubeSignal[ict][ii]=0;
+         ArrivalTimeMin[ict][ii]=0;
+         ArrivalTimeMax[ict][ii]=0;
+         ArrivalAccTime[ict][ii]=0;
+         NArrival[ict][ii]=0;
          TubeTrigger[ict][ii]=0;
       }
       TelTrigger[ict]=0;
@@ -39,12 +49,22 @@ void WFCTAMCEvent::Copy(WFTelescopeArray* pct){
       if(!pcame){
          for(int ii=0;ii<NSIPM;ii++){
             TubeSignal[ict][ii]=0;
+            eTubeSignal[ict][ii]=0;
+            ArrivalTimeMin[ict][ii]=0;
+            ArrivalTimeMax[ict][ii]=0;
+            ArrivalAccTime[ict][ii]=0;
+            NArrival[ict][ii]=0;
          }
          continue;
       }
       pcame->AddNSB();
       for(int ii=0;ii<NSIPM;ii++){
          TubeSignal[ict][ii]=(pcame->TubeSignal).at(ii);
+         eTubeSignal[ict][ii]=(pcame->eTubeSignal).at(ii);
+         ArrivalTimeMin[ict][ii]=(pcame->ArrivalTimeMin).at(ii);
+         ArrivalTimeMax[ict][ii]=(pcame->ArrivalTimeMax).at(ii);
+         ArrivalAccTime[ict][ii]=(pcame->ArrivalAccTime).at(ii);
+         NArrival[ict][ii]=(pcame->NArrival).at(ii);
          //printf("WFCTAMCEvent::Copy: T%d PMT%d signal=%lf\n",ict,ii,TubeSignal[ict][ii]);
       }
    }

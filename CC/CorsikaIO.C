@@ -219,6 +219,9 @@ Int_t CorsikaIO::FillBlk(int iblk_beg,int iblk_end,CorsikaEvent* pevt){
            cout << "Cutoff for muons: "            << recbuff.f[iptr+22] << endl;
            cout << "Cutoff for electrons: "        << recbuff.f[iptr+23] << endl;
            cout << "Cutoff for photons: "          << recbuff.f[iptr+24] << endl;
+
+           printf("X Scatter Range for Cherenkov: %f\n",recbuff.f[iptr+248]);
+           printf("Y Scatter Range for Cherenkov: %f\n",recbuff.f[iptr+249]);
         }
       }
       else if (strcmp(sss,"EVTH")==0) {
@@ -239,14 +242,15 @@ Int_t CorsikaIO::FillBlk(int iblk_beg,int iblk_end,CorsikaEvent* pevt){
         lightspeed = 29.97*Evt.pzp/sqrt(Evt.pxp*Evt.pxp+Evt.pyp*Evt.pyp+Evt.pzp*Evt.pzp);
         Evt.thetap = recbuff.f[iptr+11];
         Evt.phip = recbuff.f[iptr+12];
+        Evt.stheight = recbuff.f[iptr+158];
         corex = recbuff.f[iptr+98+1];
         corey = recbuff.f[iptr+118+1];
         for(int ii=1;ii<=Nuse;ii++){
         Evt.corex[ii-1]=recbuff.f[iptr+98+ii];
         Evt.corey[ii-1]=recbuff.f[iptr+118+ii];
         }
-        //Firstheight = -(Firstheight+430000.);
-        //Firstheight = sqrt(Firstheight*Firstheight+corex*corex+corey*corey);
+        Firstheight = -(Firstheight+430000.);
+        Firstheight = sqrt(Firstheight*Firstheight+corex*corex+corey*corey);
         if (jdebug>2) {
           printf("%f %f %f %f %f %f %f\n",(Firstheight)/lightspeed,Firstheight,recbuff.f[iptr+11], lightspeed, Evt.pzp, corex, corey);
           printf("corex %f corey %f ievent %d\n",recbuff.f[iptr+98+1],recbuff.f[iptr+118+1],Evt.ievent);
@@ -258,6 +262,8 @@ Int_t CorsikaIO::FillBlk(int iblk_beg,int iblk_end,CorsikaEvent* pevt){
           cout << "Pz of primary particle: "     << Evt.pzp << endl;
           cout << "Theta of primary particle: "  << Evt.thetap*RADDEG << endl;
           cout << "Phi of primary particle: "    << Evt.phip*RADDEG << endl;
+          cout << "First Height: "               << Firstheight << endl;
+          cout << "Starting Height: "            << recbuff.f[iptr+158] << endl;
           // ...... many other parameters, please read the document
         }
       }

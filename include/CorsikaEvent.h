@@ -30,6 +30,7 @@ class CorsikaEvent: public TSelector {
    Float_t pp[3];//!	//primary particle momentum
    Float_t thetap;	//primary particle theta
    Float_t phip;	//primary particle phi
+   Float_t stheight;	//primary starting height
    Float_t corex[Nuse];
    Float_t corey[Nuse];
    ///EVTE
@@ -47,7 +48,7 @@ class CorsikaEvent: public TSelector {
 
    vector<float> cx;//!	//x coord. when hit ground
    vector<float> cy;//!	//y coord. when hit ground
-   vector<float> ct;//!	//arrival time
+   vector<float> ct;//!	//arrival time, in ns
    vector<float> cu;//!	//cos(theta) of clight
    vector<float> cv;//!	//cos(phi) of clight
    vector<float> height;//!	//z coord. when generated

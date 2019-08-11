@@ -41,6 +41,7 @@ class Laser {
       static int jdebug;
       static TRandom3* prandom;
       static double TelSimDist;
+      static double TelSimAngl;
       static double scale;
       static double unittime;
       static double intensity;
@@ -56,7 +57,7 @@ class Laser {
       double lasercoo[3];	//in cm
       ///pointing direction of the laser generator
       double laserdir[2];
-      long int count_gen;
+      double count_gen;
       int Time_gen;
       double time_gen;
       int ievent_gen;
@@ -71,7 +72,7 @@ class Laser {
       int Telindex;
       double coor_out[3];
       double dir_out[3];
-      vector<double> prodis;
+      vector<double> votim;
       vector<int> votel;
       vector<double> vocoo[3];
       vector<double> vodir[3];
@@ -93,7 +94,7 @@ class Laser {
       static void DirectionDis(double &theta,double &phi);
       double WaveLengthGen();
       bool InitialGen();
-      long int EventGen(int &Time,double &time);
+      long int EventGen(int &Time,double &time,bool SimPulse=false);
       int Propagate(double &distance);
       bool DoWFCTASim(double weight=1.0);
 };

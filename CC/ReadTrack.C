@@ -235,34 +235,48 @@ void ReadTrack::Copy(CorsikaEvent* pevt){
    }
    plot=new TObjArray();
    int size=pevt->cx.size();
+   double x0=(pevt->oheight-pevt->stheight)/(-cos(pevt->thetap))*sin(pevt->thetap)*cos(pevt->phip);
+   double y0=(pevt->oheight-pevt->stheight)/(-cos(pevt->thetap))*sin(pevt->thetap)*sin(pevt->phip);
    for(int ic=0;ic<size;ic++){
       int partid=0;
       double energy=(pevt->wavelength.at(ic)>0)?(hplank_gev*vlight/(1.0e-7*pevt->wavelength.at(ic))):1.0e8;
       double coo1[3];
       double coo2[3];
       double t1,t2;
-      double dxdr=-pevt->cu.at(ic);
-      double dydr=-pevt->cv.at(ic);
+      double dxdr=pevt->cu.at(ic);
+      double dydr=pevt->cv.at(ic);
       double dzdr=(1-dxdr*dxdr-dydr*dydr>=0)?-sqrt(1-dxdr*dxdr-dydr*dydr):-1;
-      coo1[0]=pevt->cx.at(ic);
-      coo1[1]=pevt->cy.at(ic);
-      coo1[2]=pevt->height.at(ic);
-      coo2[2]=pevt->oheight;
-      coo2[0]=(coo2[2]-coo1[2])/dzdr*dxdr+coo1[0];
-      coo2[1]=(coo2[2]-coo1[2])/dzdr*dydr+coo1[1];
-      t1=pevt->ct.at(ic)*1.0e-9;
-      t2=t1+sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
-      //t2=pevt->ct.at(ic)*1.0e-9;
-      //t1=t2-sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+      int whichtel=-1;
+      double mindist=1.0e10;
+      for(int ii=0;ii<Nuse;ii++){
+         double dist=fabs(pow(pevt->corex[ii]-pevt->cx.at(ic),2)+pow(pevt->corey[ii]-pevt->cy.at(ic),2));
+         if(dist<mindist){
+            whichtel=ii;
+            mindist=dist;
+         }
+      }
 
-      //coo2[0]=pevt->cx.at(ic);
-      //coo2[1]=pevt->cy.at(ic);
-      //coo2[2]=pevt->oheight;
+      //coo1[0]=pevt->cx.at(ic);
+      //coo1[1]=pevt->cy.at(ic);
       //coo1[2]=pevt->height.at(ic);
-      //coo1[0]=(coo1[2]-coo2[2])/dzdr*dxdr+coo2[0];
-      //coo1[1]=(coo1[2]-coo2[2])/dzdr*dydr+coo2[1];
-      //t2=pevt->ct.at(ic)*1.0e-9;
-      //t1=t2-sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+      //coo2[2]=pevt->oheight;
+      //coo2[0]=(coo2[2]-coo1[2])/dzdr*dxdr+coo1[0];
+      //coo2[1]=(coo2[2]-coo1[2])/dzdr*dydr+coo1[1];
+      //t1=pevt->ct.at(ic)*1.0e-9;
+      //t2=t1+sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+      ////t2=pevt->ct.at(ic)*1.0e-9;
+      ////t1=t2-sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+
+      coo2[0]=pevt->cx.at(ic)+x0;
+      coo2[1]=pevt->cy.at(ic)+y0;
+      coo2[2]=pevt->oheight;
+      coo1[2]=pevt->height.at(ic);
+      coo1[0]=(coo1[2]-coo2[2])/dzdr*dxdr+coo2[0];
+      coo1[1]=(coo1[2]-coo2[2])/dzdr*dydr+coo2[1];
+      t2=pevt->ct.at(ic)*1.0e-9;
+      t1=t2-sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+
+      if(jdebug>9) printf("light=%d x=%f(corx=%f) y=%f(corey=%f) z=%f oz=%f\n",ic,pevt->cx.at(ic),pevt->corex[whichtel],pevt->cy.at(ic),pevt->corey[whichtel],pevt->height.at(ic),pevt->oheight);
 
       bool inside=true;
       if(tlimit[1]>tlimit[0]){
@@ -351,6 +365,7 @@ int ReadTrack::Style(int partid){
    return 1;
 }
 int ReadTrack::Width(int partid){
+   if(partid==0) return 3;
    if(partid<=9) return 1;
    return 2;
 }

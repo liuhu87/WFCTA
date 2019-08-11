@@ -207,6 +207,19 @@ bool WFCTAEvent::GetAllContents(int _Entry){
    return ncount>0;
 }
 
+void WFCTAEvent::CalculateADC(int itel){
+   if(itel<0||itel>=NCTMax) return;
+   for(int ii=0;ii<NSIPM;ii++){
+      if(mcevent.TubeSignal[itel][ii]>0){
+         iSiPM.push_back(ii);
+         ImageAdcHigh.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
+         ImageAdcLow.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
+         myImageAdcHigh.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
+         myImageAdcLow.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
+      }
+   }
+}
+
 TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
    TH2Poly* image=new TH2Poly();
    for(int ii=0;ii<NSIPM;ii++){

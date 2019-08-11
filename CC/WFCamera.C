@@ -7,7 +7,7 @@ double WCamera::D_SiPM=15.0;
 double WCamera::D_Cell = 2.5e-2;
 int WCamera::NCell=600;
 double WCamera::SiPMMAP[NSIPM][2];
-float WCamera::NSB;
+float WCamera::NSB=0;
 WCamera::WCamera()
 {
    Init();
@@ -95,6 +95,11 @@ void WCamera::SetNSB(float nsb)
 void WCamera::Init()
 {
   TubeSignal.resize(NSIPM);
+  eTubeSignal.resize(NSIPM);
+  ArrivalTimeMin.resize(NSIPM);
+  ArrivalTimeMax.resize(NSIPM);
+  ArrivalAccTime.resize(NSIPM);
+  NArrival.resize(NSIPM);
   TubeTrigger.resize(NSIPM); 
 }
 
@@ -102,6 +107,11 @@ void WCamera::ReSet()
 {
    for(int i=0; i<NSIPM; i++){
       TubeSignal[i] = 0;
+      eTubeSignal[i] = 0;
+      ArrivalTimeMin[i]=0;
+      ArrivalTimeMax[i]=0;
+      ArrivalAccTime[i]=0;
+      NArrival[i]=0;
       TubeTrigger[i] = 0;
    }
    TelTrigger = 0;
@@ -117,9 +127,25 @@ void WCamera::AddNSB()
   }
 }
 
-void WCamera::Fill(int itube,double weight){
+void WCamera::Fill(int itube,double time,double weight){
    if(itube<0||itube>=NSIPM) return;
-   else TubeSignal[itube] += weight;
+   else{
+      TubeSignal[itube] += weight;
+      eTubeSignal[itube] = sqrt(pow(eTubeSignal[itube],2)+pow(weight,2));
+      if(time!=0){
+         if(ArrivalTimeMin[itube]!=0){
+            if(time<ArrivalTimeMin[itube]) ArrivalTimeMin[itube]=time;
+         }
+         else ArrivalTimeMin[itube]=time;
+         if(ArrivalTimeMax[itube]!=0){
+            if(time>ArrivalTimeMax[itube]) ArrivalTimeMax[itube]=time;
+         }
+         else ArrivalTimeMax[itube]=time;
+
+         ArrivalAccTime[itube]+=time;
+         NArrival[itube]+=1;
+      }
+   }
 }
 
 void WCamera::GetTubeTrigger()
