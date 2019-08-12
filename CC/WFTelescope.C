@@ -390,7 +390,7 @@ void WFTelescope::SetTransmissivity()
   filter_angle_max = 35;
   filter_angle_min = 0;
   int i=0;
-  Transmissivity = new TGraph2D(61*5);
+  Transmissivity = new TGraph2D();
  // Transmissivity->SetName("t");
   char DatabaseDir[200]="";
   strcpy(DatabaseDir,getenv("WFCTADataDir"));
@@ -426,6 +426,7 @@ int WFTelescope::GetTransmissivity(double wavelength, double angle)
    if(wavelength<filter_wl_min||wavelength>filter_wl_max||angle>filter_angle_max)  transmissivity = 0;
    else{
       transmissivity = Transmissivity-> Interpolate(wavelength, angle);
+      //printf("WFTelescope::GetTransmissivity: wl=%lf angle=%lf transmissivity=%lf\n",wavelength,angle,transmissivity);
    }
    p = gRandom->Rndm();
   if(p<transmissivity) return 1;
@@ -691,9 +692,9 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
 
     ///pass filter
     if(wavelength>0){
-       if(WFTelescopeArray::jdebug>0) printf("WFTelescope::RayTrace: Passing Filter\n");
        double angle=acos(fabs(l2))*TMath::RadToDeg();
-       if(GetTransmissivity(wavelength,angle)) return -6;
+       if(WFTelescopeArray::jdebug>0) printf("WFTelescope::RayTrace: Passing Filter wl=%lf angle=%lf\n",wavelength,angle);
+       if(!GetTransmissivity(wavelength,angle)) return -6;
        if(WFTelescopeArray::jdebug>0) printf("WFTelescope::RayTrace: Go Through Filter\n");
     }
 
