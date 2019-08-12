@@ -20,6 +20,7 @@ class Atmosphere {
       static double scat_aerosol;
       static TGraph* gRayScatAngle;
       static TGraph* gMieScatAngle;
+      static double scale;
    public:
       void Init(int seed=0);
       void Release();
@@ -28,12 +29,11 @@ class Atmosphere {
       static void SetParameters(char* filename=0);
       static double ZDependence(double z,int type=0);
       static double DeltaZ(double z);
-      static bool RayScatterAngle(double wavelength, double &theta, double &phi);
-      static bool MieScatterAngle(double wavelength, double &theta, double &phi);
+      static bool RayScatterAngle(double wavelength, double &theta, double &phi,double anglerange[2],double &weight);
+      static bool MieScatterAngle(double wavelength, double &theta, double &phi,double anglerange[2],double &weight);
       static double FreeIntgLength();
-      static double FreePathLength(double z0,double dir0[3]);
+      static double FreePathLength(double z0,double dir0[3],double lengthrange[2],double &weight);
       static int IsScattering(double z0);
-
 };
 
 class Laser {
@@ -68,6 +68,9 @@ class Laser {
       vector<double> vgcoo[3];
       vector<double> vgdir[3];
 
+      ///reweight during propagation in the atmosphere
+      vector<double> vowei;
+
       ///coordinate and direction at telescope plane
       int Telindex;
       double coor_out[3];
@@ -95,8 +98,8 @@ class Laser {
       double WaveLengthGen();
       bool InitialGen();
       long int EventGen(int &Time,double &time,bool SimPulse=false);
-      int Propagate(double &distance);
-      bool DoWFCTASim(double weight=1.0);
+      int Propagate(double &distance,double &weight);
+      bool DoWFCTASim();
 };
 
 #endif

@@ -13,6 +13,7 @@ double Atmosphere::scat_air = 0;
 double Atmosphere::scat_aerosol = 0;
 TGraph* Atmosphere::gRayScatAngle=0;
 TGraph* Atmosphere::gMieScatAngle=0;
+double Atmosphere::scale=1.0;
 
 void Atmosphere::Init(int seed){
 ;
@@ -35,19 +36,20 @@ void Atmosphere::SetParameters(char* filename){
    }
 }
 
-bool Atmosphere::RayScatterAngle(double wavelength, double &theta, double &phi){
+bool Atmosphere::RayScatterAngle(double wavelength, double &theta, double &phi,double anglerange[2],double &weight){
    if(!Laser::prandom) return false;
    phi=Laser::prandom->Uniform(0,2*PI);
    double xxx=Laser::prandom->Uniform(0,1);
    if(!gRayScatAngle){
-      //printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
+      printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
       return false;
    }
    theta=gRayScatAngle->Eval(xxx);
+   
    return true;
 }
 
-bool Atmosphere::MieScatterAngle(double wavelength, double &theta, double &phi){
+bool Atmosphere::MieScatterAngle(double wavelength, double &theta, double &phi,double anglerange[2],double &weight){
    if(!Laser::prandom) return false;
    phi=Laser::prandom->Uniform(0,2*PI);
    double xxx=Laser::prandom->Uniform(0,1);
@@ -72,7 +74,7 @@ double Atmosphere::FreeIntgLength(){
    double xx=Laser::prandom->Uniform();
    return log(1/(1-xx));
 }
-double Atmosphere::FreePathLength(double z0,double dir0[3]){
+double Atmosphere::FreePathLength(double z0,double dir0[3],double lengthrange[2],double &weight){
    double intglength=FreeIntgLength();
    if(intglength>0.9e10) return 1.0e10;
    if(dir0[2]==0){
@@ -129,7 +131,7 @@ int Laser::jdebug=0;
 TRandom3* Laser::prandom = 0;
 double Laser::TelSimDist=400.; //in cm
 double Laser::TelSimAngl=12.; //in degree
-double Laser::scale=1.0e-4;
+double Laser::scale=1.0;
 double Laser::unittime=1600.; //in ns
 double Laser::intensity = 2;//mj
 double Laser::intensity_err = 0;
@@ -361,24 +363,26 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
          vgdir[ii].push_back(dir_gen[ii]);
       }
       if((igen%(1000000)==0)&&jdebug>0) printf("Laser::EventGen: %ld(count_gen=%le) of %ld generated\n",igen,count_gen,ngen);
+      double weight=1./scale;
       double distance;
-      int res=Propagate(distance);
+      int res=Propagate(distance,weight);
       //continue;
       if(jdebug>3) printf("Laser::EventGen: Propagate igen=%d res=%d distance=%lf lasercoo={%f,%f,%f} laserdir={%f,%f,%f}\n",igen,res,distance,coor_gen[0],coor_gen[1],coor_gen[2],dir_gen[0],dir_gen[1],dir_gen[2]);
       if(res<0) Telindex=res-15;
       else{  //the telescope index has been calculated in Propagate
          ngentel++;
       }
+      vowei.push_back(weight);
       votim.push_back(time0+distance/vlight);
       votel.push_back(Telindex);
       for(int ii=0;ii<3;ii++){
          vocoo[ii].push_back(res>=0?coor_out[ii]:0);
          vodir[ii].push_back(res>=0?dir_out[ii]:0);
       }
-      count_gen+=1./scale;
+      count_gen+=weight;
    }
    if(jdebug>0) printf("Laser::EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld scale=%le\n",ngen0,acctime,ngen,ngentel,scale);
-   bool dosim=DoWFCTASim(1./scale);
+   bool dosim=DoWFCTASim();
    ievent_gen++;
 
    if(!SimPulse){
@@ -393,7 +397,7 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
    return ngentel;
 }
 
-int Laser::Propagate(double &distance){
+int Laser::Propagate(double &distance,double &weight){
    double coor_min[3];
    int whichtel;
    bool decrease;
@@ -518,7 +522,7 @@ int Laser::Propagate(double &distance){
    }
 }
 
-bool Laser::DoWFCTASim(double weight){
+bool Laser::DoWFCTASim(){
    WFTelescopeArray* pct=WFTelescopeArray::GetHead();
    if(!pct) return false;
    if(!pct->CheckTelescope()) return false;
@@ -536,8 +540,10 @@ bool Laser::DoWFCTASim(double weight){
          double wave;
          int itube,icell;
          int whichtel;
+         double weight;
 
          whichtel=votel.at(il);
+         weight=vowei.at(il);
          if(whichtel<0||whichtel>=WFTelescopeArray::CTNumber){
             if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(whichtel);
             (pwfc->mcevent).hRayTrace->Fill(whichtel,weight);
