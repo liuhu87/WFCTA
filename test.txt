@@ -1,0 +1,50 @@
+10  test0809_90.root  1
+WFTelescope::SetPointing: TelZ 1.570796 TelA 0.000000
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+The Pointing Errors of the each mirror are not simulated
+WFCTAEvent: 0x7f85985d8010
+ CompressionLevel 6 1
+Laser::EventGen: ngen0=4.641731e+07 acctime=7.699782e-03 ngen=357403 ngentel=85614 scale=1.000000e-10
+Evt=0 Ngen=3574030000000000(3574030000000000) ngentel=85614 evtn=0 size=357403 maxsignal=9550000291840.000000
+
+Evt=1 Ngen=3574030000000000(3574030000000000) ngentel=0 evtn=-1 size=0 maxsignal=0.000000
+
+Evt=2 Ngen=3574030000000000(3574030000000000) ngentel=0 evtn=-1 size=0 maxsignal=0.000000
+
+Evt=3 Ngen=3574030000000000(3574030000000000) ngentel=0 evtn=-1 size=0 maxsignal=0.000000
+
+Evt=4 Ngen=3574030000000000(3574030000000000) ngentel=0 evtn=-1 size=0 maxsignal=0.000000
+
+Evt=5 Ngen=3574030000000000(3574030000000000) ngentel=0 evtn=-1 size=0 maxsignal=0.000000
+
+Evt=6 Ngen=3574030000000000(3574030000000000) ngentel=0 evtn=-1 size=0 maxsignal=0.000000
+
+Evt=7 Ngen=3574030000000000(3574030000000000) ngentel=0 evtn=-1 size=0 maxsignal=0.000000
+
+Evt=8 Ngen=3574030000000000(3574030000000000) ngentel=0 evtn=-1 size=0 maxsignal=0.000000
+
+Evt=9 Ngen=3574030000000000(3574030000000000) ngentel=0 evtn=-1 size=0 maxsignal=0.000000
+
