@@ -29,9 +29,10 @@ class Atmosphere {
       static void SetParameters(char* filename=0);
       static double ZDependence(double z,int type=0);
       static double DeltaZ(double z);
+      static double ProbTransform(double xx,double yy[2],double &weight,bool IsCenter);
       static bool RayScatterAngle(double wavelength, double &theta, double &phi,double anglerange[2],double &weight);
       static bool MieScatterAngle(double wavelength, double &theta, double &phi,double anglerange[2],double &weight);
-      static double FreeIntgLength();
+      static double FreeIntgLength(double lengthrange[2],double &weight);
       static double FreePathLength(double z0,double dir0[3],double lengthrange[2],double &weight);
       static int IsScattering(double z0);
 };

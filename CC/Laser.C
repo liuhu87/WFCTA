@@ -36,28 +36,130 @@ void Atmosphere::SetParameters(char* filename){
    }
 }
 
+double Atmosphere::ProbTransform(double xx,double yy[2],double &weight,bool IsCenter){
+   double p1,p2,p3;
+   //different p1,p2,p3 for different scale
+   if(scale<5.){
+      p1=p2=p3=1./3;
+   }
+   else if(scale<50.){
+      if(IsCenter){
+         p2=(1-1./scale*2.5);
+         p3=(1-p2)*(1-yy[1])/(1-(yy[1]-yy[0]));
+         p1=1-p2-p3;
+      }
+      else{
+         p3=1./scale;
+         p1=1-p3-1.5*p3;
+         p2=1-p1-p3;
+      }
+   }
+   else if(scale<5.e3){
+      if(IsCenter){
+         p2=(1-1./scale)*0.8;
+         p3=(1-p2)*(1-yy[1])/(1-(yy[1]-yy[0]));
+         p1=1-p2-p3;
+      }
+      else{
+         p3=1./scale;
+         p1=(1-p3)*0.8;
+         p2=1-p1-p3;
+      }
+   }
+   else if(scale<5.e5){
+      if(IsCenter){
+         p2=(1-1./scale)*0.95;
+         p3=(1-p2)*(1-yy[1])/(1-(yy[1]-yy[0]));
+         p1=1-p2-p3;
+      }
+      else{
+         p3=1./scale;
+         p1=(1-p3)*0.95;
+         p2=1-p1-p3;
+      }
+   }
+   else{
+      if(IsCenter){
+         p2=(1-1./scale)*(1-1./scale);
+         p3=(1-p2)*(1-yy[1])/(1-(yy[1]-yy[0]));
+         p1=1-p2-p3;
+      }
+      else{
+         p3=1./scale;
+         p1=(1-p3)*(1-p3);
+         p2=1-p1-p3;
+      }
+   }
+
+   if(xx<=p1){
+      weight*=(yy[0]/p1);
+      return yy[0]/p1*xx;
+   }
+   else if(xx<=p1+p2){
+      weight*=(yy[1]-yy[0])/p2;
+      return yy[0]+(yy[1]-yy[0])/p2*(xx-p1);
+   }
+   else{
+      weight*=(1-yy[1])/p3;
+      return yy[1]+(1-yy[1])/p3*(xx-p1-p2);
+   }
+}
 bool Atmosphere::RayScatterAngle(double wavelength, double &theta, double &phi,double anglerange[2],double &weight){
    if(!Laser::prandom) return false;
-   phi=Laser::prandom->Uniform(0,2*PI);
-   double xxx=Laser::prandom->Uniform(0,1);
    if(!gRayScatAngle){
       printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
       return false;
    }
-   theta=gRayScatAngle->Eval(xxx);
-   
+   //phi=Laser::prandom->Uniform(0,2*PI);
+   //double xxx=Laser::prandom->Uniform(0,1);
+   //theta=gRayScatAngle->Eval(xxx);
+
+   double xxx;
+   double yrange[2];
+   xxx=Laser::prandom->Uniform(0,1);
+   yrange[0]=(0.5-Laser::TelSimAngl/180./2);
+   yrange[1]=(0.5+Laser::TelSimAngl/180./2);
+   phi=ProbTransform(xxx,yrange,weight,true); //from 0 to 1
+   if(phi<0) return false;
+   phi=(phi-0.5)*2*PI;
+
+   xxx=Laser::prandom->Uniform(0,1);
+   yrange[0]=anglerange[0]/PI;
+   yrange[1]=anglerange[1]/PI;
+   theta=(yrange[0]>=yrange[1])?xxx:ProbTransform(xxx,yrange,weight,yrange[0]>0); //from 0 to 1
+   if(theta<0) return false;
+   theta=gRayScatAngle->Eval(theta);
+
    return true;
 }
 
 bool Atmosphere::MieScatterAngle(double wavelength, double &theta, double &phi,double anglerange[2],double &weight){
    if(!Laser::prandom) return false;
-   phi=Laser::prandom->Uniform(0,2*PI);
-   double xxx=Laser::prandom->Uniform(0,1);
    if(!gMieScatAngle){
       printf("Atmosphere::MieScatterAngle: No Mie Scatter Angle Calculated\n");
       return false;
    }
-   theta=gMieScatAngle->Eval(xxx);
+
+   //phi=Laser::prandom->Uniform(0,2*PI);
+   //double xxx=Laser::prandom->Uniform(0,1);
+   //theta=gMieScatAngle->Eval(xxx);
+
+   double xxx;
+   double yrange[2];
+   xxx=Laser::prandom->Uniform(0,1);
+   yrange[0]=(0.5-Laser::TelSimAngl/180./2);
+   yrange[1]=(0.5+Laser::TelSimAngl/180./2);
+   phi=ProbTransform(xxx,yrange,weight,true); //from 0 to 1
+   if(phi<0) return false;
+   phi=(phi-0.5)*2*PI;
+
+   xxx=Laser::prandom->Uniform(0,1);
+   yrange[0]=anglerange[0]/PI;
+   yrange[1]=anglerange[1]/PI;
+   theta=(yrange[0]>=yrange[1])?xxx:ProbTransform(xxx,yrange,weight,yrange[0]>0); //from 0 to 1
+   if(theta<0) return false;
+   theta=gMieScatAngle->Eval(theta);
+
    return true;
 }
 
@@ -67,22 +169,60 @@ double Atmosphere::ZDependence(double z,int type){
 double Atmosphere::DeltaZ(double z){
    return 1000000.;
 }
-double Atmosphere::FreeIntgLength(){
+double Atmosphere::FreeIntgLength(double lengthrange[2],double &weight){
    if(!Laser::prandom) return 0;
    if((aod_air+aod_aerosol)<0) return 0;
    else if(aod_air+aod_aerosol==0) return 1.0e10;
-   double xx=Laser::prandom->Uniform();
-   return log(1/(1-xx));
+   double xxx=Laser::prandom->Uniform(0,1.);
+   double yrange[2];
+   yrange[0]=1-exp(-lengthrange[0]);
+   yrange[1]=1-exp(-lengthrange[1]);
+   if(yrange[1]<=0||yrange[0]>=yrange[1]) return log(1/(1-xxx));
+   double yyy=ProbTransform(xxx,yrange,weight,yrange[0]>0);
+   return log(1/(1-yyy));
 }
 double Atmosphere::FreePathLength(double z0,double dir0[3],double lengthrange[2],double &weight){
-   double intglength=FreeIntgLength();
+   double norm=sqrt(pow(dir0[0],2)+pow(dir0[1],2)+pow(dir0[2],2));
+   double integ=0;
+   double length=0;
+
+   //first estimate the integral length range from the path length range
+   double yrange[2];
+   if(dir0[2]==0){
+      yrange[0]=lengthrange[0]*(aod_air+aod_aerosol)*ZDependence(z0);
+      yrange[1]=lengthrange[1]*(aod_air+aod_aerosol)*ZDependence(z0);
+   }
+   else{
+      double z00=z0;
+      bool findlowrange=false;
+      while(integ<lengthrange[1]){
+         double z1=z00+DeltaZ(z00);
+         double dleng=fabs((z1-z00)/dir0[2]*norm);
+         double dintg=(aod_air+aod_aerosol)*ZDependence((z00+z1)/2)*dleng;
+         if(!findlowrange){
+            if(length+dleng>=lengthrange[0]){
+               yrange[0]=integ+(lengthrange[0]-length)/dleng*dintg;
+               findlowrange=true;
+            }
+         }
+         if(length+dleng>=lengthrange[1]){
+            yrange[1]=integ+(lengthrange[1]-length)/dleng*dintg;
+            break;
+         }
+         integ+=dintg;
+         length+=dleng;
+         z00=z1;
+      }
+   }
+
+   double intglength=FreeIntgLength(yrange,weight);
    if(intglength>0.9e10) return 1.0e10;
    if(dir0[2]==0){
       return intglength/((aod_air+aod_aerosol)*ZDependence(z0));
    }
-   double norm=sqrt(pow(dir0[0],2)+pow(dir0[1],2)+pow(dir0[2],2));
-   double integ=0;
-   double length=0;
+
+   integ=0;
+   length=0;
    int nstep=0;
    while(integ<intglength){
       //printf("step=%d: intglength=%le integ=%le z0=%le dirz=%lf\n",nstep,intglength,integ,z0,dir0[2]);
@@ -93,13 +233,12 @@ double Atmosphere::FreePathLength(double z0,double dir0[3],double lengthrange[2]
          length+=(intglength-integ)/dintg*fabs((z1-z0)/dir0[2]*norm);
          return length;
       }
-      else{
-         integ+=dintg;
-         length+=fabs((z1-z0)/dir0[2]*norm);
-         z0=z1;
-      }
+      integ+=dintg;
+      length+=fabs((z1-z0)/dir0[2]*norm);
+      z0=z1;
       nstep++;
    }
+   if(jdebug>2) printf(Laser::FreePathLength:);
    return -1;
 }
 
@@ -184,7 +323,7 @@ void Laser::SetParameters(char* filename){
    lasercoo[0]=1000*100.; //in cm
    lasercoo[1]=0;
    lasercoo[2]=80.;
-   laserdir[0]=90.;
+   laserdir[0]=15.;
    laserdir[1]=180.;
 }
 
@@ -362,10 +501,10 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
          vgcoo[ii].push_back(coor_gen[ii]);
          vgdir[ii].push_back(dir_gen[ii]);
       }
-      if((igen%(1000000)==0)&&jdebug>0) printf("Laser::EventGen: %ld(count_gen=%le) of %ld generated\n",igen,count_gen,ngen);
       double weight=1./scale;
       double distance;
       int res=Propagate(distance,weight);
+      if((igen%(1000000)==0)&&jdebug>0) printf("Laser::EventGen: %ld of %ld generated (count_gen=%le,weight=%le)\n",igen,ngen,count_gen,weight);
       //continue;
       if(jdebug>3) printf("Laser::EventGen: Propagate igen=%d res=%d distance=%lf lasercoo={%f,%f,%f} laserdir={%f,%f,%f}\n",igen,res,distance,coor_gen[0],coor_gen[1],coor_gen[2],dir_gen[0],dir_gen[1],dir_gen[2]);
       if(res<0) Telindex=res-15;
@@ -398,126 +537,150 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
 }
 
 int Laser::Propagate(double &distance,double &weight){
+   double weight0=weight;
    double coor_min[3];
    int whichtel;
    bool decrease;
-   double freelength=Atmosphere::FreePathLength(coor_gen[2],dir_gen);
-   double dist;
-   bool simpleprop=false;
-   //some quick check
-   if(true){
-      dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
-      distance=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
-      if(!decrease) return -1; //too far away from the telescope
-      else if(dist<TelSimDist){
-         simpleprop=true;
-      }
-      else{ //too far away, check the scatter angle range
-         simpleprop=true;
-         WFTelescopeArray* pta=WFTelescopeArray::GetHead();
-         WFTelescope* pt=(pta&&whichtel>=0)?pta->pct[whichtel]:0;
-         if(pt){
-            double dir_tel[2]={pt->TelZ_,pt->TelA_};
-            double dir_scatin[3]={coor_min[0],coor_min[1],coor_min[2]};
-            if(distance==0){
-               for(int ii=0;ii<3;ii++) dir_scatin[ii]=-dir_gen[ii];
-            }
-            double norm=fabs(pow(dir_scatin[0],2)+pow(dir_scatin[1],2)+pow(dir_scatin[2],2));
-            double costheta_scatin=(dir_scatin[0]*sin(pt->TelZ_)*cos(pt->TelA_)+dir_scatin[1]*sin(pt->TelZ_)*sin(pt->TelA_)+dir_scatin[2]*cos(pt->TelZ_))/norm;
-            if(costheta_scatin<cos(TelSimAngl/180.*PI)) return -5; //outside field view of telescope
-         }
-      }
-   }
-   //return -1;
+   double lengthrange[2]={0,1.0e10};
+   double scatagrange[2]={0,0};
 
-   if(!simpleprop){
-      dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
-      distance=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
+   double dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
+   distance=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
+   WFTelescopeArray* pta=WFTelescopeArray::GetHead();
+   WFTelescope* pt=(pta&&whichtel>=0)?pta->pct[whichtel]:0;
+   double dir_tel[3]={pt?(sin(pt->TelZ_)*cos(pt->TelA_)):0,pt?(sin(pt->TelZ_)*sin(pt->TelA_)):0,pt?cos(pt->TelZ_):1}; //pointing direction of the telescope
+   double dir_las[3]={pt?(coor_gen[0]-pt->Telx_):0,pt?(coor_gen[1]-pt->Tely_):0,coor_gen[2]}; //direction point to the laser
+   double norm_dir_tel=1.;
+   double norm_dir_las=fabs(pow(dir_las[0],2)+pow(dir_las[1],2)+pow(dir_las[2],2));
+   double norm_dir_gen=fabs(pow(dir_gen[0],2)+pow(dir_gen[1],2)+pow(dir_gen[2],2));
+   for(int ii=0;ii<3;ii++){
+      dir_tel[ii]/=norm_dir_tel;
+      dir_gen[ii]/=norm_dir_gen;
+      dir_las[ii]/=norm_dir_las;
    }
-   if(decrease&&(dist<TelSimDist)&&freelength>distance){ //arrive to telescope before doing something
-      if(jdebug>4) printf("Laser::Propagate: no interaction in freelength dist=%lf decrease=%d coo={%lf,%lf,%lf}\n",dist,decrease,coor_min[0],coor_min[1],coor_min[2]);
-      Telindex=whichtel;
-      for(int ii=0;ii<3;ii++){
-         coor_out[ii]=coor_min[ii];
-         dir_out[ii]=dir_gen[ii];
+   //there are three angles(theta1,theta2,theta3)
+   double sintheta1=0,costheta1=0;
+   double sintheta2=0,costheta2=0;
+   double sintheta3=0,costheta3=0;
+   for(int ii=0;ii<3;ii++){
+      costheta1+=dir_tel[ii]*dir_las[ii];
+      costheta2+=dir_tel[ii]*dir_gen[ii];
+      costheta3+=dir_gen[ii]*(-dir_las[ii]);
+   }
+   sintheta1=sqrt(1-pow(costheta1,2));
+   sintheta2=sqrt(1-pow(costheta2,2));
+   sintheta3=sqrt(1-pow(costheta3,2));
+   //the angle theta1 and theta2 limits(within the field of view)
+   double sintheta1_low=0,sintheta1_hig=0;
+   double costheta1_low=0,costheta1_hig=0;
+   double sintheta2_low=0,sintheta2_hig=0;
+   double costheta2_low=0,costheta2_hig=0;
+   sintheta1_hig=sintheta1*cos(TelSimAngl/180.*PI)+sin(TelSimAngl/180.*PI)*costheta1;
+   sintheta1_low=sintheta1*cos(TelSimAngl/180.*PI)-sin(TelSimAngl/180.*PI)*costheta1;
+   costheta1_hig=costheta1*cos(TelSimAngl/180.*PI)-sin(TelSimAngl/180.*PI)*sintheta1;
+   costheta1_low=costheta1*cos(TelSimAngl/180.*PI)+sin(TelSimAngl/180.*PI)*sintheta1;
+   sintheta2_hig=sintheta1_hig*costheta3+sintheta3*costheta1_hig;
+   sintheta2_low=sintheta1_low*costheta3+sintheta3*costheta1_low;
+   costheta2_hig=-(costheta1_hig*costheta3-sintheta3*sintheta1_hig);
+   costheta2_low=-(costheta1_low*costheta3-sintheta3*sintheta1_low);
+   double length_las=norm_dir_las;
+   if(decrease&&dist<TelSimDist){ //laser in the field view of the telescope
+      lengthrange[0]=0;
+      lengthrange[0]=1.0e10;
+      scatagrange[0]=0;
+      scatagrange[1]=0;
+   }
+   else{ //laser far away from the telescope, photon can only enter into telescope by scattering
+      if(sintheta2_hig>0){
+         lengthrange[1]=length_las/sintheta2_hig*sintheta1_hig;
+         double theta2_hig=asin(sintheta2_hig);
+         if(costheta2_hig<0) theta2_hig=PI-theta2_hig;
+         scatagrange[1]=PI-theta2_hig; //should be PI-theta2_hig
       }
-      return 0; //pass through nearby of the telescope without any interaction
+      else{
+         lengthrange[1]=1.0e10;
+         scatagrange[1]=PI;
+      }
+      if(sintheta1_low>0){
+         lengthrange[0]=length_las/sintheta2_low*sintheta1_low;
+         double theta2_low=asin(sintheta2_low);
+         if(costheta2_low<0) theta2_low=PI-theta2_low;
+         scatagrange[0]=PI-theta2_low; //should be PI-theta2_low
+      }
+      else{
+         lengthrange[0]=0;
+         double theta3=asin(sintheta3);
+         if(costheta3<0) theta3=PI-theta3;
+         scatagrange[0]=theta3;
+      }
    }
 
-   double znew=coor_gen[2]+dir_gen[2]/sqrt(pow(dir_gen[0],2)+pow(dir_gen[1],2)+pow(dir_gen[2],2))*freelength;
+   double freelength=Atmosphere::FreePathLength(coor_gen[2],dir_gen,lengthrange,weight);
+   if(jdebug>2) printf("Laser::Propagate: freelength=%le weight={%le,%le}\n",freelength,weight0,weight);
+   double znew=coor_gen[2]+dir_gen[2]/norm_dir_gen*freelength;
    int scatter=Atmosphere::IsScattering(znew);
-   if(scatter<=0){ //absorbed
-      if(jdebug>4) printf("Laser::Propagate: absorb dist=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
-      if(decrease&&dist<TelSimDist){
-         if(distance<freelength){
-            Telindex=whichtel;
-            for(int ii=0;ii<3;ii++){
-               coor_out[ii]=coor_min[ii];
-               dir_out[ii]=dir_gen[ii];
-            }
-            return 0; //pass through nearby of the telescope without scattering
-         }
-         else return -3; //absorbed before arriving to the telescope,without scattering
-      }
-      else{ //too far away from the telescope, without scattering
-         return -1;
-      }
-   }
-   else if(scatter>2){ //no absorbtion, no scatter
-      if(jdebug>4) printf("Laser::Propagate: no absorb, no scatt dist=%lf decrease=%d coo={%lf,%lf,%lf}\n",dist,decrease,coor_min[0],coor_min[1],coor_min[2]);
-      if(decrease&&dist<TelSimDist){
+
+   if(decrease&&dist<TelSimDist){ //laser in the field view of the telescope
+      if(jdebug>4) printf("Laser::Propagate: laser in the field of view of telescope(%lf), distance=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,distance,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
+      if(distance<freelength){
          Telindex=whichtel;
          for(int ii=0;ii<3;ii++){
             coor_out[ii]=coor_min[ii];
             dir_out[ii]=dir_gen[ii];
          }
-         return 0; //pass through nearby of the telescope without scattering
+         return 0; //pass through nearby of the telescope without any interaction
       }
-      else{ //too far away from the telescope, without scattering
-         return -1;
+      else{ //will be absorbed or scattered, ignore those events
+         return -3;
       }
    }
-   else{ //scattering
-      double coor_scat[3];
-      double dir_scat[3];
-
-      for(int ii=0;ii<3;ii++) coor_scat[ii]=coor_gen[ii]+dir_gen[ii]*freelength;
-
-      double theta,phi;
-      if(scatter==1){	//Rayleigh scattering
-         Atmosphere::RayScatterAngle(wavelength_gen,theta,phi);
+   else{
+      if(scatter<=0||scatter>2){ //absorbed or no interaction
+         if(jdebug>4) printf("Laser::Propagate: laser far away from telescope(%lf), absorbed or no interaction, distance=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,distance,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
+         return -4;
       }
-      else if(scatter==2){	//Mie scattering
-         Atmosphere::MieScatterAngle(wavelength_gen,theta,phi);
-      }
-      double xdir[3],ydir[3],zdir[3];
-      double zero[3]={0,0,0};
-      CartesianFrame(zero,coor_gen,dir_gen,xdir,ydir,zdir);
-      double rr=tan(theta);
-      for(int ii=0;ii<3;ii++){
-         dir_scat[ii]=zdir[ii]+rr*(cos(phi)*xdir[ii]+sin(phi)*ydir[ii]);
-      }
-      double norm=sqrt(dir_scat[0]*dir_scat[0]+dir_scat[1]*dir_scat[1]+dir_scat[2]*dir_scat[2]);
-      for(int ii=0;ii<3;ii++) dir_scat[ii]/=norm;
+      else{ //scattering
+         double coor_scat[3];
+         double dir_scat[3];
 
-      //the distance to the closest telescope
-      dist=mindist(coor_scat,dir_scat,whichtel,coor_min,decrease);
-      distance=freelength+sqrt(pow(coor_scat[0]-coor_min[0],2)+pow(coor_scat[1]-coor_min[1],2)+pow(coor_scat[2]-coor_min[2],2));
-      if(jdebug>4) printf("Laser::Propagate: scatter dist=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
-      if(decrease&&dist<TelSimDist){ //inside the field of view of one telescope after scattering
-         double freelength2=Atmosphere::FreePathLength(coor_scat[2],dir_scat);
-         if(dist<freelength2){
-            Telindex=whichtel;
-            for(int ii=0;ii<3;ii++){
-               coor_out[ii]=coor_min[ii];
-               dir_out[ii]=dir_scat[ii];
-            }
-            return scatter; //pass through nearby of the telescope after one scattering
+         for(int ii=0;ii<3;ii++) coor_scat[ii]=coor_gen[ii]+dir_gen[ii]*freelength;
+
+         double theta,phi;
+         if(scatter==1){	//Rayleigh scattering
+            Atmosphere::RayScatterAngle(wavelength_gen,theta,phi,scatagrange,weight);
          }
-         else return -4; //absorbed before arriving to the telescope, after one scattering
-      }
-      else{ //too far away from the telescope after one scattering
-         return -2;
+         else if(scatter==2){	//Mie scattering
+            Atmosphere::MieScatterAngle(wavelength_gen,theta,phi,scatagrange,weight);
+         }
+         double xdir[3],ydir[3],zdir[3];
+         double zero[3]={0,0,0};
+         CartesianFrame(zero,coor_gen,dir_gen,xdir,ydir,zdir);
+         for(int ii=0;ii<3;ii++){
+            dir_scat[ii]=cos(theta)*zdir[ii]+sin(theta)*(cos(phi)*xdir[ii]+sin(phi)*ydir[ii]);
+         }
+         double norm=sqrt(dir_scat[0]*dir_scat[0]+dir_scat[1]*dir_scat[1]+dir_scat[2]*dir_scat[2]);
+         for(int ii=0;ii<3;ii++) dir_scat[ii]/=norm;
+
+         //the distance to the closest telescope
+         dist=mindist(coor_scat,dir_scat,whichtel,coor_min,decrease);
+         distance=freelength+sqrt(pow(coor_scat[0]-coor_min[0],2)+pow(coor_scat[1]-coor_min[1],2)+pow(coor_scat[2]-coor_min[2],2));
+         if(jdebug>4) printf("Laser::Propagate: scattered, dist=%lf(free length=%lf distance=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,freelength,distance,decrease,coor_min[0],coor_min[1],coor_min[2]);
+         if(decrease&&dist<TelSimDist){ //inside the field of view of one telescope after scattering
+            double lengthrange2[2]={0,0};
+            double freelength2=Atmosphere::FreePathLength(coor_scat[2],dir_scat,lengthrange2,weight);
+            if(fabs(distance-freelength)<freelength2){
+               Telindex=whichtel;
+               for(int ii=0;ii<3;ii++){
+                  coor_out[ii]=coor_min[ii];
+                  dir_out[ii]=dir_scat[ii];
+               }
+               return scatter; //pass through nearby of the telescope after one scattering
+            }
+            else return -1; //interacted before arriving to the telescope, after one scattering
+         }
+         else{ //too far away from the telescope after one scattering
+            return -2;
+         }
       }
    }
 }

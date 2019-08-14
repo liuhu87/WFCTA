@@ -35,10 +35,11 @@ int main(int argc, char**argv)
    WFTelescopeArray::DoSim=true;
    WFTelescopeArray::GetHead(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/default.inp"));
    Atmosphere::SetParameters();
+   Atmosphere::scale=1.0e6;
    Laser::scale=1.0e-9;
    //Laser::spotrange = 0;//0.001;//0.001;//mm
    Laser::divergence = 1.;//0.0573;
-   Laser::jdebug=0;
+   Laser::jdebug=3;
    Laser* pl=new Laser(seed);
    if(!pl->pwfc) pl->pwfc=new WFCTAEvent();
    WFCTAEvent* pevt=(pl->pwfc);
