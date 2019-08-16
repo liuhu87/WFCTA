@@ -26,23 +26,29 @@ int main(int argc, char**argv)
   int64_t packSize = 0;
   map<short, int>* sipm_position;
   map<short, int>::iterator sipm_position_iter;
-  int pulsehigh[32];
-  int pulselow[32];
+  int Npoint[28] = {0};  for(int i=0;i<28;i++) {Npoint[i]=i;}
+  int pulsehigh[1024][28];
+  int pulselow[1024][28];
 
   WFCTAEvent *wfctaEvent = new WFCTAEvent();
   TFile *rootfile = new TFile(argv[2],"recreate");
   /*********************************************************************/
   TTree *eventShow = new TTree("eventShow","info of evnets");
   wfctaEvent -> CreateBranch(eventShow,1);
+  eventShow -> Branch("Npoint",Npoint,"Npoint[32]/I");
+  eventShow -> Branch("pulsehigh",pulsehigh,"pulsehigh[1024][28]/I");
+  eventShow -> Branch("pulselow",pulselow,"pulselow[1024][28]/I");
   /*********************************************************************/
 
   WFCTADecode *wfctaDecode = new WFCTADecode();
 
   //Events Initial//
   wfctaEvent->EventInitial();
-  for(int j=0;j<32;j++){
-    pulsehigh[j] = 0;
-    pulselow[j] = 0;
+  for(int i=0;i<1024;i++){
+    for(int j=0;j<28;j++){
+      pulsehigh[i][j] = 0;
+      pulselow[i][j] = 0;
+    }
   }
 
   fp = fopen(argv[1],"rb");
@@ -52,7 +58,7 @@ int main(int argc, char**argv)
       fseek(fp,-size_of_read,1);
       if(size_of_read==0){break;}
       //dumpPacket(buf,size_of_read,16);
-printf("test\n");
+//printf("test\n");
       if(wfctaDecode->bigPackCheck(buf,int(size_of_read)))
       {
 	  //get info eventID and rabbit_time//
@@ -95,10 +101,12 @@ printf("%d:\n",wfctaDecode->eventId(buf));
 
           eventShow->Fill();
 	  wfctaEvent->EventInitial();
-          for(int j=0;j<32;j++){
-            pulsehigh[j] = 0;
-            pulselow[j] = 0;
-          }
+	  for(int i=0;i<1024;i++){
+            for(int j=0;j<28;j++){
+              pulsehigh[i][j] = 0;
+              pulselow[i][j] = 0;
+            }
+	  }
           fseek(fp,packSize,1);
       }
       else

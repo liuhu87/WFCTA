@@ -633,7 +633,7 @@ bool WFCTADecode::GetOver_Record_Mark(uint8_t *begin, short isipm)
 
     bool m_Over_Record_Mark = 0;
     int m_over_record_mark = begin[m_sipm_position_iter->second+3]&0x0e;
-//printf("m_over_record_mark:%d\n",m_over_record_mark);
+    //printf("m_over_record_mark:%d\n",m_over_record_mark);
     if(m_over_record_mark==0x0e)
     {
 	m_Over_Record_Mark=1;
@@ -705,16 +705,18 @@ float WFCTADecode::GetwaveImageAdcLow(uint8_t *begin, short isipm)
  * ****************************/
 void WFCTADecode::GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pulsel)
 {
-    WFCTADecode::Getwavepeak(begin,isipm);
+    WFCTADecode::waveform(begin,isipm);
     for(int i=0;i<28;i++)
     {
+        *(pulseh+isipm*28+i) = pulsehigh[i];
+        *(pulsel+isipm*28+i) = pulselow[i];
+    }
         //printf("%5d ",pulsehigh[i]);
-    }
 //printf("\n");
-    for(int i=0;i<28;i++)
-    {
+    //for(int i=0;i<28;i++)
+    //{
         //printf("%5d ",pulselow[i]);
-    }
+    //}
 //printf("\n");
 //dumpPacket(begin+m_sipm_position_iter->second+6,112,16);
 //dumpPacket(begin+m_sipm_position_iter->second+60,5);
