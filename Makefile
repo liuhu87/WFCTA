@@ -7,7 +7,7 @@ CXX  :=`root-config --cxx`
 LD   :=`root-config --ld`
 ARCH :=`root-config --arch`
 
-HEADERS  := $(INCDIR)/common.h $(INCDIR)/MSpline.h
+HEADERS  := $(INCDIR)/common.h
 HEADERS  += $(INCDIR)/CorsikaIO.h $(INCDIR)/CorsikaChain.h $(INCDIR)/CorsikaEvent.h
 HEADERS  += $(INCDIR)/WFTelescope.h $(INCDIR)/WFMirror.h $(INCDIR)/WFCone.h $(INCDIR)/WFCamera.h $(INCDIR)/Readparam.h $(INCDIR)/WFCTAMCEvent.h  
 HEADERS  += $(INCDIR)/WFCTALedEvent.h
@@ -23,7 +23,7 @@ HEADERS  += $(INCDIR)/StatusDB.h
 HEADERS  += $(INCDIR)/ReadTrack.h
 HEADERS  += $(INCDIR)/ShowerPlot.h
 
-SOURCES  := $(SRCDIR)/common.C $(SRCDIR)/MSpline.C
+SOURCES  := $(SRCDIR)/common.C
 SOURCES  += $(SRCDIR)/CorsikaIO.C $(SRCDIR)/CorsikaChain.C $(SRCDIR)/CorsikaEvent.C 
 SOURCES  += $(SRCDIR)/WFTelescope.C $(SRCDIR)/WFMirror.C $(SRCDIR)/WFCone.C $(SRCDIR)/WFCamera.C $(SRCDIR)/Readparam.C $(SRCDIR)/WFCTAMCEvent.C
 SOURCES  += $(SRCDIR)/WFCTALedEvent.C
@@ -45,7 +45,7 @@ SOURCES  += dosim.C
 SOURCES  += showcloudmap.C
 SOURCES  += dolasersim.C
 
-OBJS     := $(OBJDIR)/common.o $(OBJDIR)/MSpline.o
+OBJS     := $(OBJDIR)/common.o
 OBJS     += $(OBJDIR)/CorsikaIO.o $(OBJDIR)/CorsikaChain.o $(OBJDIR)/CorsikaEvent.o 
 OBJS     += $(OBJDIR)/WFTelescope.o $(OBJDIR)/WFMirror.o $(OBJDIR)/WFCone.o $(OBJDIR)/WFCamera.o $(OBJDIR)/Readparam.o $(OBJDIR)/WFCTAMCEvent.o
 OBJS     += $(OBJDIR)/WFCTALedEvent.o

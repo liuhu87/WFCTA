@@ -4,7 +4,6 @@
 #pragma link off all functions;
 #pragma link C++ nestedclasses;
 #pragma link C++ class CommonTools+;
-#pragma link C++ class MSpline+;
 
 #pragma link C++ class CorsikaIO+;
 #pragma link C++ class CorsikaChain+;

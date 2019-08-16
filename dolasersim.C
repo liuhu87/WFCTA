@@ -37,6 +37,7 @@ int main(int argc, char**argv)
    Atmosphere::SetParameters();
    Atmosphere::scale=1.0e6;
    Laser::scale=1.0e-9;
+   //Laser::Doigen=9632;
    //Laser::spotrange = 0;//0.001;//0.001;//mm
    Laser::divergence = 1.;//0.0573;
    Laser::jdebug=3;
