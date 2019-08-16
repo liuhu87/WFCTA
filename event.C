@@ -57,7 +57,7 @@ printf("test\n");
       {
 	  //get info eventID and rabbit_time//
           packSize = wfctaDecode->PackSize();
-
+printf("%d:\n",wfctaDecode->eventId(buf));
           wfctaEvent->iEvent=wfctaDecode->eventId(buf);
           wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
           wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
@@ -73,7 +73,7 @@ printf("test\n");
 	    wfctaEvent->Over_Single_Marker.push_back( wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first) );
 	    wfctaEvent->Over_Record_Marker.push_back( wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first) );
 	    wfctaEvent->ImageBaseHigh.push_back( wfctaDecode->BaseHigh(buf,sipm_position_iter->first) );
-printf("%d %d:\n",wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first),sipm_position_iter->first);
+//printf("%d %d:\n",wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first),sipm_position_iter->first);
 	    wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)pulsehigh, (int *)pulselow);
 	    wfctaEvent->mypeak.push_back( wfctaDecode->Getwavepeak(buf,sipm_position_iter->first) );
 	    wfctaEvent->myImageBaseHigh.push_back( wfctaDecode->GetwaveImageBaseHigh(buf,sipm_position_iter->first) );

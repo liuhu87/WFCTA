@@ -567,6 +567,7 @@ uint64_t WFCTADecode::RabbitTime(uint8_t *begin)
                         ((uint64_t)begin[tail-13]<<14)|
                         ((uint64_t)begin[tail-12]<<6)|
                         ((uint64_t)begin[tail-11]>>2&0x3f);
+//printf("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",begin[tail-15],begin[tail-14],begin[tail-13],begin[tail-12],begin[tail-11],begin[tail-10],begin[tail-9],begin[tail-8],begin[tail-7],begin[tail-6]);
     return rab_Time;
 }
 /**********************
@@ -606,7 +607,7 @@ uint8_t WFCTADecode::zipMode(uint8_t *begin, short isipm)
     m_sipm_position_iter = m_sipm_position.find(isipm);
     int packposition = m_sipm_position_iter->second;
 
-    int8_t zip_mode = (((int8_t)begin[packposition+2]&0x3f)>>4);
+    int8_t zip_mode = (((int8_t)begin[packposition+3]&0x3f)>>4);
     return zip_mode;
 }
 
@@ -618,7 +619,7 @@ bool WFCTADecode::GetOver_Single_Mark(uint8_t *begin, short isipm)
     m_sipm_position_iter = m_sipm_position.find(isipm);
     int packposition = m_sipm_position_iter->second;
 
-    bool m_Over_Single_Mark = (begin[packposition+3]&0x2); 
+    bool m_Over_Single_Mark = (begin[packposition+3]&0x1); 
     return m_Over_Single_Mark;
 }
 
@@ -630,7 +631,14 @@ bool WFCTADecode::GetOver_Record_Mark(uint8_t *begin, short isipm)
     m_sipm_position_iter = m_sipm_position.find(isipm);
     int packposition = m_sipm_position_iter->second;
 
-    bool m_Over_Record_Mark = begin[m_sipm_position_iter->second+3]&0x1;
+    bool m_Over_Record_Mark = 0;
+    int m_over_record_mark = begin[m_sipm_position_iter->second+3]&0x0e;
+//printf("m_over_record_mark:%d\n",m_over_record_mark);
+    if(m_over_record_mark==0x0e)
+    {
+	m_Over_Record_Mark=1;
+    }
+    //bool m_Over_Record_Mark = begin[m_sipm_position_iter->second+3]&0xe;
     return m_Over_Record_Mark;
 }
 
@@ -700,14 +708,14 @@ void WFCTADecode::GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pul
     WFCTADecode::Getwavepeak(begin,isipm);
     for(int i=0;i<28;i++)
     {
-        printf("%5d ",pulsehigh[i]);
+        //printf("%5d ",pulsehigh[i]);
     }
-printf("\n");
+//printf("\n");
     for(int i=0;i<28;i++)
     {
-        printf("%5d ",pulselow[i]);
+        //printf("%5d ",pulselow[i]);
     }
-printf("\n");
+//printf("\n");
 //dumpPacket(begin+m_sipm_position_iter->second+6,112,16);
 //dumpPacket(begin+m_sipm_position_iter->second+60,5);
 //dumpPacket(begin+m_sipm_position_iter->second+65,39,3);
