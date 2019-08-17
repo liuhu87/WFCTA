@@ -463,7 +463,7 @@ double  WFCTADecode::GetStatusReadbacktime(uint8_t *begin, int packsize)
  * ********************/
 bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize)
 {
-    int64_t big_pack_len;
+    //int64_t big_pack_len;
     head = 0;
     tail = 0;
 
@@ -495,7 +495,7 @@ bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize)
 	readPos++;
     }
 
-    big_pack_len = tail - head;
+    big_pack_len = tail + 1 - head;
     packSize = tail+1;
     if(big_pack_len>0)
     {
@@ -551,9 +551,9 @@ uint64_t WFCTADecode::eventId(uint8_t *begin)
 /************************
  * ** get Npix in data **
  * **********************/
-int8_t WFCTADecode::nFired(uint8_t *begin)
+int16_t WFCTADecode::nFired(uint8_t *begin)
 {
-    int8_t nfired = ((int8_t)begin[head+22]<<8) | ((int8_t)begin[head+23]);
+    int16_t nfired = ((int16_t)begin[head+22]<<8) | ((int16_t)begin[head+23]);
     return nfired;
 }
 
@@ -668,9 +668,15 @@ uint8_t WFCTADecode::Getwavepeak(uint8_t *begin, short isipm)
     double sumhigh;
     for(int i=0;i<28;i++){
 	sumhigh = pulsehigh[i];
-	if(sumhighmax<sumhigh) {sumhighmax = sumhigh; m_wavepeak = i;}
+	if(sumhighmax<sumhigh) {sumhighmax = sumhigh; m_wavepeak = i; peakAmp = sumhigh;}
     }
     return m_wavepeak;
+}
+
+int32_t WFCTADecode::GetpeakAmp(uint8_t *begin, short isipm)
+{
+    WFCTADecode::Getwavepeak(begin,isipm);
+    return peakAmp;
 }
 
 /*****************************************************************

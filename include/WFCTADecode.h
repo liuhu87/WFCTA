@@ -22,10 +22,11 @@ public:
     void Find_SiPMs(uint8_t *begin, int packsize);
 
     uint64_t PackSize() {return packSize;};
+    int32_t bigpackLen() {return big_pack_len;};
     map<short, int>& GetSiPM_Position() {return m_sipm_position;};
 
     uint64_t eventId(uint8_t *begin);
-    int8_t nFired(uint8_t *begin);
+    int16_t nFired(uint8_t *begin);
     uint64_t RabbitTime(uint8_t *begin);
     //uint64_t Rabbittime(uint8_t *begin);
     double Rabbittime(uint8_t *begin);
@@ -35,6 +36,7 @@ public:
     //uint8_t GetPeak(uint8_t *begin, short isipm);
     //bool Getgain_marker(uint8_t *begin, short isipm);
     uint8_t Getwavepeak(uint8_t *begin, short isipm);
+    int32_t GetpeakAmp(uint8_t *begin, short isipm);
     //uint16_t GetSingle_Thresh(uint8_t *begin, short isipm);
     //uint16_t GetRecord_Thresh(uint8_t *begin, short isipm);
     bool GetOver_Single_Mark(uint8_t *begin, short isipm);
@@ -94,6 +96,8 @@ private:
     float m_Adchigh;
     float m_Adclow;
 
+    int32_t big_pack_len;
+    int32_t peakAmp;
     uint8_t m_wavepeak;
 
     int pulsehigh[28];
