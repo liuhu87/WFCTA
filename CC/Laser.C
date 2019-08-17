@@ -373,6 +373,7 @@ void Laser::Reset(){
       vgcoo[ii].clear();
       vgdir[ii].clear();
    }
+   vowei.clear();
    Telindex=-2;
    votim.clear();
    votel.clear();
@@ -569,7 +570,6 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
       double distance;
       int res=Propagate(distance,weight);
       if((igen%(1000000)==0)&&jdebug>0) printf("Laser::EventGen: %ld of %ld generated (count_gen=%le,weight={%le,%le})\n",igen,ngen,count_gen,weight,weight*scale);
-      //continue;
       if(jdebug>3) printf("Laser::EventGen: Propagate igen=%d res=%d distance=%lf lasercoo={%f,%f,%f} laserdir={%f,%f,%f}\n",igen,res,distance,coor_gen[0],coor_gen[1],coor_gen[2],dir_gen[0],dir_gen[1],dir_gen[2]);
       if(res<0) Telindex=res-15;
       else{  //the telescope index has been calculated in Propagate
