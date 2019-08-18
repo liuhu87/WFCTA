@@ -118,7 +118,9 @@ bool Atmosphere::RayScatterAngleTheta(double wavelength, double &theta, double a
    double yrange[2];
    xxx=Laser::prandom->Uniform(0,1);
    if(anglerange[1]<=anglerange[0]){
-      theta=gRayScatAngle->Eval(xxx);
+      //theta=gRayScatAngle->Eval(xxx);
+      theta=xxx*PI;
+      weight*=2./3.*(1+pow(cos(theta),2));
       return true;
    }
    else{
@@ -175,7 +177,9 @@ bool Atmosphere::MieScatterAngleTheta(double wavelength, double &theta, double a
    double yrange[2];
    xxx=Laser::prandom->Uniform(0,1);
    if(anglerange[1]<=anglerange[0]){
-      theta=gMieScatAngle->Eval(xxx);
+      //theta=gMieScatAngle->Eval(xxx);
+      theta=xxx*PI;
+      weight*=1;
       return true;
    }
    else{
