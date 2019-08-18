@@ -37,5 +37,7 @@ class WFCTAMCEvent
    void Copy(WFTelescopeArray* pct=0);
    void GetTubeTrigger();
    void GetTelescopeTrigger(WFTelescopeArray* pct=0);
+
+   //ClassDef(WFCTAMCEvent,1);
 };
 #endif

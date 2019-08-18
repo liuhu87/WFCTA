@@ -14,5 +14,7 @@ class WFCTALaserEvent{
    void Reset();
    WFCTALaserEvent() {Init();}
    ~WFCTALaserEvent() {;}
+
+   //ClassDef(WFCTALaserEvent,1);
 };
 #endif

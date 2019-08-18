@@ -11,5 +11,7 @@ class WFCTALedEvent{
    void Reset();
    WFCTALedEvent() {Init();}
    ~WFCTALedEvent() {;}
+
+   //ClassDef(WFCTALedEvent,1);
 };
 #endif
