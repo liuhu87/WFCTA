@@ -11,6 +11,7 @@
 #include <TPolyMarker3D.h>
 #include <TSystem.h>
 #include <TObjArray.h>
+#include "TH1F.h"
 using namespace std;
 
 class CorsikaEvent;
@@ -61,6 +62,8 @@ class ReadTrack{
    static int Style(int partid);
    static int Width(int partid);
    void Draw(TCanvas* cc=0,const char* option="al");
+   TH1F* GetN_vs_Z(int partid=-1);
+   TH1F* GetL_vs_Z(int partid=-1);
 };
 
 #endif

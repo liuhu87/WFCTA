@@ -304,3 +304,57 @@ void ReadTrack::Draw(TCanvas* cc,const char* option){
       plot->Draw(option);
    }
 }
+TH1F* ReadTrack::GetN_vs_Z(int partid){
+   int size=arrid.size();
+   if(size<=0) return 0;
+   TH1F* hist=new TH1F("N_vs_Z","",1000,plotrange[2][0],plotrange[2][1]);
+   for(int ii=0;ii<size;ii++){
+      if(partid>=0&&partid!=arrid.at(ii)) continue;
+      double weight=1.;
+      double z1=arrc1[2].at(ii);
+      double z2=arrc2[2].at(ii);
+      int bin1=hist->GetXaxis()->FindBin(z1);
+      int bin2=hist->GetXaxis()->FindBin(z2);
+      for(int ibin=bin1;ibin<=bin2;ibin++){
+         double center=hist->GetXaxis()->GetBinCenter(ibin);
+         double binwidth=hist->GetXaxis()->GetBinWidth(ibin);
+         if(ibin>bin1&&ibin<bin2) hist->Fill(center,weight);
+         else if(ibin==bin1) hist->Fill(center,weight*(hist->GetXaxis()->GetBinUpEdge(ibin)-z1)/binwidth);
+         else if(ibin==bin2) hist->Fill(center,weight*(z2-hist->GetXaxis()->GetBinLowEdge(ibin))/binwidth);
+      }
+   }
+   return hist;
+}
+TH1F* ReadTrack::GetL_vs_Z(int partid){
+   int size=arrid.size();
+   if(size<=0) return 0;
+   TH1F* hist=new TH1F("L_vs_Z","",1000,plotrange[2][0],plotrange[2][1]);
+   for(int ibin=1;ibin<=hist->GetNbinsX();ibin++){
+      double center=hist->GetXaxis()->GetBinCenter(ibin);
+      double binwidth=hist->GetXaxis()->GetBinWidth(ibin);
+      int np=0;
+      double xsum1=0,ysum1=0;
+      double xsum2=0,ysum2=0;
+      for(int ii=0;ii<size;ii++){
+         if(partid>=0&&partid!=arrid.at(ii)) continue;
+         double weight=1.;
+         double z1=arrc1[2].at(ii);
+         double z2=arrc2[2].at(ii);
+         if(center<z1||center>z2) continue;
+         double x1=arrc1[0].at(ii);
+         double x2=arrc2[0].at(ii);
+         double y1=arrc1[1].at(ii);
+         double y2=arrc2[1].at(ii);
+         double xx=x1+(x2-x1)/(z2-z1)*(center-z1);
+         double yy=y1+(y2-y1)/(z2-z1)*(center-z1);
+         xsum1+=xx;
+         xsum2+=xx*xx;
+         ysum1+=yy;
+         ysum2+=yy*yy;
+         np++;
+      }
+      if(np>0) hist->SetBinContent(ibin,sqrt(xsum2/np-pow(xsum1/np,2)+ysum2/np-pow(ysum1/np,2)));
+   }
+   return hist;
+}
+

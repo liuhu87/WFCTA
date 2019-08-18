@@ -1,6 +1,7 @@
 #ifndef __Status_DB__
 #define __Status_DB__
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include "WFCTADecode.h"
 using namespace std;
