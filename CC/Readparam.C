@@ -30,7 +30,6 @@ void WReadConfig::readparam(char * filename)
   float x, y, z, azi, zen;
   ifstream ifile;  
 
-
   CT_Position = new float *[MAX_NUMBER_OF_CTS];
   for (i = 0; i < MAX_NUMBER_OF_CTS ; i++){
      CT_Position[i] = new float[5];

@@ -142,7 +142,7 @@ FILE* StatusDB::LocateFile(int iTel,int Time,double time){
       }
    }
    else{ //there is no file contains this Time 
-      if(jdebug>0) printf("StatusDB::LocateFile: Couldn't find file for time=%d Tel=%d\n",Time,iTel);
+      if(jdebug>0) printf("StatusDB::LocateFile: Couldn't find file for time=%d Tel=%d (cfiletime=%d itar=%d dir=%s ntot=%d)\n",Time,iTel,cfiletime,itar,dirname,namebuff.size());
       return 0;
    }
 }

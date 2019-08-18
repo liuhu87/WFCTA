@@ -48,7 +48,7 @@ struct EveInfo{
   Int_t ipartp;
   Float_t ep;
   Float_t pxp, pyp, pzp;
-  Float_t thetap, phip;
+  Float_t thetap, phip,stheight;
   Float_t corex[Nuse],corey[Nuse];
   
   //EVTE

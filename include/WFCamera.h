@@ -4,7 +4,6 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <vector>
@@ -33,6 +32,11 @@ class WCamera
   public:
 
   vector<double> TubeSignal;
+  vector<double> eTubeSignal;
+  vector<double> ArrivalTimeMin;
+  vector<double> ArrivalTimeMax;
+  vector<double> ArrivalAccTime;
+  vector<int> NArrival;
   vector<int> TubeTrigger;
   int TelTrigger;
   //int **Trigger;
@@ -53,7 +57,7 @@ class WCamera
   //void PhotonIntoCone(int ict, int itube, int outpe);
   //void PhotonAfterConeTracing(int ict, int itube, int outpe);
   //void PhotonIntoCell(int ict, int itube, int icell, int outpe);
-  void Fill(int itube,double weight=1.0);
+  void Fill(int itube,double time=0,double weight=1.0);
   void GetTubeTrigger();
   //void GetTrigger();
   void AddNSB();

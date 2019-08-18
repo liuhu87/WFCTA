@@ -11,33 +11,214 @@ double Atmosphere::aod_air = 0;
 double Atmosphere::aod_aerosol = 0;
 double Atmosphere::scat_air = 0;
 double Atmosphere::scat_aerosol = 0;
+TGraph* Atmosphere::gRayScatAngle=0;
+TGraph* Atmosphere::gMieScatAngle=0;
+double Atmosphere::scale=1.0;
 
 void Atmosphere::Init(int seed){
 ;
 }
 void Atmosphere::Release(){
-;
+   if(gRayScatAngle) {delete gRayScatAngle; gRayScatAngle=0;}
+   if(gMieScatAngle) {delete gMieScatAngle; gMieScatAngle=0;}
 }
 
 void Atmosphere::SetParameters(char* filename){
    aod_air = 0.04*1.0e-5;
-   scat_air = 0.03*1.0e-5;
+   scat_air = 0.039*1.0e-5;
+   if((!gRayScatAngle)||(!gMieScatAngle)){
+      TFile* fin=TFile::Open(Form("%s/ScatterAngle.root",getenv("WFCTADataDir")));
+      if(!fin) return;
+      gRayScatAngle=fin?(TGraph*)fin->Get("RayScat"):0;
+      gMieScatAngle=fin?(TGraph*)fin->Get("MieScat"):0;
+      printf("Atmosphere: Scattering Database Initialed %p %p %p\n",fin,gRayScatAngle,gMieScatAngle);
+      fin->Close();
+   }
 }
 
-bool Atmosphere::RayScatterAngle(double wavelength, double &theta, double &phi){
-   if(!Laser::prandom) return false;
-   phi=Laser::prandom->Uniform(0,2*PI);
-   double costheta=Laser::prandom->Uniform(-1,1);
-   theta=acos(costheta);
-   return true;
-}
+double Atmosphere::ProbTransform(double xx,double yy[2],double &weight,bool IsCenter){
+   double p1,p2,p3;
+   //different p1,p2,p3 for different scale
+   if(scale<5.){
+      p1=p2=p3=1./3;
+   }
+   else if(scale<50.){
+      if(IsCenter){
+         p2=(1-1./scale*2.5);
+         p3=(1-p2)*(1-yy[1])/(1-(yy[1]-yy[0]));
+         p1=1-p2-p3;
+      }
+      else{
+         p3=1./scale;
+         p1=1-p3-1.5*p3;
+         p2=1-p1-p3;
+      }
+   }
+   else if(scale<5.e3){
+      if(IsCenter){
+         p2=(1-1./scale)*0.8;
+         p3=(1-p2)*(1-yy[1])/(1-(yy[1]-yy[0]));
+         p1=1-p2-p3;
+      }
+      else{
+         p3=1./scale;
+         p1=(1-p3)*0.8;
+         p2=1-p1-p3;
+      }
+   }
+   else if(scale<5.e5){
+      if(IsCenter){
+         p2=(1-1./scale)*0.95;
+         p3=(1-p2)*(1-yy[1])/(1-(yy[1]-yy[0]));
+         p1=1-p2-p3;
+      }
+      else{
+         p3=1./scale;
+         p1=(1-p3)*0.95;
+         p2=1-p1-p3;
+      }
+   }
+   else{
+      if(IsCenter){
+         p2=(1-1./scale)*(1-1./scale);
+         p3=(1-p2)*(1-yy[1])/(1-(yy[1]-yy[0]));
+         p1=1-p2-p3;
+         //p2=1.; p3=p1=0;
+      }
+      else{
+         p3=1./scale;
+         p1=(1-p3)*(1-p3);
+         p2=1-p1-p3;
+         //p1=1.; p2=p3=0;
+      }
+   }
 
-bool Atmosphere::MieScatterAngle(double wavelength, double &theta, double &phi){
+   if(xx<=p1){
+      weight*=(yy[0]/p1);
+      return (xx==p1)?yy[0]:(yy[0]/p1*xx);
+   }
+   else if(xx<=p1+p2){
+      weight*=(yy[1]-yy[0])/p2;
+      return yy[0]+(yy[1]-yy[0])/p2*(xx-p1);
+   }
+   else{
+      weight*=(1-yy[1])/p3;
+      return yy[1]+(1-yy[1])/p3*(xx-p1-p2);
+   }
+}
+bool Atmosphere::RayScatterAngleTheta(double wavelength, double &theta, double anglerange[2],double &weight){
    if(!Laser::prandom) return false;
-   phi=Laser::prandom->Uniform(0,2*PI);
-   double costheta=Laser::prandom->Uniform(-1,1);
-   theta=acos(costheta);
-   return true;
+   if(!gRayScatAngle){
+      printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
+      return false;
+   }
+
+   double xxx;
+   double yrange[2];
+   xxx=Laser::prandom->Uniform(0,1);
+   if(anglerange[1]<=anglerange[0]){
+      theta=gRayScatAngle->Eval(xxx);
+      return true;
+   }
+   else{
+      yrange[0]=anglerange[0]/PI;
+      yrange[1]=anglerange[1]/PI;
+      theta=ProbTransform(xxx,yrange,weight,yrange[0]>0); //from 0 to 1
+      if(theta<0) return false;
+      //theta=gRayScatAngle->Eval(theta);
+      theta*=PI;
+      weight*=2./3.*(1+pow(cos(theta),2));
+      return true;
+   }
+}
+bool Atmosphere::RayScatterAnglePhi(double wavelength, double &phi,double anglerange[2],double &weight){
+   if(!Laser::prandom) return false;
+   if(!gRayScatAngle){
+      printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
+      return false;
+   }
+
+   double xxx;
+   double yrange[2];
+   xxx=Laser::prandom->Uniform(0,1);
+   if(anglerange[1]<=anglerange[0]){
+      phi=xxx*2*PI-PI;
+      return true;
+   }
+   else{
+      if(anglerange[1]<-PI){
+         anglerange[0]+=2*PI;
+         anglerange[1]+=2*PI;
+      }
+      if(anglerange[0]>PI){
+         anglerange[0]-=2*PI;
+         anglerange[1]-=2*PI;
+      }
+      yrange[0]=anglerange[0]/PI/2+0.5;
+      yrange[1]=anglerange[1]/PI/2+0.5;
+
+      phi=ProbTransform(xxx,yrange,weight,yrange[0]>0); //from 0 to 1
+      if(phi<0) return false;
+      phi=(phi-0.5)*2*PI;
+      return true;
+   }
+}
+bool Atmosphere::MieScatterAngleTheta(double wavelength, double &theta, double anglerange[2],double &weight){
+   if(!Laser::prandom) return false;
+   if(!gMieScatAngle){
+      printf("Atmosphere::MieScatterAngle: No Mie Scatter Angle Calculated\n");
+      return false;
+   }
+
+   double xxx;
+   double yrange[2];
+   xxx=Laser::prandom->Uniform(0,1);
+   if(anglerange[1]<=anglerange[0]){
+      theta=gMieScatAngle->Eval(xxx);
+      return true;
+   }
+   else{
+      yrange[0]=anglerange[0]/PI;
+      yrange[1]=anglerange[1]/PI;
+      theta=ProbTransform(xxx,yrange,weight,yrange[0]>0); //from 0 to 1
+      if(theta<0) return false;
+      //theta=gMieScatAngle->Eval(theta);
+      theta*=PI;
+      weight*=1;
+      return true;
+   }
+}
+bool Atmosphere::MieScatterAnglePhi(double wavelength, double &phi,double anglerange[2],double &weight){
+   if(!Laser::prandom) return false;
+   if(!gMieScatAngle){
+      printf("Atmosphere::MieScatterAngle: No Mie Scatter Angle Calculated\n");
+      return false;
+   }
+
+   double xxx;
+   double yrange[2];
+   xxx=Laser::prandom->Uniform(0,1);
+   if(anglerange[1]<=anglerange[0]){
+      phi=xxx*2*PI-PI;
+      return true;
+   }
+   else{
+      if(anglerange[1]<-PI){
+         anglerange[0]+=2*PI;
+         anglerange[1]+=2*PI;
+      }
+      if(anglerange[0]>PI){
+         anglerange[0]-=2*PI;
+         anglerange[1]-=2*PI;
+      }
+      yrange[0]=anglerange[0]/PI/2+0.5;
+      yrange[1]=anglerange[1]/PI/2+0.5;
+
+      phi=ProbTransform(xxx,yrange,weight,yrange[0]>0); //from 0 to 1
+      if(phi<0) return false;
+      phi=(phi-0.5)*2*PI;
+      return true;
+   }
 }
 
 double Atmosphere::ZDependence(double z,int type){
@@ -46,22 +227,67 @@ double Atmosphere::ZDependence(double z,int type){
 double Atmosphere::DeltaZ(double z){
    return 1000000.;
 }
-double Atmosphere::FreeIntgLength(){
+double Atmosphere::FreeIntgLength(double lengthrange[2],double &weight){
    if(!Laser::prandom) return 0;
    if((aod_air+aod_aerosol)<0) return 0;
    else if(aod_air+aod_aerosol==0) return 1.0e10;
-   double xx=Laser::prandom->Uniform();
-   return log(1/(1-xx));
+   double res;
+   double xxx=Laser::prandom->Uniform(0,1.);
+   double yyy=-1;
+   double yrange[2];
+   yrange[0]=1-exp(-lengthrange[0]);
+   yrange[1]=1-exp(-lengthrange[1]);
+   if(yrange[1]<=0||yrange[0]>=yrange[1]) res=log(1/(1-xxx));
+   else{
+      yyy=ProbTransform(xxx,yrange,weight,yrange[0]>0);
+      res=log(1/(1-yyy));
+   }
+   //printf("Atmosphere::FreeIntgLength: random number %le generated, range={%le,%le} yyy=%le res=%le\n",xxx,lengthrange[0],lengthrange[1],yyy,res);
+   return res;
 }
-double Atmosphere::FreePathLength(double z0,double dir0[3]){
-   double intglength=FreeIntgLength();
+double Atmosphere::FreePathLength(double z0,double dir0[3],double lengthrange[2],double &weight){
+   double norm=sqrt(pow(dir0[0],2)+pow(dir0[1],2)+pow(dir0[2],2));
+   double integ=0;
+   double length=0;
+
+   //first estimate the integral length range from the path length range
+   double yrange[2];
+   if(dir0[2]==0){
+      yrange[0]=lengthrange[0]*(aod_air+aod_aerosol)*ZDependence(z0);
+      yrange[1]=lengthrange[1]*(aod_air+aod_aerosol)*ZDependence(z0);
+   }
+   else{
+      double z00=z0;
+      bool findlowrange=false;
+      while(integ<lengthrange[1]){
+         double z1=z00+DeltaZ(z00);
+         double dleng=fabs((z1-z00)/dir0[2]*norm);
+         double dintg=(aod_air+aod_aerosol)*ZDependence((z00+z1)/2)*dleng;
+         if(!findlowrange){
+            if(length+dleng>=lengthrange[0]){
+               yrange[0]=integ+(lengthrange[0]-length)/dleng*dintg;
+               findlowrange=true;
+            }
+         }
+         if(length+dleng>=lengthrange[1]){
+            yrange[1]=integ+(lengthrange[1]-length)/dleng*dintg;
+            break;
+         }
+         integ+=dintg;
+         length+=dleng;
+         z00=z1;
+      }
+   }
+   //if(Laser::jdebug>2) printf("Atmosphere::FreePathLength: lengthrange={%le,%le} integral_range={%le,%le}\n",lengthrange[0],lengthrange[1],yrange[0],yrange[1]);
+
+   double intglength=FreeIntgLength(yrange,weight);
    if(intglength>0.9e10) return 1.0e10;
    if(dir0[2]==0){
       return intglength/((aod_air+aod_aerosol)*ZDependence(z0));
    }
-   double norm=sqrt(pow(dir0[0],2)+pow(dir0[1],2)+pow(dir0[2],2));
-   double integ=0;
-   double length=0;
+
+   integ=0;
+   length=0;
    int nstep=0;
    while(integ<intglength){
       //printf("step=%d: intglength=%le integ=%le z0=%le dirz=%lf\n",nstep,intglength,integ,z0,dir0[2]);
@@ -72,13 +298,12 @@ double Atmosphere::FreePathLength(double z0,double dir0[3]){
          length+=(intglength-integ)/dintg*fabs((z1-z0)/dir0[2]*norm);
          return length;
       }
-      else{
-         integ+=dintg;
-         length+=fabs((z1-z0)/dir0[2]*norm);
-         z0=z1;
-      }
+      integ+=dintg;
+      length+=fabs((z1-z0)/dir0[2]*norm);
+      z0=z1;
       nstep++;
    }
+   //if(Laser::jdebug>2) printf("Laser::FreePathLength: integ=%le intglength=%le length=%le\n",integ,intglength,length);
    return -1;
 }
 
@@ -89,8 +314,7 @@ int Atmosphere::IsScattering(double z0){
    if(sum_ext<0) sum_ext=0;
    double sum_scat=scat_air*ZDependence(z0,3)+scat_aerosol*ZDependence(z0,4);
    sum=sum_ext+sum_scat;
-   if(sum<0) return 0;
-   else if(sum==0) return 100;
+   if(sum<=0) return 100;
    double xx=Laser::prandom->Uniform();
    if(xx<sum_ext/sum) return 0;  //absorbed
    else if(xx<sum_ext/sum+scat_air*ZDependence(z0,3)/sum) return 1; //Rayleigh Scattering
@@ -106,9 +330,12 @@ int Atmosphere::IsScattering(double z0){
 The class for laser photon propagation
 */
 
+int Laser::jdebug=0;
+int Laser::Doigen=-1;
 TRandom3* Laser::prandom = 0;
 double Laser::TelSimDist=400.; //in cm
-double Laser::scale=1.0e-4;
+double Laser::TelSimAngl=10.; //in degree
+double Laser::scale=1.0;
 double Laser::unittime=1600.; //in ns
 double Laser::intensity = 2;//mj
 double Laser::intensity_err = 0;
@@ -134,7 +361,7 @@ void Laser::Release(){
    if(pwfc) delete pwfc;
 }
 void Laser::Reset(){
-   //count_gen=0;
+   count_gen=0;
    Time_gen=10000;
    time_gen=0;
    //ievent_gen=0;
@@ -146,7 +373,9 @@ void Laser::Reset(){
       vgcoo[ii].clear();
       vgdir[ii].clear();
    }
+   vowei.clear();
    Telindex=-2;
+   votim.clear();
    votel.clear();
    for(int ii=0;ii<3;ii++){
       coor_out[ii]=0;
@@ -159,8 +388,8 @@ void Laser::Reset(){
 void Laser::SetParameters(char* filename){
    lasercoo[0]=1000*100.; //in cm
    lasercoo[1]=0;
-   lasercoo[2]=80.;
-   laserdir[0]=90.;
+   lasercoo[2]=0.;
+   laserdir[0]=30.;
    laserdir[1]=180.;
 }
 
@@ -169,7 +398,7 @@ void Laser::cross(double dir1[3],double dir2[3],double *dir3){
    dir3[1]=dir1[2]*dir2[0]-dir1[0]*dir2[2];
    dir3[2]=dir1[0]*dir2[1]-dir1[1]*dir2[0];
 }
-bool Laser::CartesianFrame(double zero[3],double coor_in[3],double dir_in[3],double *xdir,double *ydir,double *zdir){
+bool Laser::CartesianFrame(double zero[3],double coor_in[3],double dir_in[3],double dir_in2[3],double *xdir,double *ydir,double *zdir){
    //z axis
    for(int ii=0;ii<3;ii++) zdir[ii]=dir_in[ii];
    double norm=sqrt(zdir[0]*zdir[0]+zdir[1]*zdir[1]+zdir[2]*zdir[2]);
@@ -182,13 +411,12 @@ bool Laser::CartesianFrame(double zero[3],double coor_in[3],double dir_in[3],dou
 
    //temporary x and y axis
    double xdir0[3],ydir0[3];
-   cross(dir1,zdir,xdir0);
+   cross(zdir,dir1,xdir0);
    norm=sqrt(xdir0[0]*xdir0[0]+xdir0[1]*xdir0[1]+xdir0[2]*xdir0[2]);
    if(norm<=0){
-      double mult=dir1[0]*zdir[0]+dir1[1]*zdir[1]+dir1[2]*zdir[2];
-      if(mult>0) return false;
-      double zaxis[3]={0,0,1};
-      cross(dir1,zaxis,xdir0);
+      //double mult=dir1[0]*zdir[0]+dir1[1]*zdir[1]+dir1[2]*zdir[2];
+      //if(mult>0) return false;
+      cross(zdir,dir_in2,xdir0);
       norm=sqrt(xdir0[0]*xdir0[0]+xdir0[1]*xdir0[1]+xdir0[2]*xdir0[2]);
    }
    if(norm<=0) return false;
@@ -247,15 +475,17 @@ double Laser::mindist(double coor_in[3],double dir_in[3],int &whichtel,double *c
    return min;
 }
 void Laser::PositionDis(double &xx,double &yy){
-   double ran1=prandom->Uniform(0,spotrange*0.1);
-   double rr=ran1;
+   //xx=0; yy=0; return;
+   double rr=prandom->Uniform(0,spotrange*0.1);
    double phi=prandom->Uniform(0,2*PI);
    xx=rr*cos(phi);
    yy=rr*sin(phi);
 }
 void Laser::DirectionDis(double &theta,double &phi){
-   double ran1=prandom->Uniform(cos(divergence*1.0e-3),1);
-   theta=acos(sqrt(ran1));
+   //double ran1=prandom->Uniform(cos(divergence*1.0e-3),1);
+   //theta=acos(sqrt(ran1));
+   double ran1=prandom->Gaus(0,divergence*1.0e-3);
+   theta=fabs(ran1);
    phi=prandom->Uniform(0,2*PI);
 }
 bool Laser::InitialGen(){
@@ -266,11 +496,11 @@ bool Laser::InitialGen(){
    double xdir[3],ydir[3],zdir[3];
    double zero[3]={0,0,0};
    double dir_in[3]={sin(laserdir[0]/180.*PI)*cos(laserdir[1]/180.*PI),sin(laserdir[0]/180.*PI)*sin(laserdir[1]/180.*PI),cos(laserdir[0]/180.*PI)};
-   if(!CartesianFrame(zero,lasercoo,dir_in,xdir,ydir,zdir)) return false;
+   double dir_in2[3]={0,0,1};
+   if(!CartesianFrame(zero,lasercoo,dir_in,dir_in2,xdir,ydir,zdir)) return false;
 
-   double rr=tan(theta);
    for(int ii=0;ii<3;ii++){
-      dir_gen[ii]=zdir[ii]+rr*(cos(phi)*xdir[ii]+sin(phi)*ydir[ii]);
+      dir_gen[ii]=cos(theta)*zdir[ii]+sin(theta)*(cos(phi)*xdir[ii]+sin(phi)*ydir[ii]);
    }
    norm=sqrt(dir_gen[0]*dir_gen[0]+dir_gen[1]*dir_gen[1]+dir_gen[2]*dir_gen[2]);
    for(int ii=0;ii<3;ii++) dir_gen[ii]/=norm;
@@ -287,29 +517,39 @@ bool Laser::InitialGen(){
    return true;
 }
 double Laser::WaveLengthGen(){
-   return prandom->Gaus(wavelength0,wavelength0_err);
+   return wavelength0;
+   //return prandom->Gaus(wavelength0,wavelength0_err);
 }
 
-long int Laser::EventGen(int &Time,double &time){
+long int Laser::EventGen(int &Time,double &time,bool SimPulse){
    if(!prandom) return 0;
-   double acctime=0;
-   double time1=Time+time*20*1.0e-9;
-   double time2=Time+time*20*1.0e-9+unittime*1.0e-9;
-   int nn1=(int)(time1*frequency);
-   int nn2=(int)(time2*frequency);
-   if(nn1==nn2){
-      double xx1=TMath::Max(nn1/frequency,time1);
-      double xx2=TMath::Min(nn1/frequency+pulsetime,time2);
-      if(xx2>xx1) acctime+=(xx2-xx1);
+   double acctime,time1,time2,ngen0;
+   if(!SimPulse){
+      acctime=0;
+      time1=Time+time*20*1.0e-9;
+      time2=Time+time*20*1.0e-9+unittime*1.0e-9;
+      int nn1=(int)(time1*frequency);
+      int nn2=(int)(time2*frequency);
+      if(nn1==nn2){
+         double xx1=TMath::Max(nn1/frequency,time1);
+         double xx2=TMath::Min(nn1/frequency+pulsetime,time2);
+         if(xx2>xx1) acctime+=(xx2-xx1);
+      }
+      else{
+         acctime+=nn1/frequency+pulsetime-TMath::Min(time1,nn1/frequency+pulsetime);
+         acctime+=TMath::Min(nn2/frequency+pulsetime,time2)-nn2/frequency;
+         if(nn2>nn1+1) acctime+=(nn2-nn1-1)*pulsetime;
+      }
+      if(acctime<=0) return 0;
+      acctime*=1.0e6;
+      ngen0=intensity*1.0e-3/(hplank*vlight/(wavelength0*1.0e-7))/pulsetime*1.0e-6*scale;
    }
    else{
-      acctime+=nn1/frequency+pulsetime-TMath::Min(time1,nn1/frequency+pulsetime);
-      acctime+=TMath::Min(nn2/frequency+pulsetime,time2)-nn2/frequency;
-      if(nn2>nn1+1) acctime+=(nn2-nn1-1)*pulsetime;
+      acctime=pulsetime;
+      time1=Time+time*20*1.0e-9;
+      time2=time1+acctime;
+      ngen0=intensity*1.0e-3/(hplank*vlight/(wavelength0*1.0e-7))/pulsetime*scale;
    }
-   if(acctime<=0) return 0;
-   acctime*=1.0e6;
-   double ngen0=intensity*1.0e-3/(hplank*vlight/(wavelength0*1.0e-7))/pulsetime*1.0e-6*scale;
 
    Reset();
    long int ngen=(long int)(acctime*ngen0);
@@ -319,130 +559,631 @@ long int Laser::EventGen(int &Time,double &time){
    for(long int igen=0;igen<ngen;igen++){
       bool dogen=InitialGen();
       if(!dogen) continue;
+      if(Doigen>=0&&Doigen!=igen) continue;
       double time0=time1+(time2-time1)/ngen*(igen+0.5);
-      count_gen+=1./scale;
       vgwav.push_back(wavelength_gen);
       for(int ii=0;ii<3;ii++){
          vgcoo[ii].push_back(coor_gen[ii]);
          vgdir[ii].push_back(dir_gen[ii]);
       }
+      double weight=1./scale;
       double distance;
-      int res=Propagate(distance);
-      //printf("Propagate igen=%d res=%d\n",igen,res);
-      if(res<0) Telindex=res-20;
-      else ngentel++;
-      prodis.push_back(distance);
+      int res=Propagate(distance,weight);
+      if((igen%(1000000)==0)&&jdebug>0) printf("Laser::EventGen: %ld of %ld generated (count_gen=%le,weight={%le,%le})\n",igen,ngen,count_gen,weight,weight*scale);
+      if(jdebug>3) printf("Laser::EventGen: Propagate igen=%d res=%d distance=%lf lasercoo={%f,%f,%f} laserdir={%f,%f,%f}\n",igen,res,distance,coor_gen[0],coor_gen[1],coor_gen[2],dir_gen[0],dir_gen[1],dir_gen[2]);
+      if(res<0) Telindex=res-15;
+      else{  //the telescope index has been calculated in Propagate
+         ngentel++;
+      }
+      vowei.push_back(weight);
+      votim.push_back(time0+distance/vlight);
       votel.push_back(Telindex);
       for(int ii=0;ii<3;ii++){
          vocoo[ii].push_back(res>=0?coor_out[ii]:0);
          vodir[ii].push_back(res>=0?dir_out[ii]:0);
       }
+      count_gen+=weight;
    }
-   printf("EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld\n",ngen0,acctime,ngen,ngentel);
-   //if(!exist) return 0;
-   bool dosim=DoWFCTASim(1./scale);
+   if(jdebug>0) printf("Laser::EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld scale=%le\n",ngen0,acctime,ngen,ngentel,scale);
+   bool dosim=DoWFCTASim();
    ievent_gen++;
 
-   time+=unittime;
-   if(time>=1.0){
-      Time++;
-      time-=1.0;
+   if(!SimPulse){
+      time+=unittime/20;
+      if((time*20*1e-9)>=1.0){
+         Time++;
+         time-=1.0/(20*1.0e-9);
+      }
    }
+   else Time++;
+
    return ngentel;
 }
 
-int Laser::Propagate(double &distance){
-   double coor_min[3];
-   int whichtel;
-   bool decrease;
-   double freelength=Atmosphere::FreePathLength(coor_gen[2],dir_gen);
-   double znew=coor_gen[2]+dir_gen[2]/sqrt(pow(dir_gen[0],2)+pow(dir_gen[1],2)+pow(dir_gen[2],2))*freelength;
-   int scatter=Atmosphere::IsScattering(znew);
-   if(scatter<=0){ //absorbed
-      double dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
-      double dist2=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
-      distance=dist2;
-      if(decrease&&dist<TelSimDist){
-         if(dist2<freelength){
-            Telindex=whichtel;
-            for(int ii=0;ii<3;ii++){
-               coor_out[ii]=coor_min[ii];
-               dir_out[ii]=dir_gen[ii];
-            }
-            //printf("Propagate: absorb dist=%lf(free length=%lf) coo={%lf,%lf,%lf}\n",dist,freelength,coor_out[0],coor_out[1],coor_out[2]);
-            return 0;
-         }
-         else return -2;
+int Laser::FindLengthRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double lengthrange[2]){
+   double MAXNUM=1.0e20;
+   double dirlas[3]={cooout[0]-zero[0],cooout[1]-zero[1],cooout[2]-zero[2]};
+   double dirin2[3]={dirin[0],dirin[1],dirin[2]};
+   double dirout2[3]={dirout[0],dirout[1],dirout[2]};
+   double norm_dir_las=sqrt(pow(dirlas[0],2)+pow(dirlas[1],2)+pow(dirlas[2],2));
+   double norm_dir_in =sqrt(pow(dirin2[0],2)+pow(dirin2[1],2)+pow(dirin2[2],2));
+   double norm_dir_out=sqrt(pow(dirout2[0],2)+pow(dirout2[1],2)+pow(dirout2[2],2));
+   if(norm_dir_in<=0||norm_dir_las<=0||norm_dir_out<=0) return -1;
+   for(int ii=0;ii<3;ii++){
+      dirout2[ii]/=norm_dir_out;
+      dirin2[ii]/=norm_dir_in;
+      dirlas[ii]/=norm_dir_las;
+   }
+   double costhetaref=0;
+   for(int ii=0;ii<3;ii++){
+      costhetaref+=dirout2[ii]*(-dirlas[ii]);
+   }
+   if(fabs(costhetaref)>cos(asin(TelSimDist/norm_dir_las))){
+      if(jdebug>5) printf("Laser::FindLengthRange: in reg1, angleref=%lf angle0=%lf\n",acos(costhetaref),asin(TelSimDist/norm_dir_las));
+      if(costhetaref>0){ //out direction point to nearby of telescope
+         lengthrange[0]=0;
+         lengthrange[1]=MAXNUM;
+         return 1;
       }
-      else{
-         //printf("Propagate: absorb dist=%lf(free length=%lf)\n",dist,freelength);
-         return -1;
+      else{ //point to the opposite direction
+         double costheta1=0;
+         for(int ii=0;ii<3;ii++){
+            costheta1+=dirin2[ii]*(-dirlas[ii]);
+         }
+         if(acos(costheta1)<TelSimAngl/180.*PI){
+            lengthrange[0]=0;
+            lengthrange[1]=MAXNUM;
+            return 2;
+         }
+         else return -1;
       }
    }
-   else if(scatter>2){ //no absorbtion, no scatter
-      double dist=mindist(coor_gen,dir_gen,whichtel,coor_min,decrease);
-      distance=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
-      if(decrease&&dist<TelSimDist){
+   else{
+      if(jdebug>5) printf("Laser::FindLengthRange: in reg2, angleref=%lf angle0=%lf\n",acos(costhetaref),asin(TelSimDist/norm_dir_las));
+      double dirzz[3],diryy[3];
+      cross(dirlas,dirout2,dirzz);
+      cross(dirlas,dirzz,diryy);
+      double norm_diryy=sqrt(pow(diryy[0],2)+pow(diryy[1],2)+pow(diryy[2],2));
+      for(int ii=0;ii<3;ii++) diryy[ii]/=norm_diryy;
+      double costhetainxx=0,costhetainyy=0;
+      double costhetaoutxx=0,costhetaoutyy=0;
+      for(int ii=0;ii<3;ii++){
+         costhetainxx+=dirin2[ii]*(-dirlas[ii]);
+         costhetainyy+=dirin2[ii]*(diryy[ii]);
+         costhetaoutxx+=dirout2[ii]*(-dirlas[ii]);
+         costhetaoutyy+=dirout2[ii]*(diryy[ii]);
+      }
+      if(jdebug>6) printf("Laser::FindLengthRange: dirout={%le,%le} dirin={%le,%le,%le}\n",costhetaoutxx,costhetaoutyy,costhetainxx,costhetainyy,sqrt(1-costhetainxx*costhetainxx-costhetainyy*costhetainyy));
+      //find the minimum and maximum angle.
+      // theta_min<PI/2 and theta_max>PI/2
+      double AAA=costhetaoutxx*costhetainyy-costhetainxx*costhetaoutyy;
+      double coeffi=AAA==0?(0):(costhetainyy*norm_dir_las/AAA);
+      double vector=AAA==0?(0):(-costhetaoutyy*norm_dir_las/AAA);
+
+      double aa=pow(costhetainxx*costhetaoutxx+costhetainyy*costhetaoutyy,2)-pow(cos(TelSimAngl/180.*PI),2);
+      double bb=-2*norm_dir_las*(costhetainxx*(costhetainxx*costhetaoutxx+costhetainyy*costhetaoutyy)-costhetaoutxx*pow(cos(TelSimAngl/180.*PI),2));
+      double cc=norm_dir_las*norm_dir_las*(costhetainxx*costhetainxx-pow(cos(TelSimAngl/180.*PI),2));
+      if(AAA==0){
+         double theta_min,theta_max;
+         double alpha_min,alpha_max;
+         if(-costhetaoutyy/costhetainyy>0){ //reach minimum
+            theta_min=acos(sqrt(pow(costhetainxx,2)+pow(costhetainyy,2)));
+            alpha_min=MAXNUM;
+            theta_max=acos(costhetainxx);
+            alpha_max=0;
+            if(TelSimAngl/180.*PI>theta_max){
+               lengthrange[0]=0;
+               lengthrange[1]=MAXNUM;
+               return 3;
+            }
+            else if(TelSimAngl/180.*PI>theta_min){
+               lengthrange[0]=(-bb+(aa>0?1:-1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               lengthrange[1]=TMath::Max(10*lengthrange[0],MAXNUM);
+               return 4;
+            }
+            else return -2;
+         }
+         else{ //reach maximum
+            theta_min=acos(costhetainxx);
+            alpha_min=0;
+            theta_max=acos(-sqrt(pow(costhetainxx,2)+pow(costhetainyy,2)));
+            alpha_max=MAXNUM;
+            if(TelSimAngl/180.*PI>theta_max){
+               lengthrange[0]=0;
+               lengthrange[1]=MAXNUM;
+               return 5;
+            }
+            else if(TelSimAngl/180.*PI>theta_min){
+               lengthrange[0]=0;
+               lengthrange[1]=(-bb+(aa>0?1:-1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               return 6;
+            }
+            else return -3;
+         }
+      }
+      else if(costhetainyy/AAA>0){ //could reach maximum or minimum in the middle
+         double theta_min,theta_max;
+         double alpha_min,alpha_max;
+         if(-costhetaoutyy/AAA<0){ //reach maximum
+            double theta_min2;
+            double alpha_min2;
+            theta_min=acos(costhetainxx);
+            alpha_min=0;
+            theta_max=acos(-sqrt(pow(costhetainxx,2)+pow(costhetainyy,2)));
+            alpha_max=costhetainyy/AAA*norm_dir_las;
+            theta_min2=acos(-costhetainxx*costhetaoutxx-costhetainyy*costhetaoutyy);
+            alpha_min2=MAXNUM;
+            if(TelSimAngl/180.*PI>theta_max){
+               lengthrange[0]=0;
+               lengthrange[1]=MAXNUM;
+               return 7;
+            }
+            else if(TelSimAngl/180.*PI>TMath::Max(theta_min,theta_min2)){
+               lengthrange[0]=(-bb+(aa>0?-1:1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               lengthrange[1]=(-bb+(aa>0?1:-1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               return 8;
+            }
+            else if(TelSimAngl/180.*PI>TMath::Min(theta_min,theta_min2)){
+               if(theta_min<theta_min2){
+                  lengthrange[0]=0;
+                  lengthrange[1]=(-bb+(aa>0?-1:1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               }
+               else{
+                  lengthrange[0]=(-bb+(aa>0?1:-1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+                  lengthrange[1]=TMath::Max(10*lengthrange[0],MAXNUM);
+               }
+               return 9;
+            }
+            else return -4;
+         }
+         else{ //reach minimum
+            double theta_max2;
+            double alpha_max2;
+            theta_max=acos(costhetainxx);
+            alpha_max=0;
+            theta_min=acos(sqrt(pow(costhetainxx,2)+pow(costhetainyy,2)));
+            alpha_min=costhetainyy/AAA*norm_dir_las;
+            theta_max2=acos(-costhetainxx*costhetaoutxx-costhetainyy*costhetaoutyy);
+            alpha_max2=MAXNUM;
+            if(jdebug>10) printf("Laser::FindLengthRange: reach minimum, theta_max=%le alpha_max=%le theta_min=%le alpha_min=%le theta_max2=%le alpha_max2=%le\n",theta_max/PI*180,alpha_max,theta_min/PI*180,alpha_min,theta_max2/PI*180,alpha_max2);
+            if(TelSimAngl/180.*PI>TMath::Max(theta_max,theta_max2)){
+               lengthrange[0]=0;
+               lengthrange[1]=MAXNUM;
+               return 10;
+            }
+            else if(TelSimAngl/180.*PI>TMath::Min(theta_max,theta_max2)){
+               if(theta_max<theta_max2){
+                  lengthrange[0]=0;
+                  lengthrange[1]=(-bb+(aa>0?1:-1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               }
+               else{
+                  lengthrange[0]=(-bb+(aa>0?-1:1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+                  lengthrange[1]=TMath::Max(10*lengthrange[0],MAXNUM);
+               }
+               return 11;
+            }
+            else if(TelSimAngl/180.*PI>theta_min){
+               lengthrange[0]=(-bb-(aa>0?1:-1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               lengthrange[1]=(-bb+(aa>0?1:-1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               return 12;
+            }
+            else return -5;
+         }
+      }
+      else{ //couldn't reach maximum or minimum in the middle
+         double theta_min,theta_max;
+         double alpha_min,alpha_max;
+         if(-costhetaoutyy/AAA<0){ //reach maximum outside the region
+            theta_max=acos(costhetainxx);
+            alpha_max=0;
+            theta_min=acos(-costhetainxx*costhetaoutxx-costhetainyy*costhetaoutyy);
+            alpha_min=MAXNUM;
+            if(TelSimAngl/180.*PI>theta_max){
+               lengthrange[0]=0;
+               lengthrange[1]=MAXNUM;
+               return 13;
+            }
+            else if(TelSimAngl/180.*PI>theta_min){
+               lengthrange[0]=(-bb+(aa>0?1:-1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               lengthrange[1]=TMath::Max(10*lengthrange[0],MAXNUM);
+               return 14;
+            }
+            else return -6;
+         }
+         else{ //reach minimum
+            theta_min=acos(costhetainxx);
+            alpha_min=0;
+            theta_max=acos(-costhetainxx*costhetaoutxx-costhetainyy*costhetaoutyy);
+            alpha_max=MAXNUM;
+            if(TelSimAngl/180.*PI>theta_max){
+               lengthrange[0]=0;
+               lengthrange[1]=MAXNUM;
+               return 15;
+            }
+            else if(TelSimAngl/180.*PI>theta_min){
+               lengthrange[0]=0;
+               lengthrange[1]=(-bb+(aa>0?1:-1)*sqrt(bb*bb-4*aa*cc))/(2*aa);
+               return 16;
+            }
+            else return -7;
+         }
+      }
+   }
+}
+int Laser::FindThetaRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double freelength,double thetarange[2]){
+   double dirlas[3]={cooout[0]-zero[0],cooout[1]-zero[1],cooout[2]-zero[2]};
+   double dirin2[3]={dirin[0],dirin[1],dirin[2]};
+   double dirout2[3]={dirout[0],dirout[1],dirout[2]};
+   double norm_dir_las=sqrt(pow(dirlas[0],2)+pow(dirlas[1],2)+pow(dirlas[2],2));
+   double norm_dir_in =sqrt(pow(dirin2[0],2)+pow(dirin2[1],2)+pow(dirin2[2],2));
+   double norm_dir_out=sqrt(pow(dirout2[0],2)+pow(dirout2[1],2)+pow(dirout2[2],2));
+   if(norm_dir_in<=0||norm_dir_las<=0||norm_dir_out<=0) return false;
+   for(int ii=0;ii<3;ii++){
+      dirout2[ii]/=norm_dir_out;
+      dirin2[ii]/=norm_dir_in;
+      dirlas[ii]/=norm_dir_las;
+   }
+   double costhetaref=0;
+   for(int ii=0;ii<3;ii++){
+      costhetaref+=dirout2[ii]*(-dirlas[ii]);
+   }
+   if(costhetaref>cos(asin(TelSimDist/norm_dir_las))){
+      if(jdebug>7) printf("Laser::FindThetaRange: in reg1, angleref=%lf angle0=%lf\n",acos(costhetaref),asin(TelSimDist/norm_dir_las));
+      thetarange[0]=0;
+      thetarange[1]=PI/2;
+      return 1;
+   }
+   else{
+      if(jdebug>7) printf("Laser::FindThetaRange: in reg2, angleref=%lf angle0=%lf\n",acos(costhetaref),asin(TelSimDist/norm_dir_las));
+      double costheta1=0,costheta2=0,costheta3=0;
+      for(int ii=0;ii<3;ii++){
+         costheta1+=dirin2[ii]*(-dirlas[ii]);
+         costheta2+=dirin2[ii]*dirout2[ii];
+         costheta3+=dirout2[ii]*(-dirlas[ii]);
+      }
+      double theta_min,theta_max;
+      double length0=sqrt(pow(norm_dir_las,2)+pow(freelength,2)-2*norm_dir_las*freelength*costheta3);
+      double theta111=acos((-freelength+norm_dir_las*costheta3)/length0);
+      double theta222=acos((-freelength*costheta2+norm_dir_las*costheta1)/length0);
+      if(jdebug>8) printf("Laser::FindThetaRange: theta111=%lf theta222=%lf\n",theta111/PI*180,theta222/PI*180);
+      if(theta222>TelSimAngl/180.*PI+asin(TelSimDist/length0)){
+         return -1;
+      }
+      else{
+         thetarange[0]=TMath::Max(0.,theta111-asin(TelSimDist/length0));
+         thetarange[1]=TMath::Min(PI,theta111+asin(TelSimDist/length0));
+         return 2;
+      }
+   }
+}
+int Laser::FindPhiRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double freelength,double theta_scat,double phirange[2]){
+   double dirlas[3]={cooout[0]-zero[0],cooout[1]-zero[1],cooout[2]-zero[2]};
+   double dirin2[3]={dirin[0],dirin[1],dirin[2]};
+   double dirout2[3]={dirout[0],dirout[1],dirout[2]};
+   double norm_dir_las=sqrt(pow(dirlas[0],2)+pow(dirlas[1],2)+pow(dirlas[2],2));
+   double norm_dir_in =sqrt(pow(dirin2[0],2)+pow(dirin2[1],2)+pow(dirin2[2],2));
+   double norm_dir_out=sqrt(pow(dirout2[0],2)+pow(dirout2[1],2)+pow(dirout2[2],2));
+   if(norm_dir_in<=0||norm_dir_las<=0||norm_dir_out<=0) return false;
+   for(int ii=0;ii<3;ii++){
+      dirout2[ii]/=norm_dir_out;
+      dirin2[ii]/=norm_dir_in;
+      dirlas[ii]/=norm_dir_las;
+   }
+
+   double cooout2[3]={cooout[0]+freelength*dirout2[0],cooout[1]+freelength*dirout2[1],cooout[2]+freelength*dirout2[2]};
+   double dirout3[3]={0,0,1};
+   double xdir[3],ydir[3],zdir[3];
+   CartesianFrame(zero,cooout2,dirout2,dirout3,xdir,ydir,zdir);
+
+   double dir111[3],dir222[3];
+   double norm_dir111=0;
+   for(int ii=0;ii<3;ii++){
+      dir111[ii]=zero[ii]-cooout2[ii];
+      norm_dir111+=pow(dir111[ii],2);
+      dir222[ii]=dirin2[ii];
+   }
+   if(norm_dir111<=0){
+      phirange[0]=0;
+      phirange[1]=2*PI;
+      return true;
+   }
+   norm_dir111=sqrt(norm_dir111);
+   for(int ii=0;ii<3;ii++) dir111[ii]/=norm_dir111;
+
+   double dir111_theta,dir111_phi,dir222_theta,dir222_phi;
+   dir111_theta=acos(dir111[0]*zdir[0]+dir111[1]*zdir[1]+dir111[2]*zdir[2]);
+   double xcomp=dir111[0]*xdir[0]+dir111[1]*xdir[1]+dir111[2]*xdir[2];
+   double ycomp=dir111[0]*ydir[0]+dir111[1]*ydir[1]+dir111[2]*ydir[2];
+   dir111_phi=sin(dir111_theta)<=0?0:(xcomp!=0?atan(ycomp/xcomp):(ycomp>0?(PI/2):(-PI/2)));
+   if(xcomp<0) dir111_phi+=PI;
+   if(dir111_phi>PI) dir111_phi-=2*PI;
+   dir222_theta=acos(dir222[0]*zdir[0]+dir222[1]*zdir[1]+dir222[2]*zdir[2]);
+   xcomp=dir222[0]*xdir[0]+dir222[1]*xdir[1]+dir222[2]*xdir[2];
+   ycomp=dir222[0]*ydir[0]+dir222[1]*ydir[1]+dir222[2]*ydir[2];
+   dir222_phi=sin(dir222_theta)<=0?0:(xcomp!=0?atan(ycomp/xcomp):(ycomp>0?(PI/2):(-PI/2)));
+   if(xcomp<0) dir222_phi+=PI;
+   if(dir222_phi>PI) dir222_phi-=2*PI;
+
+   double ref1=cos(asin(TelSimDist/norm_dir111));
+   double ref2=cos(TelSimAngl/180.*PI);
+   double value1=cos(theta_scat)*cos(dir111_theta);
+   double value2=cos(theta_scat)*cos(dir222_theta);
+   if(theta_scat<=0){
+      if(value1>ref1&&value2>ref2){
+         phirange[0]=0;
+         phirange[1]=2*PI;
+         return true;
+      }
+      else return false;
+   }
+   else{
+      if(sin(dir111_theta)>0&&sin(dir222_theta)>0){
+         double value11=(ref1-value1)/sin(theta_scat)/sin(dir111_theta);
+         double value22=(ref2-value2)/sin(theta_scat)/sin(dir222_theta);
+         double range1[2]={-100,-100},range2[2]={-100,-100};
+         if(value11<0){
+            range1[0]=-PI;
+            range1[1]=PI;
+         }
+         else if(value11<=1){
+            range1[0]=-acos(value11)+dir111_phi;
+            range1[1]=acos(value11)+dir111_phi;
+         }
+         if(range1[0]>PI){
+            range1[0]-=2*PI;
+            range1[1]-=2*PI;
+         }
+         if(range1[1]<-PI){
+            range1[0]+=2*PI;
+            range1[1]+=2*PI;
+         }
+         if(value22<0){
+            range2[0]=-PI;
+            range2[1]=PI;
+         }
+         else if(value22<=1){
+            range2[0]=-acos(value22)+dir222_phi;
+            range2[1]=acos(value22)+dir222_phi;
+         }
+         if(range2[0]>PI){
+            range2[0]-=2*PI;
+            range2[1]-=2*PI;
+         }
+         if(range2[1]<-PI){
+            range2[0]+=2*PI;
+            range2[1]+=2*PI;
+         }
+
+         phirange[0]=TMath::Max(range1[0],range2[0]);
+         phirange[1]=TMath::Min(range1[1],range2[1]);
+         if(phirange[1]>phirange[0]) return true;
+         else return false;
+      }
+      else if(sin(dir111_theta)>0&&sin(dir222_theta)<=0){
+         double value11=(ref1-value1)/sin(theta_scat)/sin(dir111_theta);
+         double range1[2]={-100,-100};
+         if(value11<0){
+            range1[0]=-PI;
+            range1[1]=PI;
+         }
+         else if(value11<=1){
+            range1[0]=-acos(value11)+dir111_phi;
+            range1[1]=acos(value11)+dir111_phi;
+         }
+         if(range1[0]>PI){
+            range1[0]-=2*PI;
+            range1[1]-=2*PI;
+         }
+         if(range1[1]<-PI){
+            range1[0]+=2*PI;
+            range1[1]+=2*PI;
+         }
+         phirange[0]=range1[0];
+         phirange[1]=range1[1];
+         if(phirange[1]>phirange[0]) return true;
+         else return false;
+      }
+      else if(sin(dir111_theta)<=0&&sin(dir222_theta)>0){
+         double value22=(ref2-value2)/sin(theta_scat)/sin(dir222_theta);
+         double range2[2]={-100,-100};
+         if(value22<0){
+            range2[0]=-PI;
+            range2[1]=PI;
+         }
+         else if(value22<=1){
+            range2[0]=-acos(value22)+dir222_phi;
+            range2[1]=acos(value22)+dir222_phi;
+         }
+         if(range2[0]>PI){
+            range2[0]-=2*PI;
+            range2[1]-=2*PI;
+         }
+         if(range2[1]<-PI){
+            range2[0]+=2*PI;
+            range2[1]+=2*PI;
+         }
+         phirange[0]=range2[0];
+         phirange[1]=range2[1];
+         if(phirange[1]>phirange[0]) return true;
+         else return false;
+      }
+      else{
+         if(value1>ref1&&value2>ref2){
+            phirange[0]=0;
+            phirange[1]=2*PI;
+            return true;
+         }
+         else return false;
+      }
+   }
+}
+
+int Laser::Propagate(double &distance,double &weight){
+   double weight0=weight;
+   double coor_min[3];
+   int whichtel=-1;
+   bool decrease;
+   double lengthrange[2]={-1,-1};
+   double thetarange[2]={-1,-1};
+   double phirange[2]={-100,-100};
+
+   WFTelescopeArray* pta=WFTelescopeArray::GetHead();
+   double lengthrange_tel[NCTMax][2];
+   int telindex[NCTMax];
+   for(int itel=0;itel<WFTelescopeArray::CTNumber;itel++) telindex[itel]=-1;
+   int ntel=0;
+   for(int itel=0;itel<WFTelescopeArray::CTNumber;itel++){
+      lengthrange_tel[itel][0]=lengthrange_tel[itel][1]=-1;
+      WFTelescope* pt=(pta)?pta->pct[itel]:0;
+      if(!pt) continue;
+      double dir_tel[3]={-sin(pt->TelZ_)*cos(pt->TelA_),-sin(pt->TelZ_)*sin(pt->TelA_),-cos(pt->TelZ_)}; //pointing direction of the telescope
+      double zero[3]={pt->Telx_,pt->Tely_,0};
+      double range[2];
+      int findres=FindLengthRange(zero,coor_gen,dir_gen,dir_tel,range);
+      if(jdebug>5) printf("Laser::Propagate: find telescope and length range, ntel=%d itel=%d lengthrange={%le,%le} return=%d\n",ntel,itel,range[0],range[1],findres);
+      if(findres>0){
+         lengthrange_tel[ntel][0]=range[0];
+         lengthrange_tel[ntel][1]=range[1];
+         telindex[ntel]=itel;
+         ntel++;
+      }
+   }
+
+   if(ntel>0){
+      double ran0=prandom->Uniform(0,1.);
+      for(int ii=0;ii<ntel;ii++){
+         double low=1./ntel*ii;
+         double hig=1./ntel*(ii+1);
+         if(ran0>=low&&ran0<hig){
+            whichtel=telindex[ii];
+            lengthrange[0]=lengthrange_tel[ii][0];
+            lengthrange[1]=lengthrange_tel[ii][1];
+            break;
+         }
+         else continue;
+      }
+   }
+   WFTelescope* pt=0;
+   if(whichtel>=0&&pta) pt=pta->pct[whichtel];
+
+   double dist;
+   double zero[3]={0,0,0};
+   double dir_tel[3]={0,0,-1};
+   if(!pt){
+      dist=mindist(zero,coor_gen,dir_gen,coor_min,decrease);
+   }
+   else{
+      zero[0]=pt->Telx_;
+      zero[1]=pt->Tely_;
+      dir_tel[0]=-sin(pt->TelZ_)*cos(pt->TelA_);
+      dir_tel[1]=-sin(pt->TelZ_)*sin(pt->TelA_);
+      dir_tel[2]=-cos(pt->TelZ_);
+      dist=mindist(zero,coor_gen,dir_gen,coor_min,decrease);
+   }
+   distance=sqrt(pow(coor_gen[0]-coor_min[0],2)+pow(coor_gen[1]-coor_min[1],2)+pow(coor_gen[2]-coor_min[2],2));
+
+   //generate free path length, theta angle, and phi angle
+   double freelength=Atmosphere::FreePathLength(coor_gen[2],dir_gen,lengthrange,weight);
+   if(jdebug>4) printf("Laser::Propagate: freelength=%le lengthrange={%le,%le} weight={%le,%le}\n",freelength,lengthrange[0],lengthrange[1],weight0,weight);
+   if(freelength>lengthrange[0]&&freelength<lengthrange[1]&&whichtel>=0){
+      //generate theta angle range
+      int findres=FindThetaRange(zero,coor_gen,dir_gen,dir_tel,freelength,thetarange);
+      if(jdebug>6) printf("Laser::Propagate: find theta range, itel=%d freelength=%le thetarange={%le,%le} return=%d\n",whichtel,freelength,thetarange[0]/PI*180,thetarange[1]/PI*180,findres);
+      if(!(findres>0)) {thetarange[0]=thetarange[1]=-1;}
+   }
+   else{
+      thetarange[0]=thetarange[1]=-1;
+   }
+   double norm_dir_gen=sqrt(pow(dir_gen[0],2)+pow(dir_gen[1],2)+pow(dir_gen[2],2));
+   double znew=coor_gen[2]+dir_gen[2]/norm_dir_gen*freelength;
+   int scatter=Atmosphere::IsScattering(znew);
+
+   if(decrease&&dist<TelSimDist){ //laser in the field view of the telescope
+      if(jdebug>4) printf("Laser::Propagate: laser in the field of view of telescope(%lf), distance=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,distance,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
+      if(distance<freelength){
          Telindex=whichtel;
          for(int ii=0;ii<3;ii++){
             coor_out[ii]=coor_min[ii];
             dir_out[ii]=dir_gen[ii];
          }
-         //printf("Propagate: no absorb, no scatt dist=%lf(free length=%lf) coo={%lf,%lf,%lf}\n",dist,freelength,coor_out[0],coor_out[1],coor_out[2]);
-         return 0;
+         return 0; //pass through nearby of the telescope without any interaction
       }
-      else{
-         //printf("Propagate: no absorb, no scatt dist=%lf(free length=%lf)\n",dist,freelength);
-         return -1;
+      else{ //will be absorbed or scattered, ignore those events
+         return -3;
       }
    }
-   else{ //scattering
-      double coor_scat[3];
-      double dir_scat[3];
-
-      for(int ii=0;ii<3;ii++) coor_scat[ii]=coor_gen[ii]+dir_gen[ii]*freelength;
-
-      double theta,phi;
-      if(scatter==1){	//Rayleigh scattering
-         Atmosphere::RayScatterAngle(wavelength_gen,theta,phi);
+   else{
+      if(scatter<=0||scatter>2){ //absorbed or no interaction
+         if(jdebug>4) printf("Laser::Propagate: laser far away from telescope(%lf), absorbed or no interaction, distance=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf} weight=%le\n",dist,distance,freelength,decrease,coor_min[0],coor_min[1],coor_min[2],weight);
+         return -4-(scatter<=0?-scatter:1);
       }
-      else if(scatter==2){	//Mie scattering
-         Atmosphere::MieScatterAngle(wavelength_gen,theta,phi);
-      }
-      double xdir[3],ydir[3],zdir[3];
-      double zero[3]={0,0,0};
-      CartesianFrame(zero,coor_gen,dir_gen,xdir,ydir,zdir);
-      double rr=tan(theta);
-      for(int ii=0;ii<3;ii++){
-         dir_scat[ii]=zdir[ii]+rr*(cos(phi)*xdir[ii]+sin(phi)*ydir[ii]);
-      }
-      double norm=sqrt(dir_scat[0]*dir_scat[0]+dir_scat[1]*dir_scat[1]+dir_scat[2]*dir_scat[2]);
-      for(int ii=0;ii<3;ii++) dir_scat[ii]/=norm;
+      else{ //scattering
+         double coor_scat[3];
+         double dir_scat[3];
 
-      //the distance to the closest telescope
-      double dist=mindist(coor_scat,dir_scat,whichtel,coor_min,decrease);
-      distance=freelength+sqrt(pow(coor_scat[0]-coor_min[0],2)+pow(coor_scat[1]-coor_min[1],2)+pow(coor_scat[2]-coor_min[2],2));
-      if(decrease&&dist<TelSimDist){ //inside the field of view of one telescope after scattering
-         double freelength2=Atmosphere::FreePathLength(coor_scat[2],dir_scat);
-         if(dist<freelength2){
-            Telindex=whichtel;
-            for(int ii=0;ii<3;ii++){
-               coor_out[ii]=coor_min[ii];
-               dir_out[ii]=dir_scat[ii];
+         for(int ii=0;ii<3;ii++) coor_scat[ii]=coor_gen[ii]+dir_gen[ii]*freelength;
+
+         double theta,phi;
+         if(scatter==1){	//Rayleigh scattering
+            weight0=weight;
+            Atmosphere::RayScatterAngleTheta(wavelength_gen,theta,thetarange,weight);
+            if(jdebug>6) printf("Laser::Propagate: generated Ray theta=%lf thetarange={%lf,%lf} weight={%le,%le}\n",theta/PI*180,thetarange[0]/PI*180,thetarange[1]/PI*180,weight0,weight);
+            if(theta>thetarange[0]&&theta<thetarange[1]&&whichtel>=0){
+               int findres=FindPhiRange(zero,coor_gen,dir_gen,dir_tel,freelength,theta,phirange);
+               if(jdebug>7) printf("Laser::Propagate: find Rayley scatter phi range, itel=%d freelength=%le theta=%lf phi range={%le,%le} return=%d\n",whichtel,freelength,theta/PI*180,phirange[0]/PI*180,phirange[1]/PI*180,findres);
+               if(!(findres>0)) {phirange[0]=phirange[1]=-100;}
             }
-            //printf("Propagate: scatter dist=%lf(free length=%lf) coo={%lf,%lf,%lf}\n",dist,freelength,coor_out[0],coor_out[1],coor_out[2]);
-            return scatter;
+            weight0=weight;
+            Atmosphere::RayScatterAnglePhi(wavelength_gen,phi,phirange,weight);
+            if(jdebug>7) printf("Laser::Propagate: generated Ray phi=%lf phirange={%lf,%lf} weight={%le,%le}\n",phi/PI*180,phirange[0]/PI*180,phirange[1]/PI*180,weight0,weight);
          }
-         else return -2;
-      }
-      else{
-         //printf("Propagate: scatter dist=%lf(free length=%lf)\n",dist,freelength);
-         return -1;
+         else if(scatter==2){	//Mie scattering
+            weight0=weight;
+            Atmosphere::MieScatterAngleTheta(wavelength_gen,theta,thetarange,weight);
+            if(jdebug>6) printf("Laser::Propagate: generated Mie theta=%lf thetarange={%lf,%lf} weight={%le,%le}\n",theta/PI*180,thetarange[0]/PI*180,thetarange[1]/PI*180,weight0,weight);
+            if(theta>thetarange[0]&&theta<thetarange[1]&&whichtel>=0){
+               int findres=FindPhiRange(zero,coor_gen,dir_gen,dir_tel,freelength,theta,phirange);
+               if(jdebug>7) printf("Laser::Propagate: find Mie scatter phi range, itel=%d freelength=%le theta=%lf phi range={%le,%le} return=%d\n",whichtel,freelength,theta/PI*180,phirange[0]/PI*180,phirange[1]/PI*180,findres);
+               if(!(findres>0)) {phirange[0]=phirange[1]=-100;}
+            }
+            weight0=weight;
+            Atmosphere::MieScatterAnglePhi(wavelength_gen,phi,thetarange,weight);
+            if(jdebug>7) printf("Laser::Propagate: generated Mie phi=%lf phirange={%lf,%lf} weight={%le,%le}\n",phi/PI*180,phirange[0]/PI*180,phirange[1]/PI*180,weight0,weight);
+         }
+         double xdir[3],ydir[3],zdir[3];
+         double dir222[3]={0,0,1};
+         CartesianFrame(zero,coor_gen,dir_gen,dir222,xdir,ydir,zdir);
+         for(int ii=0;ii<3;ii++){
+            dir_scat[ii]=cos(theta)*zdir[ii]+sin(theta)*(cos(phi)*xdir[ii]+sin(phi)*ydir[ii]);
+         }
+         double norm=sqrt(dir_scat[0]*dir_scat[0]+dir_scat[1]*dir_scat[1]+dir_scat[2]*dir_scat[2]);
+         for(int ii=0;ii<3;ii++) dir_scat[ii]/=norm;
+
+         //the distance to the closest telescope
+         dist=mindist(zero,coor_scat,dir_scat,coor_min,decrease);
+         distance=freelength+sqrt(pow(coor_scat[0]-coor_min[0],2)+pow(coor_scat[1]-coor_min[1],2)+pow(coor_scat[2]-coor_min[2],2));
+         if(jdebug>4) printf("Laser::Propagate: scattered, dist=%lf(free length=%lf distance=%lf) decrease=%d coo={%lf,%lf,%lf} weight=%le\n",dist,freelength,distance,decrease,coor_min[0],coor_min[1],coor_min[2],weight);
+         if(decrease&&dist<TelSimDist){ //inside the field of view of one telescope after scattering
+            double lengthrange2[2]={0,0};
+            double freelength2=Atmosphere::FreePathLength(coor_scat[2],dir_scat,lengthrange2,weight);
+            if(fabs(distance-freelength)<freelength2){
+               Telindex=whichtel;
+               for(int ii=0;ii<3;ii++){
+                  coor_out[ii]=coor_min[ii];
+                  dir_out[ii]=dir_scat[ii];
+               }
+               return scatter; //pass through nearby of the telescope after one scattering
+            }
+            else return -1; //interacted before arriving to the telescope, after one scattering
+         }
+         else{ //too far away from the telescope after one scattering
+            return -2;
+         }
       }
    }
 }
 
-bool Laser::DoWFCTASim(double weight){
+bool Laser::DoWFCTASim(){
    WFTelescopeArray* pct=WFTelescopeArray::GetHead();
    if(!pct) return false;
    if(!pct->CheckTelescope()) return false;
@@ -460,38 +1201,42 @@ bool Laser::DoWFCTASim(double weight){
          double wave;
          int itube,icell;
          int whichtel;
+         double weight;
 
          whichtel=votel.at(il);
+         weight=vowei.at(il);
          if(whichtel<0||whichtel>=WFTelescopeArray::CTNumber){
-            (pwfc->mcevent).RayTrace.push_back(-100+whichtel);
+            if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(whichtel);
+            (pwfc->mcevent).hRayTrace->Fill(whichtel,weight);
             //printf("pushing back tracing il=%d whichtel=%d\n",il,whichtel);
             continue;
          }
          WFTelescope* pt=pct->pct[whichtel];
          if(!pt) continue;
-         findtel=true;
 
          x0=vocoo[0].at(il)-pt->Telx_;
          y0=vocoo[1].at(il)-pt->Tely_;
          z0=vocoo[2].at(il);
-         ///not quite sure about this direction
          m1=vodir[0].at(il);
          n1=vodir[1].at(il);
          l1=vodir[2].at(il);
          wave=vgwav.at(il);
-         double t=prodis.at(il)/vlight;
+         double t=votim.at(il); //in second
          int res=pct->RayTrace(x0,y0,z0,m1,n1,l1,weight,wave,whichtel,t,itube,icell);
-         (pwfc->mcevent).RayTrace.push_back(res);
-         if(res>0){
+         if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(res);
+         (pwfc->mcevent).hRayTrace->Fill(res,weight);
+         if(res>=0){
+            findtel=true;
             avet+=t;
             nt++;
+            if(jdebug>4) printf("Laser::DoWFCTASim: the photon go through the pmt %d, iphoton=%d\n",itube,il);
          }
          //printf("pushing back tracing il=%d whichtel=%d res=%d\n",il,whichtel,res);
       }
       if(pwfc){
-         //printf("Laser::DoWFCTASim: Filling the event %d\n",ievent_gen);
+         if(jdebug>1) printf("Laser::DoWFCTASim: Filling the event %d\n",ievent_gen);
          pwfc->iEvent=ievent_gen;
-         double t0=(nt==0)?(Time_gen+time_gen*20*1.0e-9):(Time_gen+time_gen*20*1.0e-9+avet/nt);
+         double t0=(nt==0)?(Time_gen+time_gen*20*1.0e-9):(avet/nt);
          pwfc->rabbitTime=(int)t0; //should use the arrival time
          pwfc->rabbittime=(t0-pwfc->rabbitTime)/(20*1.0e-9); //should use the arrival time
 
@@ -504,6 +1249,7 @@ bool Laser::DoWFCTASim(double weight){
          //(pwfc->mcevent).Wavegen.insert((pwfc->mcevent).Wavegen.begin(),vgwav.begin(),vgwav.end());
          if(findtel){
             (pwfc->mcevent).Copy(pct);
+            pwfc->CalculateADC();
             (pwfc->mcevent).GetTubeTrigger();
             (pwfc->mcevent).GetTelescopeTrigger(pct);
          }

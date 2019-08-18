@@ -3,6 +3,10 @@
 int ShowerPlot::jdebug=0;
 char ShowerPlot::tpname[NShowerTrack][20]={"electrons","muons","hadrons","cer light"};
 void ShowerPlot::Init(const char* priname){
+   for(int ii=0;ii<4;ii++){
+      plotrange[ii][0]=0;
+      plotrange[ii][0]=0;
+   }
    if(priname) strcpy(primary,priname);
    for(int ii=0;ii<NShowerTrack;ii++){
       strcpy(filename[ii],"");
@@ -81,14 +85,14 @@ bool ShowerPlot::Read(){
       }
       TObjArray* buff=ptrk[ii]->plot;
       if(buff->GetEntries()>0) result=true;
-      if(!plot){
-         plot=new TObjArray(*buff);
-      }
-      else{
-         for(int iel=0;iel<buff->GetEntries();iel++){
-            plot->Add(buff->At(iel));
-         }
-      }
+      //if(!plot){
+      //   plot=new TObjArray(*buff);
+      //}
+      //else{
+      //   for(int iel=0;iel<buff->GetEntries();iel++){
+      //      plot->Add(buff->At(iel));
+      //   }
+      //}
    }
    return result;
 }
@@ -108,16 +112,28 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
    leg->SetHeader(Form("Primary: %s",primary));
    leg->SetTextSize(0.02);
 
-   float plotrange[4][2]={{5.0e9,-5.0e9},{5.0e9,-5.0e9},{5.0e9,-5.0e9},{5.0e9,-5.0e9}};
    for(int ii=0;ii<4;ii++){
+      plotrange[ii][0]=5.0e9;
+      plotrange[ii][1]=-5.0e9;
+   }
+   bool exist[NShowerTrack]={0,0,0,0};
+   for(int ii=0;ii<NShowerTrack;ii++){
       if(!ptrk[ii]) continue;
       if(!ptrk[ii]->plot) continue;
-      if(ptrk[ii]->plot->GetEntries()<=0) continue;
+      if(ptrk[ii]->plot->GetEntries()<=1) continue;
       for(int ia=0;ia<4;ia++){
          if(ptrk[ii]->plotrange[ia][0]<plotrange[ia][0]) plotrange[ia][0]=ptrk[ii]->plotrange[ia][0];
-         if(ptrk[ii]->plotrange[ia][1]>plotrange[ia][0]) plotrange[ia][1]=ptrk[ii]->plotrange[ia][1];
+         if(ptrk[ii]->plotrange[ia][1]>plotrange[ia][1]) plotrange[ia][1]=ptrk[ii]->plotrange[ia][1];
+         if(jdebug>10) printf("ShowerPlot::Draw rminmax: ii=%d ic=%d min={%f,%f} max={%f,%f}\n",ii,ia,ptrk[ii]->plotrange[ia][0],plotrange[ia][0],ptrk[ii]->plotrange[ia][1],plotrange[ia][1]);
       }
-      leg->AddEntry(ptrk[ii]->plot->At(0),tpname[ii],"l");
+      int color=((TPolyLine3D*)(ptrk[ii]->plot->At(0)))->GetLineColor();
+      if(color<=0) continue;
+      int type=ReadTrack::GetLegType(color);
+      if(type<0||type>=NShowerTrack) continue;
+      if(exist[type]) continue;
+      exist[type]=true;
+      //printf("type=%d color=%d\n",ii,color);
+      leg->AddEntry(ptrk[ii]->plot->At(0),tpname[type],"l");
    }
    double rmin[3]={plotrange[0][0],plotrange[1][0],plotrange[2][0]};
    double rmax[3]={plotrange[0][1],plotrange[1][1],plotrange[2][1]};
@@ -129,42 +145,48 @@ TCanvas* ShowerPlot::Draw(int ViewOpt){
    cc->SetView(view);
    if(jdebug>0) printf("ShowerPlot::Draw: Pos Range={{%+6.1e,%+6.1e},{%+6.1e,%+6.1e},{%+6.1e,%+6.1e}} Time Range={%+7.1e,%+7.1e}\n",rmin[0],rmax[0],rmin[1],rmax[1],rmin[2],rmax[2],plotrange[3][0],plotrange[3][1]);
 
-   if(plot){
-      plot->Draw();
-      TAxis3D *axis = TAxis3D::GetPadAxis();
-      axis->SetLabelColor(kBlack);
-      axis->SetAxisColor(kBlack);
-      axis->SetLabelSize(0.03,"X");
-      axis->SetLabelSize(0.03,"Y");
-      axis->SetLabelSize(0.03,"Z");
-      axis->SetXTitle("X [cm]");
-      axis->SetYTitle("Y [cm]");
-      axis->SetZTitle("Z [cm]");
-      axis->SetTitleOffset(2.,"X");
-      axis->SetTitleOffset(2.,"Y");
-      axis->SetTitleOffset(2.,"Z");
-      if(ViewOpt<1||ViewOpt>3){
-      axis->SetLabelOffset(0.006,"X");
-      axis->SetLabelOffset(0.008,"Y");
-      axis->SetLabelOffset(0.008,"Z");
-      axis->SetTitleOffset(1.2,"X");
-      axis->SetTitleOffset(2.0,"Y");
-      axis->SetTitleOffset(1.2,"Z");
-      }
-      else if(ViewOpt==1){
-      axis->SetLabelOffset(-0.08,"X");
-      axis->SetLabelOffset(0.03,"Z");
-      axis->SetTitleOffset(1.3,"X");
-      }
-      else if(ViewOpt==2){
-      axis->SetLabelOffset(-0.08,"Y");
-      axis->SetLabelOffset(0.03,"Z");
-      axis->SetTitleOffset(1.3,"Y");
-      }
-      else if(ViewOpt==3){
-      axis->SetLabelOffset(0.03,"X");
-      axis->SetLabelOffset(0.03,"Y");
-      }
+   for(int ii=0;ii<NShowerTrack;ii++){
+      if(!ptrk[ii]) continue;
+      if(!ptrk[ii]->plot) continue;
+      if(ptrk[ii]->plot->GetEntries()<1) continue;
+      ptrk[ii]->plot->Draw();
+   }
+   //if(plot){
+   //   plot->Draw();
+   //}
+   TAxis3D *axis = TAxis3D::GetPadAxis();
+   axis->SetLabelColor(kBlack);
+   axis->SetAxisColor(kBlack);
+   axis->SetLabelSize(0.03,"X");
+   axis->SetLabelSize(0.03,"Y");
+   axis->SetLabelSize(0.03,"Z");
+   axis->SetXTitle("X [cm]");
+   axis->SetYTitle("Y [cm]");
+   axis->SetZTitle("Z [cm]");
+   axis->SetTitleOffset(2.,"X");
+   axis->SetTitleOffset(2.,"Y");
+   axis->SetTitleOffset(2.,"Z");
+   if(ViewOpt<1||ViewOpt>3){
+   axis->SetLabelOffset(0.006,"X");
+   axis->SetLabelOffset(0.008,"Y");
+   axis->SetLabelOffset(0.008,"Z");
+   axis->SetTitleOffset(1.2,"X");
+   axis->SetTitleOffset(2.0,"Y");
+   axis->SetTitleOffset(1.2,"Z");
+   }
+   else if(ViewOpt==1){
+   axis->SetLabelOffset(-0.08,"X");
+   axis->SetLabelOffset(0.03,"Z");
+   axis->SetTitleOffset(1.3,"X");
+   }
+   else if(ViewOpt==2){
+   axis->SetLabelOffset(-0.08,"Y");
+   axis->SetLabelOffset(0.03,"Z");
+   axis->SetTitleOffset(1.3,"Y");
+   }
+   else if(ViewOpt==3){
+   axis->SetLabelOffset(0.03,"X");
+   axis->SetLabelOffset(0.03,"Y");
    }
    leg->Draw("same");
    if(leg_time) leg_time->Draw("same");

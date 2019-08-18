@@ -39,7 +39,9 @@ class EventNtuple{
 
    public:
    ///get the static class pointer
-   static EventNtuple* GetHead(char* filename=(char*)"EventNtuple.root",int style=0);
+   static EventNtuple* GetHead();
+   static void SetHead(EventNtuple* head);
+   static EventNtuple* GetHead(char* filename,int style=0);
    ///some tools for convert coordinate
    static void ConvertCoor(double pos[3],double pp[3],double InCoo[3],double InDir[3],double *OutCoo,double *OutDir);
    static void ConvertThetaPhi(double pp[3],double &theta,double &phi);

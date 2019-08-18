@@ -60,6 +60,15 @@ public:
 	vector<float> myImageBaseLow;
 	vector<float> myImageAdcHigh;
 	vector<float> myImageAdcLow;
+        //vector<int> iSiPM;
+	//vector<int> Single_Threshold;
+	//vector<int> Record_Threshold;
+	//vector<int> peak;
+	//vector<int> mypeak;
+	//vector<int> gain_marker;
+	//vector<int> Over_Single_Marker;
+	//vector<int> Over_Record_Marker;
+        
         vector<short> iSiPM;
 	vector<short> Single_Threshold;
 	vector<short> Record_Threshold;
@@ -85,9 +94,14 @@ public:
         void CreateBranch(TTree *tree, int branchSplit);
         void GetBranch(TTree *fChain);
         bool GetAllContents(int _Entry);
+        void CalculateADC(int itel=0);
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
 
-   ClassDef(WFCTAEvent,2);
+   ClassDef(WFCTAEvent,3);
 };
+
+//#if !defined(CINT)
+ClassImp(WFCTAEvent);
+//#endif
 
 #endif // WFCTAEVENT_H

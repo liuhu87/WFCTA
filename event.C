@@ -29,8 +29,8 @@ int main(int argc, char**argv)
   int pulsehigh[32];
   int pulselow[32];
 
-  WFCTAEvent *wfctaEvent = new WFCTAEvent();
   TFile *rootfile = new TFile(argv[2],"recreate");
+  WFCTAEvent *wfctaEvent = new WFCTAEvent();
   /*********************************************************************/
   TTree *eventShow = new TTree("eventShow","info of evnets");
   wfctaEvent -> CreateBranch(eventShow,1);
@@ -46,6 +46,7 @@ int main(int argc, char**argv)
   }
 
   fp = fopen(argv[1],"rb");
+  int nevent=0;
   while(true)
   {
       size_of_read = fread((uint8_t *)buf,1,BUF_LEN,fp);
@@ -100,11 +101,13 @@ int main(int argc, char**argv)
           //(wfctaEvent->laserevent).flux=wfctaEvent->iEvent*1.0;
 
           eventShow->Fill();
+          nevent++;
 	  wfctaEvent->EventInitial();
           for(int j=0;j<32;j++){
             pulsehigh[j] = 0;
             pulselow[j] = 0;
           }
+          //if(nevent>1) break;
           fseek(fp,packSize,1);
       }
       else
@@ -115,8 +118,8 @@ int main(int argc, char**argv)
   fclose(fp);
 
 /******************************************************************************/
-  //eventShow->Write();
-  rootfile->Write();
+  eventShow->Write();
+  //rootfile->Write();
   rootfile->Close();
 
 }

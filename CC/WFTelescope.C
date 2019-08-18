@@ -178,7 +178,7 @@ int WFTelescopeArray::RayTrace(double x0, double y0, double z0, double m1, doubl
    int result=pct[whichct]->RayTrace(x0new,y0new,z0new,m1new,n1new,l1new,wavelength,t,itube,icell);
    if(jdebug>0) printf("WFTelescopeArray::RayTrace: From Door to SiPM. result=%d\n",result);
    if(result>0){
-      GetCamera(whichct)->Fill(itube,weight);
+      GetCamera(whichct)->Fill(itube,t,weight);
       if(jdebug>0) printf("WFTelescopeArray::RayTrace: Filling the camera itube=%d weight=%le\n",itube,weight);
    }
    itel=whichct;
@@ -390,7 +390,7 @@ void WFTelescope::SetTransmissivity()
   filter_angle_max = 35;
   filter_angle_min = 0;
   int i=0;
-  Transmissivity = new TGraph2D(61*5);
+  Transmissivity = new TGraph2D();
  // Transmissivity->SetName("t");
   char DatabaseDir[200]="";
   strcpy(DatabaseDir,getenv("WFCTADataDir"));
@@ -426,6 +426,7 @@ int WFTelescope::GetTransmissivity(double wavelength, double angle)
    if(wavelength<filter_wl_min||wavelength>filter_wl_max||angle>filter_angle_max)  transmissivity = 0;
    else{
       transmissivity = Transmissivity-> Interpolate(wavelength, angle);
+      //printf("WFTelescope::GetTransmissivity: wl=%lf angle=%lf transmissivity=%lf\n",wavelength,angle,transmissivity);
    }
    p = gRandom->Rndm();
   if(p<transmissivity) return 1;
@@ -668,8 +669,7 @@ int WFTelescope::RayTraceUpToCone(double x0, double y0, double z0, double m1, do
          + (ymirror0-ycluster)*(ymirror0-ycluster)
          + (zmirror0-ZCLUSTER0)*(zmirror0-ZCLUSTER0))
          - dist;
-    double C_LIGHT = 299.7;
-    t = dist/C_LIGHT;
+    t += dist*0.1/vlight;  //in second
     return 1;
 }
 int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1, double l1,double wavelength,double &t,int &itube,int &icell)
@@ -692,9 +692,9 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
 
     ///pass filter
     if(wavelength>0){
-       if(WFTelescopeArray::jdebug>0) printf("WFTelescope::RayTrace: Passing Filter\n");
        double angle=acos(fabs(l2))*TMath::RadToDeg();
-       if(GetTransmissivity(wavelength,angle)) return -6;
+       if(WFTelescopeArray::jdebug>0) printf("WFTelescope::RayTrace: Passing Filter wl=%lf angle=%lf\n",wavelength,angle);
+       if(!GetTransmissivity(wavelength,angle)) return -6;
        if(WFTelescopeArray::jdebug>0) printf("WFTelescope::RayTrace: Go Through Filter\n");
     }
 

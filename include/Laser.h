@@ -3,6 +3,8 @@
 #include "common.h"
 #include "WFTelescope.h"
 #include "TRandom3.h"
+#include "TGraph.h"
+#include "TFile.h"
 
 class WFCTAEvent;
 
@@ -16,6 +18,9 @@ class Atmosphere {
       static double aod_aerosol;
       static double scat_air;
       static double scat_aerosol;
+      static TGraph* gRayScatAngle;
+      static TGraph* gMieScatAngle;
+      static double scale;
    public:
       void Init(int seed=0);
       void Release();
@@ -24,18 +29,23 @@ class Atmosphere {
       static void SetParameters(char* filename=0);
       static double ZDependence(double z,int type=0);
       static double DeltaZ(double z);
-      static bool RayScatterAngle(double wavelength, double &theta, double &phi);
-      static bool MieScatterAngle(double wavelength, double &theta, double &phi);
-      static double FreeIntgLength();
-      static double FreePathLength(double z0,double dir0[3]);
+      static double ProbTransform(double xx,double yy[2],double &weight,bool IsCenter);
+      static bool RayScatterAngleTheta(double wavelength, double &theta, double anglerange[2],double &weight);
+      static bool RayScatterAnglePhi(double wavelength, double &phi,double anglerange[2],double &weight);
+      static bool MieScatterAngleTheta(double wavelength, double &theta, double anglerange[2],double &weight);
+      static bool MieScatterAnglePhi(double wavelength, double &phi,double anglerange[2],double &weight);
+      static double FreeIntgLength(double lengthrange[2],double &weight);
+      static double FreePathLength(double z0,double dir0[3],double lengthrange[2],double &weight);
       static int IsScattering(double z0);
-
 };
 
 class Laser {
    public:
+      static int jdebug;
+      static int Doigen;
       static TRandom3* prandom;
       static double TelSimDist;
+      static double TelSimAngl;
       static double scale;
       static double unittime;
       static double intensity;
@@ -51,7 +61,7 @@ class Laser {
       double lasercoo[3];	//in cm
       ///pointing direction of the laser generator
       double laserdir[2];
-      long int count_gen;
+      double count_gen;
       int Time_gen;
       double time_gen;
       int ievent_gen;
@@ -62,11 +72,14 @@ class Laser {
       vector<double> vgcoo[3];
       vector<double> vgdir[3];
 
+      ///reweight during propagation in the atmosphere
+      vector<double> vowei;
+
       ///coordinate and direction at telescope plane
       int Telindex;
       double coor_out[3];
       double dir_out[3];
-      vector<double> prodis;
+      vector<double> votim;
       vector<int> votel;
       vector<double> vocoo[3];
       vector<double> vodir[3];
@@ -81,16 +94,19 @@ class Laser {
       ~Laser() { Release(); }
       void SetParameters(char* filename=0);
       static void cross(double dir1[3],double dir2[3],double *dir3);
-      static bool CartesianFrame(double zero[3],double coor_in[3],double dir_in[3],double *xdir,double *ydir,double *zdir);
+      static bool CartesianFrame(double zero[3],double coor_in[3],double dir_in[3],double dir_in2[3],double *xdir,double *ydir,double *zdir);
       static double mindist(double zero[3],double coor_in[3],double dir_in[3],double *coor_min,bool &decrease);
       static double mindist(double coor_in[3],double dir_in[3],int &whichtel,double *coor_min,bool &decrease);
       static void PositionDis(double &xx,double &yy);
       static void DirectionDis(double &theta,double &phi);
       double WaveLengthGen();
       bool InitialGen();
-      long int EventGen(int &Time,double &time);
-      int Propagate(double &distance);
-      bool DoWFCTASim(double weight=1.0);
+      long int EventGen(int &Time,double &time,bool SimPulse=false);
+      int FindLengthRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double lengthrange[2]);
+      int FindThetaRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double freelength,double thetarange[2]);
+      int FindPhiRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double freelength,double theta_scat,double phirange[2]);
+      int Propagate(double &distance,double &weight);
+      bool DoWFCTASim();
 };
 
 #endif

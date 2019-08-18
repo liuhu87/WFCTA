@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <time.h>
 using namespace std;
+using std::vector;
 
 #define PI 3.14159265358979312
 #define RADDEG 180/PI

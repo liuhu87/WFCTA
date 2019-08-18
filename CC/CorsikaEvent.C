@@ -15,6 +15,7 @@ void CorsikaEvent::Init(){
    for(int ii=0;ii<3;ii++) pp[ii]=0;
    thetap=0;
    phip=0;
+   stheight=0;
    for(int ii=0;ii<Nuse;ii++) {corex[ii]=0; corey[ii]=0;}
    //EVTE
    nphoton=0;
@@ -81,6 +82,7 @@ void CorsikaEvent::Reset(){
    for(int ii=0;ii<3;ii++) pp[ii]=0;
    thetap=0;
    phip=0;
+   stheight=0;
    for(int ii=0;ii<Nuse;ii++) {corex[ii]=0; corey[ii]=0;}
    //EVTE
    nphoton=0;
@@ -151,6 +153,7 @@ void CorsikaEvent::Copy(CorsikaIO* pcorio){
    pp[2]=(pcorio->Evt).pzp;
    thetap=(pcorio->Evt).thetap;
    phip=(pcorio->Evt).phip;
+   stheight=(pcorio->Evt).stheight;
    for(int ii=0;ii<Nuse;ii++) {corex[ii]=(pcorio->Evt).corex[ii]; corey[ii]=(pcorio->Evt).corey[ii];}
 
    nphoton=(pcorio->Evt).nphoton;
@@ -210,7 +213,7 @@ bool CorsikaEvent::DoWFCTASim(){
          double x0,y0,z0;
          double m1,n1,l1;
          double weight,wave;
-         double t;
+         double t=ct.at(icer)*1.0e-9; //from nano second to second
          int itube,icell;
          int whichtel;
 
@@ -220,19 +223,22 @@ bool CorsikaEvent::DoWFCTASim(){
 
          x0=cx.at(icer)-corex[whichcore];
          y0=cy.at(icer)-corey[whichcore];
-         z0=oheight;
-         ///not quite sure about this direction
-         m1=-cu.at(icer);
-         n1=-cv.at(icer);
+         z0=0;
+         ///the direction are verified with the shower image plot
+         m1=cu.at(icer);
+         n1=cv.at(icer);
          l1=(1-m1*m1-n1*n1>=0)?-sqrt(1-m1*m1-n1*n1):-1;
          weight=cweight.at(icer);
          wave=wavelength.at(icer);
          int res=pct->RayTrace(x0,y0,z0,m1,n1,l1,weight,wave,whichtel,t,itube,icell);
-         (pwfc->mcevent).RayTrace.push_back(res);
+         if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(res);
+         (pwfc->mcevent).hRayTrace->Fill(res,weight);
+         (pwfc->mcevent).Ngen+=weight;
       }
       if(!findcore) return false;
       if(pwfc){
          (pwfc->mcevent).Copy(pct);
+         pwfc->CalculateADC();
          (pwfc->mcevent).GetTubeTrigger();
          (pwfc->mcevent).GetTelescopeTrigger(pct);
       }
@@ -253,6 +259,7 @@ void CorsikaEvent::Fill(){
    if(ReadTrack::GetHead()&&ReadTrack::DoPlot){ //Copy Shower information to ReadTrack to do plot
       ReadTrack::GetHead()->Copy(this);
    }
+   if(CorsikaIO::jdebug>=10) printf("CorsikaEvent::Fill: totally %d cer lights and %d particles\n",cx.size(),px.size());
    Reset();
 }
 int CorsikaEvent::CountParticle(){

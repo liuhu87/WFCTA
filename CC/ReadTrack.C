@@ -2,8 +2,9 @@
 #include "CorsikaEvent.h"
 ReadTrack* ReadTrack::_Head=0;
 bool ReadTrack::DoPlot=false;
+int ReadTrack::headbyte=16;
 int ReadTrack::jdebug=0;
-int ReadTrack::particle=-1;
+long int ReadTrack::particle=-1;
 float ReadTrack::elimit[2]={0,0};
 float ReadTrack::climit[3][2]={{0,0},{0,0},{0,0}};
 float ReadTrack::tlimit[2]={0,0};
@@ -16,6 +17,7 @@ ReadTrack* ReadTrack::GetHead(){
 }
 void ReadTrack::Init(){
    fin=0;
+   type=-1;
    plot=0;
    nrec=0;
    int nsize=1000000;
@@ -103,20 +105,40 @@ ReadTrack::ReadTrack(const char* inputfile){
         return;
       }
       fin->seekg(0,ios::beg);
+      if(strstr(inputfile,"em")) type=0;
+      else if(strstr(inputfile,"mu")) type=1;
+      else if(strstr(inputfile,"hd")) type=2;
+      else if(strstr(inputfile,"CER")) type=3;
+      else type=4;
+      if(jdebug>0) printf("ReadTrack::ReadTrack filename=%s type=%d\n",inputfile,type);
       return;
    }
 }
 bool ReadTrack::Exist(){
    return (bool)fin;
 }
+long int ReadTrack::GetParticleID(int partid){
+   if(partid<=15){
+      return (1<<partid);
+   }
+   else if(partid<200){
+      return (1<<16);
+   }
+   else{
+      int AA=partid/100;
+      int ZZ=partid%100;
+      return (1<<(17+ZZ));
+   }
+}
 int ReadTrack::ReadRec(){
    if(!fin) return -3;
    union{
-      int i[2];
-      char c[8];
+      int i[4];
+      char c[16];
    } padding;
-   if(nrec==0) fin->read(padding.c,4);
-   else fin->read(padding.c,8);
+   for(int ii=0;ii<4;ii++) padding.i[ii]=0;
+   if(nrec==0) fin->read(padding.c,headbyte/2);
+   else fin->read(padding.c,headbyte);
    if (!fin->good()){
       if(nrec>0){
          printf("ReadTrack::ReadRec: reading track file finished.\n");
@@ -128,11 +150,13 @@ int ReadTrack::ReadRec(){
       }
    }
    if(jdebug>1) printf("ReadTrack::ReadRec: size of this record(%d) %d(%d %s)\n",nrec+1,padding.i[0],padding.i[1],padding.c);
-   if(padding.i[0]!=40){
-      printf("ReadTrack::ReadRec: Error of the record size(%d,%f)\n",padding.i[0],padding.i[0]);
+   //int readsize=(nrec==0)?padding.i[0]:padding.i[1];
+   int readsize=padding.i[0];
+   if(readsize!=40){
+      printf("ReadTrack::ReadRec: Error of the record size(%d,%d)\n",padding.i[0],padding.i[1]);
       return -1;
    }
-   else fin->read(recbuff.c,(int)padding.i[0]);
+   else fin->read(recbuff.c,readsize);
    nrec++;
 
    int partid;
@@ -151,7 +175,7 @@ int ReadTrack::ReadRec(){
       printf("ReadTrack::ReadRec: Content partid=%d energy=%f start={%f,%f,%f,%f} end={%f,%f,%f,%f}\n",partid,energy,x1,y1,z1,t1,x2,y2,z2,t2);
    }
    bool inside=true;
-   if(particle>=0) inside=inside&&(partid==particle);
+   if(particle>=0) inside=inside&&(particle&GetParticleID(partid));
    if(elimit[1]>elimit[0]) inside=inside&&(energy>=elimit[0]&&energy<=elimit[1]);
    if(tlimit[1]>tlimit[0]){
       inside=inside&&(t1>=tlimit[0]&&t1<=tlimit[1]);
@@ -177,7 +201,7 @@ int ReadTrack::ReadRec(){
       for(int ii=0;ii<3;ii++){
          arrc1[ii].push_back(coo1[ii]);
          arrc2[ii].push_back(coo2[ii]);
-         if(plotrange[ii][0]>=plotrange[ii][1]){
+         if(IniRange[ii][0]>=IniRange[ii][1]){
          if(coo1[ii]<plotrange[ii][0]) plotrange[ii][0]=coo1[ii];
          if(coo2[ii]<plotrange[ii][0]) plotrange[ii][0]=coo2[ii];
          if(coo1[ii]>plotrange[ii][1]) plotrange[ii][1]=coo1[ii];
@@ -205,30 +229,78 @@ int ReadTrack::ReadAll(int beg,int end){
 void ReadTrack::Copy(CorsikaEvent* pevt){
    if(!pevt) return;
    if(plot) {
-      plot->Delete();
+      //plot->Delete();
       delete plot;
+      plot=new TObjArray();
    }
    plot=new TObjArray();
    int size=pevt->cx.size();
+   double x0=(pevt->oheight-pevt->stheight)/(-cos(pevt->thetap))*sin(pevt->thetap)*cos(pevt->phip);
+   double y0=(pevt->oheight-pevt->stheight)/(-cos(pevt->thetap))*sin(pevt->thetap)*sin(pevt->phip);
    for(int ic=0;ic<size;ic++){
       int partid=0;
       double energy=(pevt->wavelength.at(ic)>0)?(hplank_gev*vlight/(1.0e-7*pevt->wavelength.at(ic))):1.0e8;
       double coo1[3];
       double coo2[3];
       double t1,t2;
-      t2=pevt->ct.at(ic);
-      coo2[0]=pevt->cx.at(ic);
-      coo2[1]=pevt->cy.at(ic);
+      double dxdr=pevt->cu.at(ic);
+      double dydr=pevt->cv.at(ic);
+      double dzdr=(1-dxdr*dxdr-dydr*dydr>=0)?-sqrt(1-dxdr*dxdr-dydr*dydr):-1;
+      int whichtel=-1;
+      double mindist=1.0e10;
+      for(int ii=0;ii<Nuse;ii++){
+         double dist=fabs(pow(pevt->corex[ii]-pevt->cx.at(ic),2)+pow(pevt->corey[ii]-pevt->cy.at(ic),2));
+         if(dist<mindist){
+            whichtel=ii;
+            mindist=dist;
+         }
+      }
+
+      //coo1[0]=pevt->cx.at(ic);
+      //coo1[1]=pevt->cy.at(ic);
+      //coo1[2]=pevt->height.at(ic);
+      //coo2[2]=pevt->oheight;
+      //coo2[0]=(coo2[2]-coo1[2])/dzdr*dxdr+coo1[0];
+      //coo2[1]=(coo2[2]-coo1[2])/dzdr*dydr+coo1[1];
+      //t1=pevt->ct.at(ic)*1.0e-9;
+      //t2=t1+sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+      ////t2=pevt->ct.at(ic)*1.0e-9;
+      ////t1=t2-sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+
+      coo2[0]=pevt->cx.at(ic)+x0;
+      coo2[1]=pevt->cy.at(ic)+y0;
       coo2[2]=pevt->oheight;
       coo1[2]=pevt->height.at(ic);
-      double dxdr=-pevt->cu.at(ic);
-      double dydr=-pevt->cv.at(ic);
-      double dzdr=(1-dxdr*dxdr-dydr*dydr>=0)?-sqrt(1-dxdr*dxdr-dydr*dydr):-1;
       coo1[0]=(coo1[2]-coo2[2])/dzdr*dxdr+coo2[0];
       coo1[1]=(coo1[2]-coo2[2])/dzdr*dydr+coo2[1];
+      t2=pevt->ct.at(ic)*1.0e-9;
       t1=t2-sqrt(pow(coo1[0]-coo2[0],2)+pow(coo1[1]-coo2[1],2)+pow(coo1[2]-coo2[2],2))/vlight;
+
+      if(jdebug>9) printf("light=%d x=%f(corx=%f) y=%f(corey=%f) z=%f oz=%f\n",ic,pevt->cx.at(ic),pevt->corex[whichtel],pevt->cy.at(ic),pevt->corey[whichtel],pevt->height.at(ic),pevt->oheight);
+
       bool inside=true;
-      if(particle>=0) inside=inside&&(partid==particle);
+      if(tlimit[1]>tlimit[0]){
+         double dxdt=(coo2[0]-coo1[0])/(t2-t1);
+         double dydt=(coo2[1]-coo1[1])/(t2-t1);
+         double dzdt=(coo2[2]-coo1[2])/(t2-t1);
+         double t1new=(tlimit[0]<t1)?t1:tlimit[0]; //maximum between t1 and tlimit[0]
+         double t2new=(tlimit[1]>t2)?t2:tlimit[1]; //minimum between t2 and tlimit[1]
+         if(t1!=t1new){
+            coo1[0]=coo1[0]+dxdt*(t1new-t1);
+            coo1[1]=coo1[1]+dydt*(t1new-t1);
+            coo1[2]=coo1[2]+dzdt*(t1new-t1);
+         }
+         if(t2!=t2new){
+            coo2[0]=coo2[0]+dxdt*(t2new-t2);
+            coo2[1]=coo2[1]+dydt*(t2new-t2);
+            coo2[2]=coo2[2]+dzdt*(t2new-t2);
+         }
+         t1=t1new;
+         t2=t2new;
+         if(t2<=t1) inside=false;
+      }
+
+      if(particle>=0) inside=inside&&(particle&GetParticleID(partid));
       if(elimit[1]>elimit[0]) inside=inside&&(energy>=elimit[0]&&energy<=elimit[1]);
       if(tlimit[1]>tlimit[0]){
          inside=inside&&(t1>=tlimit[0]&&t1<=tlimit[1]);
@@ -252,14 +324,17 @@ void ReadTrack::Copy(CorsikaEvent* pevt){
          for(int ii=0;ii<3;ii++){
             arrc1[ii].push_back(coo1[ii]);
             arrc2[ii].push_back(coo2[ii]);
-            if(plotrange[ii][0]>=plotrange[ii][1]){
+            if(IniRange[ii][0]>=IniRange[ii][1]){
             if(coo1[ii]<plotrange[ii][0]) plotrange[ii][0]=coo1[ii];
             if(coo2[ii]<plotrange[ii][0]) plotrange[ii][0]=coo2[ii];
             if(coo1[ii]>plotrange[ii][1]) plotrange[ii][1]=coo1[ii];
             if(coo2[ii]>plotrange[ii][1]) plotrange[ii][1]=coo2[ii];
             }
          }
-         if(jdebug>1) printf("ReadTrack::Copy: fill the cer track nrec=%d partid=%d\n",ic,partid);
+         if(jdebug>1) printf("ReadTrack::Copy: fill the cer track nrec=%d partid=%d range={{%f,%f},{%f,%f},{%f,%f}}\n",ic,partid,plotrange[0][0],plotrange[0][1],plotrange[1][0],plotrange[1][1],plotrange[2][0],plotrange[2][1]);
+         if(jdebug>3){
+            printf("ReadTrack::Copy: Content partid=%d energy=%f start={%f,%f,%f,%f} end={%f,%f,%f,%f}\n",partid,energy,coo1[0],coo1[1],coo1[2],t1,coo2[0],coo2[1],coo2[2],t2);
+         }
       }
    }
 }
@@ -268,14 +343,29 @@ int ReadTrack::Color(int partid){
    if(partid<0) return 1;
    else if(partid==0) return 6;
    else if(partid<=3) return 2;
-   else if(partid<=3) return 2;
-   else if(partid<=9) return 3;
-   else return 4;
+   else if((partid>=13&&partid<=15)||(partid>=116&&partid<=128)||partid>=200) return 4;
+   else return 3;
+
+   //if(partid<0) return 1;
+   //else if(partid==0) return 2;
+   //else if(partid==1) return 3;
+   //else if(partid==2) return 4;
+   //else if(partid==3) return 6;
+   //else return 1;
+}
+int ReadTrack::GetLegType(int color){ //Reverse of ReadTrack::Color
+   if(color==1) return -1;
+   else if(color==6) return 3;
+   else if(color==2) return 0;
+   else if(color==4) return 2;
+   else if(color==3) return 1;
+   else return -1;
 }
 int ReadTrack::Style(int partid){
    return 1;
 }
 int ReadTrack::Width(int partid){
+   if(partid==0) return 3;
    if(partid<=9) return 1;
    return 2;
 }
@@ -287,7 +377,7 @@ void ReadTrack::Draw(TCanvas* cc,const char* option){
    //   cc->SetView(view);
    //}
    if(plot) {
-      plot->Delete();
+      //plot->Delete();
       delete plot;
    }
    plot=new TObjArray();
@@ -296,6 +386,7 @@ void ReadTrack::Draw(TCanvas* cc,const char* option){
       line->SetPoint(0, arrc1[0].at(ii), arrc1[1].at(ii), arrc1[2].at(ii));
       line->SetPoint(1, arrc2[0].at(ii), arrc2[1].at(ii), arrc2[2].at(ii));
       line->SetLineColor(Color(arrid.at(ii)));
+      //line->SetLineColor(type);
       line->SetLineStyle(Style(arrid.at(ii)));
       line->SetLineWidth(Width(arrid.at(ii)));
       plot->Add(line);

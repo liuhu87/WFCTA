@@ -55,6 +55,24 @@ WFCTAEvent::WFCTAEvent():TSelector()
    Over_Single_Marker.reserve(MAXPMT);
    Over_Record_Marker.reserve(MAXPMT);
 
+   ADC_Cut.resize(MAXPMT);
+   ImageBaseHigh.resize(MAXPMT);
+   ImageBaseLow.resize(MAXPMT);
+   ImageAdcHigh.resize(MAXPMT);
+   ImageAdcLow.resize(MAXPMT);
+   myImageBaseHigh.resize(MAXPMT);
+   myImageBaseLow.resize(MAXPMT);
+   myImageAdcHigh.resize(MAXPMT);
+   myImageAdcLow.resize(MAXPMT);
+   iSiPM.resize(MAXPMT);
+   Single_Threshold.resize(MAXPMT);
+   Record_Threshold.resize(MAXPMT);
+   peak.resize(MAXPMT);
+   mypeak.resize(MAXPMT);
+   gain_marker.resize(MAXPMT);
+   Over_Single_Marker.resize(MAXPMT);
+   Over_Record_Marker.resize(MAXPMT);
+
    Init();
 }
 
@@ -68,14 +86,6 @@ void WFCTAEvent::Init()
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
-   iSiPM.clear();
-   gain_marker.clear();
-   peak.clear();
-   mypeak.clear();
-   Single_Threshold.clear();
-   Record_Threshold.clear();
-   Over_Single_Marker.clear();
-   Over_Record_Marker.clear();
    ADC_Cut.clear();
    ImageBaseHigh.clear();
    ImageBaseLow.clear();
@@ -85,6 +95,14 @@ void WFCTAEvent::Init()
    myImageBaseLow.clear();
    myImageAdcHigh.clear();
    myImageAdcLow.clear();
+   iSiPM.clear();
+   Single_Threshold.clear();
+   Record_Threshold.clear();
+   peak.clear();
+   mypeak.clear();
+   gain_marker.clear();
+   Over_Single_Marker.clear();
+   Over_Record_Marker.clear();
    
    mcevent.Init();
    ledevent.Init();
@@ -95,14 +113,6 @@ void WFCTAEvent::EventInitial()
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
-   iSiPM.clear();
-   gain_marker.clear();
-   peak.clear();
-   mypeak.clear();
-   Single_Threshold.clear();
-   Record_Threshold.clear();
-   Over_Single_Marker.clear();
-   Over_Record_Marker.clear();
    ADC_Cut.clear();
    ImageBaseHigh.clear();
    ImageBaseLow.clear();
@@ -112,6 +122,14 @@ void WFCTAEvent::EventInitial()
    myImageBaseLow.clear();
    myImageAdcHigh.clear();
    myImageAdcLow.clear();
+   iSiPM.clear();
+   Single_Threshold.clear();
+   Record_Threshold.clear();
+   peak.clear();
+   mypeak.clear();
+   gain_marker.clear();
+   Over_Single_Marker.clear();
+   Over_Record_Marker.clear();
    
    mcevent.Reset();
    ledevent.Reset();
@@ -205,6 +223,19 @@ bool WFCTAEvent::GetAllContents(int _Entry){
    bledevent->GetEntry(_Entry);
    blaserevent->GetEntry(_Entry);
    return ncount>0;
+}
+
+void WFCTAEvent::CalculateADC(int itel){
+   if(itel<0||itel>=NCTMax) return;
+   for(int ii=0;ii<NSIPM;ii++){
+      if(mcevent.TubeSignal[itel][ii]>0){
+         iSiPM.push_back(ii);
+         ImageAdcHigh.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
+         ImageAdcLow.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
+         myImageAdcHigh.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
+         myImageAdcLow.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
+      }
+   }
 }
 
 TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
