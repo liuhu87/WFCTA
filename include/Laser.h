@@ -1,6 +1,13 @@
 #ifndef __Laser_H__
 #define __Laser_H__
 #include "common.h"
+#include <TCanvas.h>
+#include <TView3D.h>
+#include <TPolyLine3D.h>
+#include <TPolyMarker3D.h>
+#include <TSystem.h>
+#include <TObjArray.h>
+#include "TH1F.h"
 #include "WFTelescope.h"
 #include "TRandom3.h"
 #include "TGraph.h"
@@ -43,6 +50,8 @@ class Laser {
    public:
       static int jdebug;
       static int Doigen;
+      static bool DoPlot;
+      static float IniRange[4][2];
       static TRandom3* prandom;
       static double TelSimDist;
       static double TelSimAngl;
@@ -85,6 +94,8 @@ class Laser {
       vector<double> vodir[3];
 
       WFCTAEvent* pwfc; //!
+      TObjArray* plot; //!
+      float plotrange[4][2]; //!
 
    public:
       void Init(int seed=0);
@@ -107,6 +118,10 @@ class Laser {
       int FindPhiRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double freelength,double theta_scat,double phirange[2]);
       int Propagate(double &distance,double &weight);
       bool DoWFCTASim();
+      static int GetLineStyle(int type,double weight);
+      static int GetLineWidth(int type,double weight);
+      static int GetLineColor(int type,double weight);
+      TCanvas* Draw(const char* option="al",int ViewOpt=0);
 };
 
 #endif

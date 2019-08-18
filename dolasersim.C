@@ -33,11 +33,12 @@ int main(int argc, char**argv)
 
    WFTelescopeArray::jdebug=0;
    WFTelescopeArray::DoSim=true;
-   WFTelescopeArray::GetHead(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/default.inp"));
+   WFTelescopeArray::GetHead(Form("%s/default.inp",getenv("WFCTADataDir")));
    Atmosphere::SetParameters();
    Atmosphere::scale=1.0e7;
-   Laser::scale=1.0e-9;
+   Laser::scale=1.0e-12;
    //Laser::Doigen=9632;
+   Laser::DoPlot=true;
    //Laser::spotrange = 0;//0.001;//0.001;//mm
    Laser::divergence = 1.;//0.0573;
    Laser::jdebug=3;

@@ -110,7 +110,7 @@ Int_t CorsikaChain::ReadRec(CorsikaEvent* pevt){
             else{
                fin->seekg(0,ios::end);
                size_t filesize = fin->tellg();
-               if (jdebug>0) printf("The file size of No.%d:%s is %d bytes\n",ifile,filename[ifile],filesize);
+               if (jdebug>0) printf("The file size of No.%d:%s is %ld bytes\n",ifile,filename[ifile],(long int)filesize);
                if (!filesize) {
                  printf("Warning: The file is empty!\n");
                  fin->close();

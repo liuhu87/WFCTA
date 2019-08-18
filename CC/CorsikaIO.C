@@ -30,7 +30,7 @@ bool CorsikaIO::OpenFile(const char* inputfile){
    else{
       fin->seekg(0,ios::end);
       size_t filesize = fin->tellg();
-      if (jdebug>0) printf("The file size of %s is %d bytes\n",inputfile,filesize);
+      if (jdebug>0) printf("The file size of %s is %ld bytes\n",inputfile,(long int)filesize);
       if (!filesize) {
         printf("Warning: The file is empty!\n");
         fin->close();

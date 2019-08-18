@@ -5,6 +5,7 @@
 #include "common.h"
 #include "WFTelescope.h"
 #include "WFCTAEvent.h"
+#include "TAxis3D.h"
 using namespace std;
 
 double Atmosphere::aod_air = 0;
@@ -26,14 +27,14 @@ void Atmosphere::Release(){
 void Atmosphere::SetParameters(char* filename){
    aod_air = 0.04*1.0e-5;
    scat_air = 0.039*1.0e-5;
-   if((!gRayScatAngle)||(!gMieScatAngle)){
-      TFile* fin=TFile::Open(Form("%s/ScatterAngle.root",getenv("WFCTADataDir")));
-      if(!fin) return;
-      gRayScatAngle=fin?(TGraph*)fin->Get("RayScat"):0;
-      gMieScatAngle=fin?(TGraph*)fin->Get("MieScat"):0;
-      printf("Atmosphere: Scattering Database Initialed %p %p %p\n",fin,gRayScatAngle,gMieScatAngle);
-      fin->Close();
-   }
+   //if((!gRayScatAngle)||(!gMieScatAngle)){
+   //   TFile* fin=TFile::Open(Form("%s/ScatterAngle.root",getenv("WFCTADataDir")));
+   //   if(!fin) return;
+   //   gRayScatAngle=fin?(TGraph*)fin->Get("RayScat"):0;
+   //   gMieScatAngle=fin?(TGraph*)fin->Get("MieScat"):0;
+   //   printf("Atmosphere: Scattering Database Initialed %p %p %p\n",fin,gRayScatAngle,gMieScatAngle);
+   //   fin->Close();
+   //}
 }
 
 double Atmosphere::ProbTransform(double xx,double yy[2],double &weight,bool IsCenter){
@@ -108,10 +109,10 @@ double Atmosphere::ProbTransform(double xx,double yy[2],double &weight,bool IsCe
 }
 bool Atmosphere::RayScatterAngleTheta(double wavelength, double &theta, double anglerange[2],double &weight){
    if(!Laser::prandom) return false;
-   if(!gRayScatAngle){
-      printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
-      return false;
-   }
+   //if(!gRayScatAngle){
+   //   printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
+   //   return false;
+   //}
 
    double xxx;
    double yrange[2];
@@ -133,10 +134,10 @@ bool Atmosphere::RayScatterAngleTheta(double wavelength, double &theta, double a
 }
 bool Atmosphere::RayScatterAnglePhi(double wavelength, double &phi,double anglerange[2],double &weight){
    if(!Laser::prandom) return false;
-   if(!gRayScatAngle){
-      printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
-      return false;
-   }
+   //if(!gRayScatAngle){
+   //   printf("Atmosphere::RayScatterAngle: No Ray Scatter Angle Calculated %p\n",gRayScatAngle);
+   //   return false;
+   //}
 
    double xxx;
    double yrange[2];
@@ -165,10 +166,10 @@ bool Atmosphere::RayScatterAnglePhi(double wavelength, double &phi,double angler
 }
 bool Atmosphere::MieScatterAngleTheta(double wavelength, double &theta, double anglerange[2],double &weight){
    if(!Laser::prandom) return false;
-   if(!gMieScatAngle){
-      printf("Atmosphere::MieScatterAngle: No Mie Scatter Angle Calculated\n");
-      return false;
-   }
+   //if(!gMieScatAngle){
+   //   printf("Atmosphere::MieScatterAngle: No Mie Scatter Angle Calculated\n");
+   //   return false;
+   //}
 
    double xxx;
    double yrange[2];
@@ -190,10 +191,10 @@ bool Atmosphere::MieScatterAngleTheta(double wavelength, double &theta, double a
 }
 bool Atmosphere::MieScatterAnglePhi(double wavelength, double &phi,double anglerange[2],double &weight){
    if(!Laser::prandom) return false;
-   if(!gMieScatAngle){
-      printf("Atmosphere::MieScatterAngle: No Mie Scatter Angle Calculated\n");
-      return false;
-   }
+   //if(!gMieScatAngle){
+   //   printf("Atmosphere::MieScatterAngle: No Mie Scatter Angle Calculated\n");
+   //   return false;
+   //}
 
    double xxx;
    double yrange[2];
@@ -321,10 +322,6 @@ int Atmosphere::IsScattering(double z0){
    else return 2;  //Mie Scattering
 }
 
-//double Atmosphere::probability(){
-//   prob(distance) = (aod_air + aod_aerosol) * exp((-(aod_air + aod_aerosol)) * distance );//distance is the variable
-//}
-
 
 /*\
 The class for laser photon propagation
@@ -332,6 +329,8 @@ The class for laser photon propagation
 
 int Laser::jdebug=0;
 int Laser::Doigen=-1;
+bool Laser::DoPlot=false;
+float Laser::IniRange[4][2]={{1.0e9,-1.0e9},{1.0e9,-1.0e9},{1.0e9,-1.0e9},{1.0e9,-1.0e9}};
 TRandom3* Laser::prandom = 0;
 double Laser::TelSimDist=400.; //in cm
 double Laser::TelSimAngl=10.; //in degree
@@ -355,10 +354,16 @@ void Laser::Init(int seed){
    count_gen=0;
    for(int ii=0;ii<3;ii++) lasercoo[ii]=0;
    for(int ii=0;ii<2;ii++) laserdir[ii]=0;
+   plot=0;
+   for(int ii=0;ii<4;ii++) {plotrange[ii][0]=IniRange[ii][0]; plotrange[ii][1]=IniRange[ii][1];}
 }
 void Laser::Release(){
    if(prandom) delete prandom;
    if(pwfc) delete pwfc;
+   if(plot){
+      plot->Delete();
+      delete plot;
+   }
 }
 void Laser::Reset(){
    count_gen=0;
@@ -384,6 +389,13 @@ void Laser::Reset(){
       vodir[ii].clear();
    }
    if(pwfc) pwfc->EventInitial();
+
+   if(plot){
+      //plot->Delete();
+      delete plot;
+      plot=new TObjArray();
+   }
+   for(int ii=0;ii<4;ii++) {plotrange[ii][0]=IniRange[ii][0]; plotrange[ii][1]=IniRange[ii][1];}
 }
 void Laser::SetParameters(char* filename){
    lasercoo[0]=1000*100.; //in cm
@@ -403,7 +415,7 @@ bool Laser::CartesianFrame(double zero[3],double coor_in[3],double dir_in[3],dou
    for(int ii=0;ii<3;ii++) zdir[ii]=dir_in[ii];
    double norm=sqrt(zdir[0]*zdir[0]+zdir[1]*zdir[1]+zdir[2]*zdir[2]);
    if(norm<=0) return false;
-   for(int ii=0;ii<3;ii++) zdir[ii]/norm;
+   for(int ii=0;ii<3;ii++) zdir[ii]/=norm;
 
    double dir1[3]={coor_in[0]-zero[0],coor_in[1]-zero[1],coor_in[2]-zero[2]};
    norm=sqrt(dir1[0]*dir1[0]+dir1[1]*dir1[1]+dir1[2]*dir1[2]);
@@ -570,7 +582,7 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
       double distance;
       int res=Propagate(distance,weight);
       if((igen%(1000000)==0)&&jdebug>0) printf("Laser::EventGen: %ld of %ld generated (count_gen=%le,weight={%le,%le})\n",igen,ngen,count_gen,weight,weight*scale);
-      if(jdebug>3) printf("Laser::EventGen: Propagate igen=%d res=%d distance=%lf lasercoo={%f,%f,%f} laserdir={%f,%f,%f}\n",igen,res,distance,coor_gen[0],coor_gen[1],coor_gen[2],dir_gen[0],dir_gen[1],dir_gen[2]);
+      if(jdebug>3) printf("Laser::EventGen: Propagate igen=%ld res=%d distance=%lf lasercoo={%f,%f,%f} laserdir={%f,%f,%f}\n",igen,res,distance,coor_gen[0],coor_gen[1],coor_gen[2],dir_gen[0],dir_gen[1],dir_gen[2]);
       if(res<0) Telindex=res-15;
       else{  //the telescope index has been calculated in Propagate
          ngentel++;
@@ -586,6 +598,7 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
    }
    if(jdebug>0) printf("Laser::EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld scale=%le\n",ngen0,acctime,ngen,ngentel,scale);
    bool dosim=DoWFCTASim();
+   if(DoPlot) Draw();
    ievent_gen++;
 
    if(!SimPulse){
@@ -850,8 +863,8 @@ int Laser::FindThetaRange(double zero[3],double cooout[3],double dirout[3],doubl
          return -1;
       }
       else{
-         thetarange[0]=TMath::Max(0.,theta111-asin(TelSimDist/length0));
-         thetarange[1]=TMath::Min(PI,theta111+asin(TelSimDist/length0));
+         thetarange[0]=TMath::Max((double)0.,(double)theta111-asin(TelSimDist/length0));
+         thetarange[1]=TMath::Min((double)PI,(double)theta111+asin(TelSimDist/length0));
          return 2;
       }
    }
@@ -1100,22 +1113,93 @@ int Laser::Propagate(double &distance,double &weight){
 
    if(decrease&&dist<TelSimDist){ //laser in the field view of the telescope
       if(jdebug>4) printf("Laser::Propagate: laser in the field of view of telescope(%lf), distance=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,distance,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
+      int returntype;
       if(distance<freelength){
          Telindex=whichtel;
          for(int ii=0;ii<3;ii++){
             coor_out[ii]=coor_min[ii];
             dir_out[ii]=dir_gen[ii];
          }
-         return 0; //pass through nearby of the telescope without any interaction
+         returntype=0; //pass through nearby of the telescope without any interaction
       }
       else{ //will be absorbed or scattered, ignore those events
-         return -3;
+         returntype=-3;
       }
+      if(DoPlot){
+         if(!plot) plot=new TObjArray();
+         TPolyLine3D* line = new TPolyLine3D(2);
+         double coor_last[4],coor_first[4];
+         if(IniRange[3][1]>IniRange[3][0]){
+            double length_prop1=TMath::Max((double)0.,(double)IniRange[3][0])*vlight;
+            double length_prop2=TMath::Max((double)0.,(double)IniRange[3][1])*vlight;
+            double maxlength_prop=(decrease&&dist<TelSimDist)?TMath::Min(distance,freelength):freelength;
+            for(int ii=0;ii<3;ii++) coor_first[ii]=coor_gen[ii]+dir_gen[ii]*TMath::Min(length_prop1,maxlength_prop);
+            for(int ii=0;ii<3;ii++) coor_last[ii]=coor_gen[ii]+dir_gen[ii]*TMath::Min(length_prop2,maxlength_prop);
+            coor_first[3]=TMath::Max((double)0.,(double)IniRange[3][0]);
+            coor_last[3]=TMath::Max((double)0.,(double)IniRange[3][1]);
+         }
+         else{
+            for(int ii=0;ii<3;ii++) coor_first[ii]=coor_gen[ii];
+            double maxlength_prop=(decrease&&dist<TelSimDist)?TMath::Min(distance,freelength):freelength;
+            for(int ii=0;ii<3;ii++) coor_last[ii]=coor_gen[ii]+dir_gen[ii]*maxlength_prop;
+            coor_first[3]=0;
+            coor_last[3]=maxlength_prop/vlight;
+         }
+         for(int ii=0;ii<4;ii++){
+            if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
+            if(coor_last[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_last[ii];
+            if(coor_first[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_first[ii];
+            if(coor_last[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_last[ii];
+         }
+         line->SetPoint(0, coor_first[0],coor_first[1],coor_first[2]);
+         line->SetPoint(1, coor_last[0],coor_last[1],coor_last[2]);
+         line->SetLineColor(GetLineColor(returntype,weight));
+         line->SetLineStyle(GetLineStyle(returntype,weight));
+         line->SetLineWidth(GetLineWidth(returntype,weight));
+         plot->Add(line);
+         if(jdebug>5) printf("Laser::Propagate: Add line returntype=%d coo1={%le,%le,%le,%le},coo2={%le,%le,%le,%le}\n",returntype,coor_first[0],coor_first[1],coor_first[2],coor_first[3],coor_last[0],coor_last[1],coor_last[2],coor_last[3]);
+      }
+      return returntype;
    }
    else{
       if(scatter<=0||scatter>2){ //absorbed or no interaction
          if(jdebug>4) printf("Laser::Propagate: laser far away from telescope(%lf), absorbed or no interaction, distance=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf} weight=%le\n",dist,distance,freelength,decrease,coor_min[0],coor_min[1],coor_min[2],weight);
-         return -4-(scatter<=0?-scatter:1);
+         int returntype=-4-(scatter<=0?-scatter:1);
+         if(DoPlot){
+            if(!plot) plot=new TObjArray();
+            TPolyLine3D* line = new TPolyLine3D(2);
+            double coor_last[4],coor_first[4];
+            if(IniRange[3][1]>IniRange[3][0]){
+               double length_prop1=TMath::Max((double)0,(double)IniRange[3][0])*vlight;
+               double length_prop2=TMath::Max((double)0,(double)IniRange[3][1])*vlight;
+               double maxlength_prop=freelength;
+               for(int ii=0;ii<3;ii++) coor_first[ii]=coor_gen[ii]+dir_gen[ii]*TMath::Min(length_prop1,maxlength_prop);
+               for(int ii=0;ii<3;ii++) coor_last[ii]=coor_gen[ii]+dir_gen[ii]*TMath::Min(length_prop2,maxlength_prop);
+               coor_first[3]=TMath::Max((double)0.,(double)IniRange[3][0]);
+               coor_last[3]=TMath::Max((double)0.,(double)IniRange[3][1]);
+            }
+            else{
+               for(int ii=0;ii<3;ii++) coor_first[ii]=coor_gen[ii];
+               double maxlength_prop=freelength;
+               for(int ii=0;ii<3;ii++) coor_last[ii]=coor_gen[ii]+dir_gen[ii]*maxlength_prop;
+               coor_first[3]=0;
+               coor_last[3]=freelength/vlight;
+            }
+            for(int ii=0;ii<4;ii++){
+               if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
+               if(coor_last[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_last[ii];
+               if(coor_first[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_first[ii];
+               if(coor_last[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_last[ii];
+            }
+            line->SetPoint(0, coor_first[0],coor_first[1],coor_first[2]);
+            line->SetPoint(1, coor_last[0],coor_last[1],coor_last[2]);
+            line->SetLineColor(GetLineColor(returntype,weight));
+            line->SetLineStyle(GetLineStyle(returntype,weight));
+            line->SetLineWidth(GetLineWidth(returntype,weight));
+            plot->Add(line);
+            if(jdebug>5) printf("Laser::Propagate: Add line returntype=%d coo1={%le,%le,%le,%le},coo2={%le,%le,%le,%le}\n",returntype,coor_first[0],coor_first[1],coor_first[2],coor_first[3],coor_last[0],coor_last[1],coor_last[2],coor_last[3]);
+         }
+         return returntype;
       }
       else{ //scattering
          double coor_scat[3];
@@ -1163,22 +1247,82 @@ int Laser::Propagate(double &distance,double &weight){
          dist=mindist(zero,coor_scat,dir_scat,coor_min,decrease);
          distance=freelength+sqrt(pow(coor_scat[0]-coor_min[0],2)+pow(coor_scat[1]-coor_min[1],2)+pow(coor_scat[2]-coor_min[2],2));
          if(jdebug>4) printf("Laser::Propagate: scattered, dist=%lf(free length=%lf distance=%lf) decrease=%d coo={%lf,%lf,%lf} weight=%le\n",dist,freelength,distance,decrease,coor_min[0],coor_min[1],coor_min[2],weight);
+         int returntype;
+         double lengthrange2[2]={0,0};
+         double freelength2=Atmosphere::FreePathLength(coor_scat[2],dir_scat,lengthrange2,weight);
          if(decrease&&dist<TelSimDist){ //inside the field of view of one telescope after scattering
-            double lengthrange2[2]={0,0};
-            double freelength2=Atmosphere::FreePathLength(coor_scat[2],dir_scat,lengthrange2,weight);
             if(fabs(distance-freelength)<freelength2){
                Telindex=whichtel;
                for(int ii=0;ii<3;ii++){
                   coor_out[ii]=coor_min[ii];
                   dir_out[ii]=dir_scat[ii];
                }
-               return scatter; //pass through nearby of the telescope after one scattering
+               returntype=scatter; //pass through nearby of the telescope after one scattering
             }
-            else return -1; //interacted before arriving to the telescope, after one scattering
+            else returntype=-1; //interacted before arriving to the telescope, after one scattering
          }
          else{ //too far away from the telescope after one scattering
-            return -2;
+            returntype=-2;
          }
+         if(DoPlot){
+            if(!plot) plot=new TObjArray();
+            for(int iline=0;iline<2;iline++){
+               if(IniRange[3][1]>IniRange[3][0]){
+                  if(IniRange[3][1]<=0) break;
+                  if(iline==0&&IniRange[3][0]>=freelength/vlight) continue;
+                  if(iline==1&&IniRange[3][1]<=freelength/vlight) continue;
+               }
+               TPolyLine3D* line = new TPolyLine3D(2);
+               double coor_last[4],coor_first[4];
+               if(IniRange[3][1]>IniRange[3][0]){
+                  if(iline==0){
+                     double length_prop1=TMath::Max((double)0,(double)IniRange[3][0])*vlight;
+                     double length_prop2=TMath::Max((double)0,(double)IniRange[3][1])*vlight;
+                     double maxlength_prop=freelength;
+                     for(int ii=0;ii<3;ii++) coor_first[ii]=coor_gen[ii]+dir_gen[ii]*TMath::Min(length_prop1,maxlength_prop);
+                     for(int ii=0;ii<3;ii++) coor_last[ii]=coor_gen[ii]+dir_gen[ii]*TMath::Min(length_prop2,maxlength_prop);
+                  }
+                  else{
+                     double length_prop1=TMath::Max((double)0,(double)IniRange[3][0]*vlight-freelength);
+                     double length_prop2=TMath::Max((double)0,(double)IniRange[3][1]*vlight-freelength);
+                     double maxlength_prop=freelength2;
+                     if(decrease&&dist<TelSimDist) maxlength_prop=TMath::Min(distance-freelength,freelength2);
+                     for(int ii=0;ii<3;ii++) coor_first[ii]=coor_scat[ii]+dir_scat[ii]*TMath::Min(length_prop1,maxlength_prop);
+                     for(int ii=0;ii<3;ii++) coor_last[ii]=coor_scat[ii]+dir_scat[ii]*TMath::Min(length_prop2,maxlength_prop);
+                  }
+                  coor_first[3]=TMath::Max((double)0,(double)IniRange[3][0]);
+                  coor_last[3]=TMath::Max((double)0,(double)IniRange[3][1]);
+               }
+               else{
+                  if(iline==0){
+                     for(int ii=0;ii<3;ii++) coor_first[ii]=coor_gen[ii];
+                     for(int ii=0;ii<3;ii++) coor_last[ii]=coor_scat[ii];
+                  }
+                  else{
+                     for(int ii=0;ii<3;ii++) coor_first[ii]=coor_scat[ii];
+                     for(int ii=0;ii<3;ii++){
+                        coor_last[ii]=coor_scat[ii]+dir_scat[ii]*((decrease&&dist<TelSimDist)?TMath::Min(distance-freelength,freelength2):freelength2);
+                     }
+                  }
+                  coor_first[3]=0;
+                  coor_last[3]=((decrease&&dist<TelSimDist)?freelength+TMath::Min(distance-freelength,freelength2):freelength+freelength2)/vlight;
+               }
+               for(int ii=0;ii<4;ii++){
+                  if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
+                  if(coor_last[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_last[ii];
+                  if(coor_first[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_first[ii];
+                  if(coor_last[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_last[ii];
+               }
+               line->SetPoint(0, coor_first[0],coor_first[1],coor_first[2]);
+               line->SetPoint(1, coor_last[0],coor_last[1],coor_last[2]);
+               line->SetLineColor(GetLineColor(returntype,weight));
+               line->SetLineStyle(GetLineStyle(returntype,weight));
+               line->SetLineWidth(GetLineWidth(returntype,weight));
+               plot->Add(line);
+               if(jdebug>5) printf("Laser::Propagate: Add line returntype=%d loop%d coo1={%le,%le,%le,%le},coo2={%le,%le,%le,%le}\n",returntype,iline,coor_first[0],coor_first[1],coor_first[2],coor_first[3],coor_last[0],coor_last[1],coor_last[2],coor_last[3]);
+            }
+         }
+         return returntype;
       }
    }
 }
@@ -1266,4 +1410,70 @@ bool Laser::DoWFCTASim(){
    }
 
    return false;
+}
+
+int Laser::GetLineStyle(int type,double weight){
+   return 1;
+}
+int Laser::GetLineWidth(int type,double weight){
+   if(weight<=0) return 0;
+   if(log10(weight)<0) return 1;
+   else if(log10(weight)<3) return 2;
+   else if(log10(weight)<6) return 3;
+   else return 4;
+}
+int Laser::GetLineColor(int type,double weight){
+   if(type<0) return 2;
+   else if(type==0) return 3;
+   else return 4;
+}
+TCanvas* Laser::Draw(const char* option,int ViewOpt){
+   TCanvas* cc = new TCanvas(Form("Laser_Propagation_Evt%d",ievent_gen),(ViewOpt<1||ViewOpt>3)?"Inclined View":(ViewOpt==1?"Front View":(ViewOpt==2?"Side View":"Top View")),ViewOpt==3?3000:2000,3000);
+   double rmin[3]={plotrange[0][0],plotrange[1][0],plotrange[2][0]};
+   double rmax[3]={plotrange[0][1],plotrange[1][1],plotrange[2][1]};
+   TView *view = TView::CreateView(1,rmin,rmax);
+   view->ShowAxis();
+   if(ViewOpt==1) view->Front();
+   else if(ViewOpt==2) view->Side();
+   else if(ViewOpt==3) view->Top();
+   cc->SetView(view);
+   if(jdebug>1) printf("Laser::Draw: Pos Range={{%+6.1e,%+6.1e},{%+6.1e,%+6.1e},{%+6.1e,%+6.1e}} Time Range={%+7.1e,%+7.1e}\n",rmin[0],rmax[0],rmin[1],rmax[1],rmin[2],rmax[2],plotrange[3][0],plotrange[3][1]);   
+   if(plot) plot->Draw(option);
+   TAxis3D *axis = TAxis3D::GetPadAxis();
+   axis->SetLabelColor(kBlack);
+   axis->SetAxisColor(kBlack);
+   axis->SetLabelSize(0.03,"X");
+   axis->SetLabelSize(0.03,"Y");
+   axis->SetLabelSize(0.03,"Z");
+   axis->SetXTitle("X [cm]");
+   axis->SetYTitle("Y [cm]");
+   axis->SetZTitle("Z [cm]");
+   axis->SetTitleOffset(2.,"X");
+   axis->SetTitleOffset(2.,"Y");
+   axis->SetTitleOffset(2.,"Z");
+   if(ViewOpt<1||ViewOpt>3){
+   axis->SetLabelOffset(0.006,"X");
+   axis->SetLabelOffset(0.008,"Y");
+   axis->SetLabelOffset(0.008,"Z");
+   axis->SetTitleOffset(1.2,"X");
+   axis->SetTitleOffset(2.0,"Y");
+   axis->SetTitleOffset(1.2,"Z");
+   }
+   else if(ViewOpt==1){
+   axis->SetLabelOffset(-0.08,"X");
+   axis->SetLabelOffset(0.03,"Z");
+   axis->SetTitleOffset(1.3,"X");
+   }
+   else if(ViewOpt==2){
+   axis->SetLabelOffset(-0.08,"Y");
+   axis->SetLabelOffset(0.03,"Z");
+   axis->SetTitleOffset(1.3,"Y");
+   }
+   else if(ViewOpt==3){
+   axis->SetLabelOffset(0.03,"X");
+   axis->SetLabelOffset(0.03,"Y");
+   }
+
+   cc->SaveAs(Form("%d.png",ievent_gen));
+   return 0;
 }

@@ -162,6 +162,7 @@ int CommonTools::get_file_size_time(const char* filename){
    if(stat(filename,&statbuf) == -1) return -1;
    if(S_ISDIR(statbuf.st_mode)) return 1;
    if(S_ISREG(statbuf.st_mode)) return 0;
+   return -1;
 }
 void CommonTools::getFiles(string path,vector<string>& files){
    files.clear();
