@@ -349,13 +349,13 @@ void Laser::Init(int seed){
    if(!prandom) prandom = new TRandom3();
    prandom->SetSeed(seed);
    pwfc=0;
-   Reset();
    ievent_gen=0;
    count_gen=0;
    for(int ii=0;ii<3;ii++) lasercoo[ii]=0;
    for(int ii=0;ii<2;ii++) laserdir[ii]=0;
    plot=0;
    for(int ii=0;ii<4;ii++) {plotrange[ii][0]=IniRange[ii][0]; plotrange[ii][1]=IniRange[ii][1];}
+   Reset();
 }
 void Laser::Release(){
    if(prandom) delete prandom;
@@ -598,7 +598,6 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
    }
    if(jdebug>0) printf("Laser::EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld scale=%le\n",ngen0,acctime,ngen,ngentel,scale);
    bool dosim=DoWFCTASim();
-   if(DoPlot) Draw();
    ievent_gen++;
 
    if(!SimPulse){
@@ -1146,6 +1145,7 @@ int Laser::Propagate(double &distance,double &weight){
             coor_last[3]=maxlength_prop/vlight;
          }
          for(int ii=0;ii<4;ii++){
+            if(IniRange[ii][0]<IniRange[ii][1]) continue;
             if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
             if(coor_last[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_last[ii];
             if(coor_first[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_first[ii];
@@ -1186,6 +1186,7 @@ int Laser::Propagate(double &distance,double &weight){
                coor_last[3]=freelength/vlight;
             }
             for(int ii=0;ii<4;ii++){
+               if(IniRange[ii][0]<IniRange[ii][1]) continue;
                if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
                if(coor_last[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_last[ii];
                if(coor_first[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_first[ii];
@@ -1308,6 +1309,7 @@ int Laser::Propagate(double &distance,double &weight){
                   coor_last[3]=((decrease&&dist<TelSimDist)?freelength+TMath::Min(distance-freelength,freelength2):freelength+freelength2)/vlight;
                }
                for(int ii=0;ii<4;ii++){
+                  if(IniRange[ii][0]<IniRange[ii][1]) continue;
                   if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
                   if(coor_last[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_last[ii];
                   if(coor_first[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_first[ii];
@@ -1427,7 +1429,7 @@ int Laser::GetLineColor(int type,double weight){
    else if(type==0) return 3;
    else return 4;
 }
-TCanvas* Laser::Draw(const char* option,int ViewOpt){
+TCanvas* Laser::Draw(const char* option,int ViewOpt,const char* savedir){
    TCanvas* cc = new TCanvas(Form("Laser_Propagation_Evt%d",ievent_gen),(ViewOpt<1||ViewOpt>3)?"Inclined View":(ViewOpt==1?"Front View":(ViewOpt==2?"Side View":"Top View")),ViewOpt==3?3000:2000,3000);
    double rmin[3]={plotrange[0][0],plotrange[1][0],plotrange[2][0]};
    double rmax[3]={plotrange[0][1],plotrange[1][1],plotrange[2][1]};
@@ -1474,6 +1476,6 @@ TCanvas* Laser::Draw(const char* option,int ViewOpt){
    axis->SetLabelOffset(0.03,"Y");
    }
 
-   cc->SaveAs(Form("%d.png",ievent_gen));
-   return 0;
+   if(savedir) cc->SaveAs(Form("%s/%d.png",savedir,ievent_gen));
+   return cc;
 }

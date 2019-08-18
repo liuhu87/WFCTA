@@ -121,7 +121,7 @@ class Laser {
       static int GetLineStyle(int type,double weight);
       static int GetLineWidth(int type,double weight);
       static int GetLineColor(int type,double weight);
-      TCanvas* Draw(const char* option="al",int ViewOpt=0);
+      TCanvas* Draw(const char* option="al",int ViewOpt=0,const char* savedir=0);
 };
 
 #endif

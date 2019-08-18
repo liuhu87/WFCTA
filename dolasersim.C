@@ -35,13 +35,19 @@ int main(int argc, char**argv)
    WFTelescopeArray::DoSim=true;
    WFTelescopeArray::GetHead(Form("%s/default.inp",getenv("WFCTADataDir")));
    Atmosphere::SetParameters();
-   Atmosphere::scale=1.0e7;
-   Laser::scale=1.0e-12;
+   Atmosphere::scale=1.0e4;
+   Laser::scale=1.0e-11;
    //Laser::Doigen=9632;
    Laser::DoPlot=true;
-   //Laser::spotrange = 0;//0.001;//0.001;//mm
-   Laser::divergence = 1.;//0.0573;
    Laser::jdebug=3;
+   Laser::IniRange[0][0]=-1.e3;
+   Laser::IniRange[0][1]=1.1e5;
+   Laser::IniRange[1][0]=-1.e2;
+   Laser::IniRange[1][1]=1.0e2;
+   Laser::IniRange[2][0]=-10;
+   Laser::IniRange[2][1]=1.3e5;
+   Laser::IniRange[3][0]=-1;
+   Laser::IniRange[3][1]=-1;
    Laser* pl=new Laser(seed);
    if(!pl->pwfc) pl->pwfc=new WFCTAEvent();
    WFCTAEvent* pevt=(pl->pwfc);
@@ -54,6 +60,7 @@ int main(int argc, char**argv)
    for(int ii=0;ii<nevent;ii++){
       printf("ievent=%d Time=%d time=%lf\n",ii,Time,time);
       long int ngentel=pl->EventGen(Time,time,true);
+      if(Laser::DoPlot) pl->Draw("al",1);
       //fill the event
       hNevt->Fill(0.5,pl->count_gen);
       hNevt->Fill(1.5,ngentel/Laser::scale);
