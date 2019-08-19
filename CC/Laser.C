@@ -340,7 +340,7 @@ double Laser::TelSimDist=400.; //in cm
 double Laser::TelSimAngl=10.; //in degree
 double Laser::scale=1.0;
 double Laser::unittime=1600.; //in ns
-double Laser::intensity = 2;//mj
+double Laser::intensity = 0.163;//mj
 double Laser::intensity_err = 0;
 double Laser::wavelength0 = 355;//nm
 double Laser::wavelength0_err = 0;
@@ -405,7 +405,7 @@ void Laser::SetParameters(char* filename){
    lasercoo[0]=1000*100.; //in cm
    lasercoo[1]=0;
    lasercoo[2]=0.;
-   laserdir[0]=30.;
+   laserdir[0]=90.;
    laserdir[1]=180.;
 }
 
@@ -1148,6 +1148,58 @@ int Laser::Propagate(double &distance,double &weight){
             coor_first[3]=0;
             coor_last[3]=maxlength_prop/vlight;
          }
+
+         double coo1[3],coo2[3];
+         for(int ii=0;ii<3;ii++){
+            coo1[ii]=coor_first[ii];
+            coo2[ii]=coor_last[ii];
+         }
+         bool doshrink=false,dropthis=false;
+         for(int ii=0;ii<3;ii++){
+            if(IniRange[ii][0]<IniRange[ii][1]){
+               if(coo1[ii]<=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][0]){ dropthis=true; break;}
+               if(coo1[ii]>=IniRange[ii][1]&&coo2[ii]>=IniRange[ii][1]){ dropthis=true; break;}
+               if((coo1[ii]>=IniRange[ii][0]&&coo1[ii]<=IniRange[ii][1])&&(coo2[ii]>=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][1])) continue;
+               double zz1=coo1[ii],zz2=coo2[ii];
+               if(coo1[ii]<IniRange[ii][0]){
+                  zz1=IniRange[ii][0];
+                  if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
+               }
+               else if(coo1[ii]<=IniRange[ii][1]){
+                  if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
+                  if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
+               }
+               else{
+                  zz1=IniRange[ii][1];
+                  if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
+               }
+               if(zz1!=coo1[ii]){
+                  for(int i2=0;i2<3;i2++){
+                     if(i2==ii) continue;
+                     coo1[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz1-coo1[ii]);
+                  }
+                  coo1[ii]=zz1;
+                  doshrink=true;
+               }
+               if(zz2!=coo2[ii]){
+                  for(int i2=0;i2<3;i2++){
+                     if(i2==ii) continue;
+                     coo2[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz2-coo1[ii]);
+                  }
+                  coo2[ii]=zz2;
+                  doshrink=true;
+               }
+            }
+         }
+         if(dropthis) delete line;
+         else{
+         if(doshrink){
+            for(int ii=0;ii<3;ii++){
+               coor_first[ii]=coo1[ii];
+               coor_last[ii]=coo2[ii];
+            }
+         }
+
          for(int ii=0;ii<4;ii++){
             if(IniRange[ii][0]<IniRange[ii][1]) continue;
             if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
@@ -1162,6 +1214,7 @@ int Laser::Propagate(double &distance,double &weight){
          line->SetLineWidth(GetLineWidth(returntype,weight));
          plot->Add(line);
          if(jdebug>5) printf("Laser::Propagate: Add line returntype=%d coo1={%le,%le,%le,%le},coo2={%le,%le,%le,%le}\n",returntype,coor_first[0],coor_first[1],coor_first[2],coor_first[3],coor_last[0],coor_last[1],coor_last[2],coor_last[3]);
+         }
       }
       return returntype;
    }
@@ -1189,6 +1242,58 @@ int Laser::Propagate(double &distance,double &weight){
                coor_first[3]=0;
                coor_last[3]=freelength/vlight;
             }
+
+            double coo1[3],coo2[3];
+            for(int ii=0;ii<3;ii++){
+               coo1[ii]=coor_first[ii];
+               coo2[ii]=coor_last[ii];
+            }
+            bool doshrink=false,dropthis=false;
+            for(int ii=0;ii<3;ii++){
+               if(IniRange[ii][0]<IniRange[ii][1]){
+                  if(coo1[ii]<=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][0]){ dropthis=true; break;}
+                  if(coo1[ii]>=IniRange[ii][1]&&coo2[ii]>=IniRange[ii][1]){ dropthis=true; break;}
+                  if((coo1[ii]>=IniRange[ii][0]&&coo1[ii]<=IniRange[ii][1])&&(coo2[ii]>=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][1])) continue;
+                  double zz1=coo1[ii],zz2=coo2[ii];
+                  if(coo1[ii]<IniRange[ii][0]){
+                     zz1=IniRange[ii][0];
+                     if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
+                  }
+                  else if(coo1[ii]<=IniRange[ii][1]){
+                     if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
+                     if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
+                  }
+                  else{
+                     zz1=IniRange[ii][1];
+                     if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
+                  }
+                  if(zz1!=coo1[ii]){
+                     for(int i2=0;i2<3;i2++){
+                        if(i2==ii) continue;
+                        coo1[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz1-coo1[ii]);
+                     }
+                     coo1[ii]=zz1;
+                     doshrink=true;
+                  }
+                  if(zz2!=coo2[ii]){
+                     for(int i2=0;i2<3;i2++){
+                        if(i2==ii) continue;
+                        coo2[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz2-coo1[ii]);
+                     }
+                     coo2[ii]=zz2;
+                     doshrink=true;
+                  }
+               }
+            }
+            if(dropthis) delete line;
+            else{
+            if(doshrink){
+               for(int ii=0;ii<3;ii++){
+                  coor_first[ii]=coo1[ii];
+                  coor_last[ii]=coo2[ii];
+               }
+            }
+
             for(int ii=0;ii<4;ii++){
                if(IniRange[ii][0]<IniRange[ii][1]) continue;
                if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
@@ -1203,6 +1308,7 @@ int Laser::Propagate(double &distance,double &weight){
             line->SetLineWidth(GetLineWidth(returntype,weight));
             plot->Add(line);
             if(jdebug>5) printf("Laser::Propagate: Add line returntype=%d coo1={%le,%le,%le,%le},coo2={%le,%le,%le,%le}\n",returntype,coor_first[0],coor_first[1],coor_first[2],coor_first[3],coor_last[0],coor_last[1],coor_last[2],coor_last[3]);
+            }
          }
          return returntype;
       }
@@ -1312,6 +1418,57 @@ int Laser::Propagate(double &distance,double &weight){
                   coor_first[3]=0;
                   coor_last[3]=((decrease&&dist<TelSimDist)?freelength+TMath::Min(distance-freelength,freelength2):freelength+freelength2)/vlight;
                }
+
+               double coo1[3],coo2[3];
+               for(int ii=0;ii<3;ii++){
+                  coo1[ii]=coor_first[ii];
+                  coo2[ii]=coor_last[ii];
+               }
+               bool doshrink=false,dropthis=false;
+               for(int ii=0;ii<3;ii++){
+                  if(IniRange[ii][0]<IniRange[ii][1]){
+                     if(coo1[ii]<=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][0]){ dropthis=true; break;}
+                     if(coo1[ii]>=IniRange[ii][1]&&coo2[ii]>=IniRange[ii][1]){ dropthis=true; break;}
+                     if((coo1[ii]>=IniRange[ii][0]&&coo1[ii]<=IniRange[ii][1])&&(coo2[ii]>=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][1])) continue;
+                     double zz1=coo1[ii],zz2=coo2[ii];
+                     if(coo1[ii]<IniRange[ii][0]){
+                        zz1=IniRange[ii][0];
+                        if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
+                     }
+                     else if(coo1[ii]<=IniRange[ii][1]){
+                        if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
+                        if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
+                     }
+                     else{
+                        zz1=IniRange[ii][1];
+                        if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
+                     }
+                     if(zz1!=coo1[ii]){
+                        for(int i2=0;i2<3;i2++){
+                           if(i2==ii) continue;
+                           coo1[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz1-coo1[ii]);
+                        }
+                        coo1[ii]=zz1;
+                        doshrink=true;
+                     }
+                     if(zz2!=coo2[ii]){
+                        for(int i2=0;i2<3;i2++){
+                           if(i2==ii) continue;
+                           coo2[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz2-coo1[ii]);
+                        }
+                        coo2[ii]=zz2;
+                        doshrink=true;
+                     }
+                  }
+               }
+               if(dropthis) {delete line; continue;}
+               if(doshrink){
+                  for(int ii=0;ii<3;ii++){
+                     coor_first[ii]=coo1[ii];
+                     coor_last[ii]=coo2[ii];
+                  }
+               }
+
                for(int ii=0;ii<4;ii++){
                   if(IniRange[ii][0]<IniRange[ii][1]) continue;
                   if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
@@ -1422,6 +1579,10 @@ int Laser::GetLineStyle(int type,double weight){
    return 1;
 }
 int Laser::GetLineWidth(int type,double weight){
+   //if(weight<=0) return 0;
+   //if(log10(weight)<3) return 1;
+   //else return 2;
+
    if(weight<=0) return 0;
    if(log10(weight)<0) return 1;
    else if(log10(weight)<3) return 2;
@@ -1444,7 +1605,25 @@ TCanvas* Laser::Draw(const char* option,int ViewOpt,const char* savedir){
    else if(ViewOpt==3) view->Top();
    cc->SetView(view);
    if(jdebug>1) printf("Laser::Draw: Pos Range={{%+6.1e,%+6.1e},{%+6.1e,%+6.1e},{%+6.1e,%+6.1e}} Time Range={%+7.1e,%+7.1e}\n",rmin[0],rmax[0],rmin[1],rmax[1],rmin[2],rmax[2],plotrange[3][0],plotrange[3][1]);   
-   if(plot) plot->Draw(option);
+   if(plot){
+      WFTelescopeArray* pta=WFTelescopeArray::GetHead();
+      for(int itel=0;itel<WFTelescopeArray::CTNumber;itel++){
+         WFTelescope* pt=(pta)?pta->pct[itel]:0;
+         if(!pt) continue;
+         TPolyLine3D* line=new TPolyLine3D(2);
+         double postel[3]={pt->Telx_,pt->Tely_,0};
+         double dirtel[3]={sin(pt->TelZ_)*cos(pt->TelA_),sin(pt->TelZ_)*sin(pt->TelA_),cos(pt->TelZ_)};
+         double xyzmax[3]={TMath::Max(fabs(plotrange[0][0]),fabs(plotrange[0][1])),TMath::Max(fabs(plotrange[1][0]),fabs(plotrange[1][1])),TMath::Max(fabs(plotrange[2][0]),fabs(plotrange[2][1]))};
+         double length_dir=sqrt(pow(xyzmax[0],2)+pow(xyzmax[1],2)+pow(xyzmax[2],2));
+         line->SetPoint(0,postel[0],postel[1],postel[2]);
+         line->SetPoint(1,postel[0]+dirtel[0]*length_dir,postel[1]+dirtel[1]*length_dir,postel[2]+dirtel[2]*length_dir);
+         line->SetLineColor(1);
+         line->SetLineStyle(2);
+         line->SetLineWidth(6);
+         plot->Add(line);
+      }
+      plot->Draw(option);
+   }
    TAxis3D *axis = TAxis3D::GetPadAxis();
    axis->SetLabelColor(kBlack);
    axis->SetAxisColor(kBlack);
