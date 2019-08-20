@@ -11,15 +11,18 @@ int WFTelescopeArray::jdebug=0;
 bool WFTelescopeArray::DoSim=true;
 int WFTelescopeArray::CTNumber=1;
 WFTelescopeArray* WFTelescopeArray::_Head=0;
-WFTelescopeArray* WFTelescopeArray::GetHead(char* filename){
+TRandom3* WFTelescopeArray::prandom=0;
+WFTelescopeArray* WFTelescopeArray::GetHead(char* filename,int seed){
    if(!DoSim) return 0;
    if(_Head) return _Head;
    else{
-      if(filename) _Head=new WFTelescopeArray(filename);
+      if(filename) _Head=new WFTelescopeArray(filename,seed);
       return _Head;
    }
 }
-void WFTelescopeArray::Init(bool DoNew){
+void WFTelescopeArray::Init(bool DoNew,int seed){
+   if(!prandom) prandom=new TRandom3();
+   prandom->SetSeed(seed);
    if(!DoNew) pct=0;
    else{
       pct=new WFTelescope*[CTNumber];
@@ -310,6 +313,7 @@ TGraph2D *WFTelescope::Transmissivity=0;
 double WFTelescope::filter_wl_max, WFTelescope::filter_wl_min;
 double WFTelescope::filter_angle_max, WFTelescope::filter_angle_min;
 double WFTelescope::Reflectivity[55];
+TGraph* WFTelescope::quantumeff=0;
 double WFTelescope::mirror_wl_max, WFTelescope::mirror_wl_min, WFTelescope::mirror_wl_step;
 void WFTelescope::Init(){
    Telx_=0;
@@ -326,12 +330,14 @@ void WFTelescope::Init(){
    pcone=new SquareCone();
    SetTransmissivity();
    SetReflectivity();
+   SetQuantumEff();
 }
 void WFTelescope::Clear(){
    if(pmirr) {delete pmirr; pmirr=0;}
    if(pcame) {delete pcame; pcame=0;}
    if(pcone) {delete pcone; pcone=0;}
    if(Transmissivity) {delete Transmissivity; Transmissivity=0;}
+   if(quantumeff) {delete quantumeff; quantumeff=0;}
 }
 void WFTelescope::SetXY(double x, double y)
 {
@@ -414,6 +420,7 @@ void WFTelescope::SetTransmissivity()
      Transmissivity->SetPoint(i,wl,filter_angle_min+filter_angle_step*7,p8);
      i++;
   }
+  if(Transmissivity->GetN()>0) printf("WFTelescopeArray::SetTransmissivity: load filter transparency from %s successfully\n",DatabaseDir);
   fclose(fp);
 
 }
@@ -428,7 +435,7 @@ int WFTelescope::GetTransmissivity(double wavelength, double angle)
       transmissivity = Transmissivity-> Interpolate(wavelength, angle);
       //printf("WFTelescope::GetTransmissivity: wl=%lf angle=%lf transmissivity=%lf\n",wavelength,angle,transmissivity);
    }
-   p = gRandom->Rndm();
+   p = WFTelescopeArray::prandom->Rndm();
   if(p<transmissivity) return 1;
   else return 0;
 }
@@ -463,7 +470,7 @@ bool WFTelescope::GetTransmissivity(double wavelength)
    }
 
    double p;
-   p = gRandom->Rndm();
+   p = WFTelescopeArray::prandom->Rndm();
 
   // 1 survived, 0 absorbed by the filter
   if(p<transmissivity) return true;
@@ -486,6 +493,7 @@ void WFTelescope::SetReflectivity()
      Reflectivity[i] = p;
      i++;
   }
+  if(i>0) printf("WFTelescopeArray::SetReflectivity: load reflection efficiency from %s successfully\n",DatabaseDir);
   fclose(fp);
 }
 bool WFTelescope::Reflected(double wavelength)
@@ -510,8 +518,33 @@ bool WFTelescope::Reflected(double wavelength)
   //double EFFICIENCY=TRANSPARENCY*WFMirror::REFLECTIVITY*SquareCone::CONE_REFLECTIVE_EFFICIENCY;
   double EFFICIENCY=TRANSPARENCY*efficiency*SquareCone::CONE_REFLECTIVE_EFFICIENCY;
   double x;
-  x = gRandom->Rndm();
+  x = WFTelescopeArray::prandom->Rndm();
   if(x<EFFICIENCY)
+     return true;
+  else
+     return false;
+}
+void WFTelescope::SetQuantumEff(){
+  FILE *fp;
+  double p;
+  double wl;
+  char DatabaseDir[200]="";
+  strcpy(DatabaseDir,getenv("WFCTADataDir"));
+  fp = fopen(Form("%s/quantumeff.txt",DatabaseDir),"r");
+  quantumeff=new TGraph();
+  int i=0;
+  while(!feof(fp)){
+     fscanf(fp,"%lf %lf\n",&wl,&p);
+     quantumeff->SetPoint(i,wl,p);
+     i++;
+  }
+  if(quantumeff->GetN()>0) printf("WFTelescopeArray::SetQuantumEff: load quantum efficiency from %s successfully\n",DatabaseDir);
+  fclose(fp);
+}
+bool WFTelescope::GetQuantumEff(double wavelength){
+  double eff=quantumeff->Eval(wavelength);
+  double x = WFTelescopeArray::prandom->Rndm();
+  if(x<eff)
      return true;
   else
      return false;
@@ -635,8 +668,8 @@ bool WFTelescope::RayTraceMirror2(double xmirror0,double ymirror0,double zmirror
 
     if(deltax==-10000) return false;  ///< out of mirror area
 
-    double xmirror = gRandom->Gaus(xmirror0,WFMirror::MirrorSpot);
-    double ymirror = gRandom->Gaus(ymirror0,WFMirror::MirrorSpot);
+    double xmirror = WFTelescopeArray::prandom->Gaus(xmirror0,WFMirror::MirrorSpot);
+    double ymirror = WFTelescopeArray::prandom->Gaus(ymirror0,WFMirror::MirrorSpot);
     double zmirror = zmirror0;
     pmirr->pmirr[ii][mm]->GetReflected(m1,n1,l1,xmirror,ymirror,zmirror,&m2,&n2,&l2);
     if(WFTelescopeArray::jdebug>3) printf("WFTelescope::RayTraceMirror2: Reflection: RefCoo={%.3f,%.3f,%.3f} InDir={%.3f,%.3f,%.3f} OtDir={%.3f,%.3f,%.3f}\n",xmirror,ymirror,zmirror,m1,n1,l1,m2,n2,l2);
@@ -737,7 +770,7 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Inside Tube%d hitpos={%f,%f}\n",itube,hitpos[0],hitpos[1]);
     if(itube!=icone) return -9;
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Tube%d=Cone%d\n",itube,icone);
-    double xx = gRandom->Rndm();
+    double xx = WFTelescopeArray::prandom->Rndm();
     if(xx>Weight) return -10;
 
     hitpos[0] = hitpos[0] - x;

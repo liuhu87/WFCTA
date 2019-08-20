@@ -2,6 +2,7 @@
 #include "WFCone.h"
 #include "TMath.h"
 #include "TRandom.h"
+#include "WFTelescope.h"
 #include <set>
 double WCamera::D_SiPM=15.0;
 double WCamera::D_Cell = 2.5e-2;
@@ -121,7 +122,7 @@ void WCamera::AddNSB()
 {
   double nsb;
   for(int itube=0; itube<NSIPM; itube++){
-    nsb = gRandom->Poisson(NSB);
+    nsb = WFTelescopeArray::prandom->Poisson(NSB);
     //TubeSignal[itube] +=int(nsb);
     TubeSignal[itube] +=nsb;
   }

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "TGraph.h"
+#include "TRandom3.h"
 //#include "telescopeparameters.h"
 
 using namespace std;
@@ -25,6 +26,8 @@ class WFTelescopeArray{
    private:
    static WFTelescopeArray* _Head;
    public:
+   ///random number generator
+   static TRandom3* prandom;
    ///control of debug output
    static int jdebug;
    ///number of Cerenkov Telescopes
@@ -35,13 +38,13 @@ class WFTelescopeArray{
    WFTelescope** pct;
 
    public:
-   static WFTelescopeArray* GetHead(char* filename=0);
-   void Init(bool DoNew=true);
+   static WFTelescopeArray* GetHead(char* filename=0,int seed=0);
+   void Init(bool DoNew=true,int seed=0);
    void Clear();
    ///constructor
-   WFTelescopeArray() {Init();}
+   WFTelescopeArray(int seed=0) {Init(true,seed);}
    ///constructor
-   WFTelescopeArray(char* filename) {Init(false); ReadFromFile(filename);}
+   WFTelescopeArray(char* filename,int seed=0) {Init(false,seed); ReadFromFile(filename);}
    ///deconstructor
    ~WFTelescopeArray() {Clear();}
    void ReadFromFile(char* filename);
@@ -108,7 +111,8 @@ class WFTelescope
    static TGraph2D *Transmissivity; //[wl][incident angle] wl is from 600nm to 300 nm with 5 nm step. incident angle is from 0 degrees to 35 degrees with 5 degrees step.
    static double filter_wl_max, filter_wl_min;
    static double filter_angle_max, filter_angle_min;
-   static double Reflectivity[55];
+   static double Reflectivity[55]; //mirror reflectivity table
+   static TGraph* quantumeff; //quantum efficiency table
    static double mirror_wl_max, mirror_wl_min, mirror_wl_step;
 
    public:
@@ -123,10 +127,12 @@ class WFTelescope
    void InverseEuler(double x0, double y0, double z0, double *x, double *y, double *z);
    bool IncidentTel(double x,double y);
    void ConvertCoor(double x0,double y0,double z0,double m1,double n1,double l1,double &x0new,double &y0new,double &z0new,double &m1new,double &n1new,double &l1new);
-   void SetTransmissivity();
-   int GetTransmissivity(double wavelength, double angle);
-   bool GetTransmissivity(double wavelength);
-   void SetReflectivity();
+   static void SetTransmissivity();
+   static int GetTransmissivity(double wavelength, double angle);
+   static bool GetTransmissivity(double wavelength);
+   static void SetReflectivity();
+   static void SetQuantumEff();
+   static bool GetQuantumEff(double wavelength);
    static bool Reflected(double wavelength);
    static void Plane(double z,double x0,double y0,double z0,double m2,double n2,double l2,double *x,double *y);
    static void Sphere(double Z0,double R,double x0, double y0, double z0, double m, double n, double l, double *x, double *y, double *z);

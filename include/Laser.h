@@ -118,6 +118,7 @@ class Laser {
       int FindPhiRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double freelength,double theta_scat,double phirange[2]);
       int Propagate(double &distance,double &weight);
       bool DoWFCTASim();
+      void Add(double coorin1[4],double coorin2[4],int type,double weight);
       static int GetLineStyle(int type,double weight);
       static int GetLineWidth(int type,double weight);
       static int GetLineColor(int type,double weight);

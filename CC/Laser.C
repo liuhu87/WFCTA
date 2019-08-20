@@ -230,7 +230,7 @@ double Atmosphere::ZDependence(double z,int type){
    return 1;
 }
 double Atmosphere::DeltaZ(double z){
-   return 1000000.;
+   return 1.0e20;
 }
 double Atmosphere::FreeIntgLength(double lengthrange[2],double &weight){
    if(!Laser::prandom) return 0;
@@ -342,7 +342,7 @@ double Laser::scale=1.0;
 double Laser::unittime=1600.; //in ns
 double Laser::intensity = 0.163;//mj
 double Laser::intensity_err = 0;
-double Laser::wavelength0 = 355;//nm
+double Laser::wavelength0 = 337;//nm
 double Laser::wavelength0_err = 0;
 double Laser::frequency = 1;
 double Laser::pulsetime = 7.7e-9;
@@ -365,7 +365,7 @@ void Laser::Release(){
    if(prandom) delete prandom;
    if(pwfc) delete pwfc;
    if(plot){
-      plot->Delete();
+      //plot->Delete();
       delete plot;
    }
 }
@@ -405,7 +405,7 @@ void Laser::SetParameters(char* filename){
    lasercoo[0]=1000*100.; //in cm
    lasercoo[1]=0;
    lasercoo[2]=0.;
-   laserdir[0]=90.;
+   laserdir[0]=0.;
    laserdir[1]=180.;
 }
 
@@ -1129,8 +1129,6 @@ int Laser::Propagate(double &distance,double &weight){
          returntype=-3;
       }
       if(DoPlot){
-         if(!plot) plot=new TObjArray();
-         TPolyLine3D* line = new TPolyLine3D(2);
          double coor_last[4],coor_first[4];
          if(IniRange[3][1]>IniRange[3][0]){
             double length_prop1=TMath::Max((double)0.,(double)IniRange[3][0])*vlight;
@@ -1148,73 +1146,7 @@ int Laser::Propagate(double &distance,double &weight){
             coor_first[3]=0;
             coor_last[3]=maxlength_prop/vlight;
          }
-
-         double coo1[3],coo2[3];
-         for(int ii=0;ii<3;ii++){
-            coo1[ii]=coor_first[ii];
-            coo2[ii]=coor_last[ii];
-         }
-         bool doshrink=false,dropthis=false;
-         for(int ii=0;ii<3;ii++){
-            if(IniRange[ii][0]<IniRange[ii][1]){
-               if(coo1[ii]<=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][0]){ dropthis=true; break;}
-               if(coo1[ii]>=IniRange[ii][1]&&coo2[ii]>=IniRange[ii][1]){ dropthis=true; break;}
-               if((coo1[ii]>=IniRange[ii][0]&&coo1[ii]<=IniRange[ii][1])&&(coo2[ii]>=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][1])) continue;
-               double zz1=coo1[ii],zz2=coo2[ii];
-               if(coo1[ii]<IniRange[ii][0]){
-                  zz1=IniRange[ii][0];
-                  if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
-               }
-               else if(coo1[ii]<=IniRange[ii][1]){
-                  if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
-                  if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
-               }
-               else{
-                  zz1=IniRange[ii][1];
-                  if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
-               }
-               if(zz1!=coo1[ii]){
-                  for(int i2=0;i2<3;i2++){
-                     if(i2==ii) continue;
-                     coo1[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz1-coo1[ii]);
-                  }
-                  coo1[ii]=zz1;
-                  doshrink=true;
-               }
-               if(zz2!=coo2[ii]){
-                  for(int i2=0;i2<3;i2++){
-                     if(i2==ii) continue;
-                     coo2[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz2-coo1[ii]);
-                  }
-                  coo2[ii]=zz2;
-                  doshrink=true;
-               }
-            }
-         }
-         if(dropthis) delete line;
-         else{
-         if(doshrink){
-            for(int ii=0;ii<3;ii++){
-               coor_first[ii]=coo1[ii];
-               coor_last[ii]=coo2[ii];
-            }
-         }
-
-         for(int ii=0;ii<4;ii++){
-            if(IniRange[ii][0]<IniRange[ii][1]) continue;
-            if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
-            if(coor_last[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_last[ii];
-            if(coor_first[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_first[ii];
-            if(coor_last[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_last[ii];
-         }
-         line->SetPoint(0, coor_first[0],coor_first[1],coor_first[2]);
-         line->SetPoint(1, coor_last[0],coor_last[1],coor_last[2]);
-         line->SetLineColor(GetLineColor(returntype,weight));
-         line->SetLineStyle(GetLineStyle(returntype,weight));
-         line->SetLineWidth(GetLineWidth(returntype,weight));
-         plot->Add(line);
-         if(jdebug>5) printf("Laser::Propagate: Add line returntype=%d coo1={%le,%le,%le,%le},coo2={%le,%le,%le,%le}\n",returntype,coor_first[0],coor_first[1],coor_first[2],coor_first[3],coor_last[0],coor_last[1],coor_last[2],coor_last[3]);
-         }
+         Add(coor_first,coor_last,returntype,weight);
       }
       return returntype;
    }
@@ -1223,8 +1155,6 @@ int Laser::Propagate(double &distance,double &weight){
          if(jdebug>4) printf("Laser::Propagate: laser far away from telescope(%lf), absorbed or no interaction, distance=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf} weight=%le\n",dist,distance,freelength,decrease,coor_min[0],coor_min[1],coor_min[2],weight);
          int returntype=-4-(scatter<=0?-scatter:1);
          if(DoPlot){
-            if(!plot) plot=new TObjArray();
-            TPolyLine3D* line = new TPolyLine3D(2);
             double coor_last[4],coor_first[4];
             if(IniRange[3][1]>IniRange[3][0]){
                double length_prop1=TMath::Max((double)0,(double)IniRange[3][0])*vlight;
@@ -1242,73 +1172,7 @@ int Laser::Propagate(double &distance,double &weight){
                coor_first[3]=0;
                coor_last[3]=freelength/vlight;
             }
-
-            double coo1[3],coo2[3];
-            for(int ii=0;ii<3;ii++){
-               coo1[ii]=coor_first[ii];
-               coo2[ii]=coor_last[ii];
-            }
-            bool doshrink=false,dropthis=false;
-            for(int ii=0;ii<3;ii++){
-               if(IniRange[ii][0]<IniRange[ii][1]){
-                  if(coo1[ii]<=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][0]){ dropthis=true; break;}
-                  if(coo1[ii]>=IniRange[ii][1]&&coo2[ii]>=IniRange[ii][1]){ dropthis=true; break;}
-                  if((coo1[ii]>=IniRange[ii][0]&&coo1[ii]<=IniRange[ii][1])&&(coo2[ii]>=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][1])) continue;
-                  double zz1=coo1[ii],zz2=coo2[ii];
-                  if(coo1[ii]<IniRange[ii][0]){
-                     zz1=IniRange[ii][0];
-                     if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
-                  }
-                  else if(coo1[ii]<=IniRange[ii][1]){
-                     if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
-                     if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
-                  }
-                  else{
-                     zz1=IniRange[ii][1];
-                     if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
-                  }
-                  if(zz1!=coo1[ii]){
-                     for(int i2=0;i2<3;i2++){
-                        if(i2==ii) continue;
-                        coo1[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz1-coo1[ii]);
-                     }
-                     coo1[ii]=zz1;
-                     doshrink=true;
-                  }
-                  if(zz2!=coo2[ii]){
-                     for(int i2=0;i2<3;i2++){
-                        if(i2==ii) continue;
-                        coo2[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz2-coo1[ii]);
-                     }
-                     coo2[ii]=zz2;
-                     doshrink=true;
-                  }
-               }
-            }
-            if(dropthis) delete line;
-            else{
-            if(doshrink){
-               for(int ii=0;ii<3;ii++){
-                  coor_first[ii]=coo1[ii];
-                  coor_last[ii]=coo2[ii];
-               }
-            }
-
-            for(int ii=0;ii<4;ii++){
-               if(IniRange[ii][0]<IniRange[ii][1]) continue;
-               if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
-               if(coor_last[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_last[ii];
-               if(coor_first[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_first[ii];
-               if(coor_last[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_last[ii];
-            }
-            line->SetPoint(0, coor_first[0],coor_first[1],coor_first[2]);
-            line->SetPoint(1, coor_last[0],coor_last[1],coor_last[2]);
-            line->SetLineColor(GetLineColor(returntype,weight));
-            line->SetLineStyle(GetLineStyle(returntype,weight));
-            line->SetLineWidth(GetLineWidth(returntype,weight));
-            plot->Add(line);
-            if(jdebug>5) printf("Laser::Propagate: Add line returntype=%d coo1={%le,%le,%le,%le},coo2={%le,%le,%le,%le}\n",returntype,coor_first[0],coor_first[1],coor_first[2],coor_first[3],coor_last[0],coor_last[1],coor_last[2],coor_last[3]);
-            }
+            Add(coor_first,coor_last,returntype,weight);
          }
          return returntype;
       }
@@ -1376,14 +1240,12 @@ int Laser::Propagate(double &distance,double &weight){
             returntype=-2;
          }
          if(DoPlot){
-            if(!plot) plot=new TObjArray();
             for(int iline=0;iline<2;iline++){
                if(IniRange[3][1]>IniRange[3][0]){
                   if(IniRange[3][1]<=0) break;
                   if(iline==0&&IniRange[3][0]>=freelength/vlight) continue;
                   if(iline==1&&IniRange[3][1]<=freelength/vlight) continue;
                }
-               TPolyLine3D* line = new TPolyLine3D(2);
                double coor_last[4],coor_first[4];
                if(IniRange[3][1]>IniRange[3][0]){
                   if(iline==0){
@@ -1418,71 +1280,7 @@ int Laser::Propagate(double &distance,double &weight){
                   coor_first[3]=0;
                   coor_last[3]=((decrease&&dist<TelSimDist)?freelength+TMath::Min(distance-freelength,freelength2):freelength+freelength2)/vlight;
                }
-
-               double coo1[3],coo2[3];
-               for(int ii=0;ii<3;ii++){
-                  coo1[ii]=coor_first[ii];
-                  coo2[ii]=coor_last[ii];
-               }
-               bool doshrink=false,dropthis=false;
-               for(int ii=0;ii<3;ii++){
-                  if(IniRange[ii][0]<IniRange[ii][1]){
-                     if(coo1[ii]<=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][0]){ dropthis=true; break;}
-                     if(coo1[ii]>=IniRange[ii][1]&&coo2[ii]>=IniRange[ii][1]){ dropthis=true; break;}
-                     if((coo1[ii]>=IniRange[ii][0]&&coo1[ii]<=IniRange[ii][1])&&(coo2[ii]>=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][1])) continue;
-                     double zz1=coo1[ii],zz2=coo2[ii];
-                     if(coo1[ii]<IniRange[ii][0]){
-                        zz1=IniRange[ii][0];
-                        if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
-                     }
-                     else if(coo1[ii]<=IniRange[ii][1]){
-                        if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
-                        if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
-                     }
-                     else{
-                        zz1=IniRange[ii][1];
-                        if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
-                     }
-                     if(zz1!=coo1[ii]){
-                        for(int i2=0;i2<3;i2++){
-                           if(i2==ii) continue;
-                           coo1[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz1-coo1[ii]);
-                        }
-                        coo1[ii]=zz1;
-                        doshrink=true;
-                     }
-                     if(zz2!=coo2[ii]){
-                        for(int i2=0;i2<3;i2++){
-                           if(i2==ii) continue;
-                           coo2[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz2-coo1[ii]);
-                        }
-                        coo2[ii]=zz2;
-                        doshrink=true;
-                     }
-                  }
-               }
-               if(dropthis) {delete line; continue;}
-               if(doshrink){
-                  for(int ii=0;ii<3;ii++){
-                     coor_first[ii]=coo1[ii];
-                     coor_last[ii]=coo2[ii];
-                  }
-               }
-
-               for(int ii=0;ii<4;ii++){
-                  if(IniRange[ii][0]<IniRange[ii][1]) continue;
-                  if(coor_first[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_first[ii];
-                  if(coor_last[ii]<plotrange[ii][0]) plotrange[ii][0]=coor_last[ii];
-                  if(coor_first[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_first[ii];
-                  if(coor_last[ii]>plotrange[ii][1]) plotrange[ii][1]=coor_last[ii];
-               }
-               line->SetPoint(0, coor_first[0],coor_first[1],coor_first[2]);
-               line->SetPoint(1, coor_last[0],coor_last[1],coor_last[2]);
-               line->SetLineColor(GetLineColor(returntype,weight));
-               line->SetLineStyle(GetLineStyle(returntype,weight));
-               line->SetLineWidth(GetLineWidth(returntype,weight));
-               plot->Add(line);
-               if(jdebug>5) printf("Laser::Propagate: Add line returntype=%d loop%d coo1={%le,%le,%le,%le},coo2={%le,%le,%le,%le}\n",returntype,iline,coor_first[0],coor_first[1],coor_first[2],coor_first[3],coor_last[0],coor_last[1],coor_last[2],coor_last[3]);
+               Add(coor_first,coor_last,returntype,weight);
             }
          }
          return returntype;
@@ -1512,6 +1310,8 @@ bool Laser::DoWFCTASim(){
 
          whichtel=votel.at(il);
          weight=vowei.at(il);
+         if(WFCTALaserEvent::Recordweight) (pwfc->laserevent).weight.push_back(weight);
+         (pwfc->laserevent).hweight->Fill(log10(weight));
          if(whichtel<0||whichtel>=WFTelescopeArray::CTNumber){
             if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(whichtel);
             (pwfc->mcevent).hRayTrace->Fill(whichtel,weight);
@@ -1529,6 +1329,14 @@ bool Laser::DoWFCTASim(){
          l1=vodir[2].at(il);
          wave=vgwav.at(il);
          double t=votim.at(il); //in second
+         //apply the telescope camera SiPM quantum efficiency
+         if(wave>0){
+            if(!WFTelescope::GetQuantumEff(wave)){
+               if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(-14);
+               (pwfc->mcevent).hRayTrace->Fill(-14,weight);
+               continue;
+            }
+         }
          int res=pct->RayTrace(x0,y0,z0,m1,n1,l1,weight,wave,whichtel,t,itube,icell);
          if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(res);
          (pwfc->mcevent).hRayTrace->Fill(res,weight);
@@ -1575,6 +1383,78 @@ bool Laser::DoWFCTASim(){
    return false;
 }
 
+void Laser::Add(double coorin1[4],double coorin2[4],int type,double weight){
+   double coo1[4],coo2[4];
+   for(int ii=0;ii<4;ii++){
+      coo1[ii]=coorin1[ii];
+      coo2[ii]=coorin2[ii];
+   }
+   bool doshrink=false,dropthis=false;
+   for(int ii=0;ii<3;ii++){
+      if(IniRange[ii][0]<IniRange[ii][1]){
+         if(coo1[ii]<=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][0]){ dropthis=true; break;}
+         if(coo1[ii]>=IniRange[ii][1]&&coo2[ii]>=IniRange[ii][1]){ dropthis=true; break;}
+         if((coo1[ii]>=IniRange[ii][0]&&coo1[ii]<=IniRange[ii][1])&&(coo2[ii]>=IniRange[ii][0]&&coo2[ii]<=IniRange[ii][1])) continue;
+         double zz1=coo1[ii],zz2=coo2[ii];
+         if(coo1[ii]<IniRange[ii][0]){
+            zz1=IniRange[ii][0];
+            if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
+         }
+         else if(coo1[ii]<=IniRange[ii][1]){
+            if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
+            if(coo2[ii]>IniRange[ii][1]) zz2=IniRange[ii][1];
+         }
+         else{
+            zz1=IniRange[ii][1];
+            if(coo2[ii]<IniRange[ii][0]) zz2=IniRange[ii][0];
+         }
+         if(zz1!=coo1[ii]){
+            for(int i2=0;i2<3;i2++){
+               if(i2==ii) continue;
+               coo1[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz1-coo1[ii]);
+            }
+            coo1[ii]=zz1;
+            doshrink=true;
+         }
+         if(zz2!=coo2[ii]){
+            for(int i2=0;i2<3;i2++){
+               if(i2==ii) continue;
+               coo2[i2]=coo1[i2]+(coo2[i2]-coo1[i2])/(coo2[ii]-coo1[ii])*(zz2-coo1[ii]);
+            }
+            coo2[ii]=zz2;
+            doshrink=true;
+         }
+      }
+   }
+   if(dropthis) return;
+   if(!doshrink){
+      for(int ii=0;ii<3;ii++){
+         coo1[ii]=coorin1[ii];
+         coo2[ii]=coorin2[ii];
+      }
+   }
+
+   for(int ii=0;ii<4;ii++){
+      if(IniRange[ii][0]<IniRange[ii][1]) continue;
+      if(coo1[ii]<plotrange[ii][0]) plotrange[ii][0]=coo1[ii];
+      if(coo2[ii]<plotrange[ii][0]) plotrange[ii][0]=coo2[ii];
+      if(coo1[ii]>plotrange[ii][1]) plotrange[ii][1]=coo1[ii];
+      if(coo2[ii]>plotrange[ii][1]) plotrange[ii][1]=coo2[ii];
+   }
+
+   //do some scale for the plot;
+   double plotscale=1.0e-2;//(weight<1.0e5)?1.e-3:1;
+   if(prandom->Rndm()>plotscale) return;
+   TPolyLine3D* line=new TPolyLine3D(2);
+   line->SetPoint(0, coo1[0],coo1[1],coo1[2]);
+   line->SetPoint(1, coo2[0],coo2[1],coo2[2]);
+   line->SetLineColor(GetLineColor(type,weight));
+   line->SetLineStyle(GetLineStyle(type,weight));
+   line->SetLineWidth(GetLineWidth(type,weight));
+   if(!plot) plot=new TObjArray();
+   plot->Add(line);
+   if(jdebug>5) printf("Laser::Add: Add line, type=%d weight={%le,%le} coo1={%le,%le,%le,%le},coo2={%le,%le,%le,%le}\n",type,weight,plotscale,coo1[0],coo1[1],coo1[2],coo1[3],coo2[0],coo2[1],coo2[2],coo2[3]);
+}
 int Laser::GetLineStyle(int type,double weight){
    return 1;
 }
@@ -1584,10 +1464,10 @@ int Laser::GetLineWidth(int type,double weight){
    //else return 2;
 
    if(weight<=0) return 0;
-   if(log10(weight)<0) return 1;
-   else if(log10(weight)<3) return 2;
-   else if(log10(weight)<6) return 3;
-   else return 4;
+   if(log10(weight)<5) return 1;
+   else if(log10(weight)<8) return 3;
+   else if(log10(weight)<10) return 5;
+   else return 7;
 }
 int Laser::GetLineColor(int type,double weight){
    if(type<0) return 2;

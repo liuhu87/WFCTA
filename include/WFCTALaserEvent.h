@@ -1,7 +1,10 @@
 #ifndef __WFCTALaserEvent__
 #define __WFCTALaserEvent__
+#include "common.h"
+#include "TH1D.h"
 class WFCTALaserEvent{
    public:
+   static bool Recordweight;
    int Time;
    float LaserCoo[3];
    float LaserDir[2];
@@ -9,6 +12,10 @@ class WFCTALaserEvent{
    float Intensity;
    float Frequency;
    float pulsetime;
+
+   vector<double> weight; //!
+   static TH1D* hweight; //! the histogram to store the weight used
+
    public:
    void Init();
    void Reset();

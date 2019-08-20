@@ -29,23 +29,25 @@ int main(int argc, char**argv)
    TH1D* hraytrace = (TH1D*) WFCTAMCEvent::hRayTrace->Clone("RayTraceRes");
    hraytrace->Reset();
    TH1D* hPMTs = new TH1D("PMTs","",1024,-0.5,1023.5);
+   TH1D* hweight = (TH1D*) WFCTALaserEvent::hweight->Clone("WeightRes");
+   hweight->Reset();
    TTree *tree = new TTree("eventShow","info of laser evnets");
 
    WFTelescopeArray::jdebug=0;
    WFTelescopeArray::DoSim=true;
    WFTelescopeArray::GetHead(Form("%s/default.inp",getenv("WFCTADataDir")));
    Atmosphere::SetParameters();
-   Atmosphere::scale=1.0e4;
-   Laser::scale=1.0e-12;
+   Atmosphere::scale=1.0e3;
+   Laser::scale=1.0e-8;
    //Laser::Doigen=9632;
    Laser::DoPlot=true;
    Laser::jdebug=3;
    Laser::IniRange[0][0]=-1.e3;
-   Laser::IniRange[0][1]=1.1e5;
+   Laser::IniRange[0][1]=2.0e5;
    Laser::IniRange[1][0]=-1.e4;
    Laser::IniRange[1][1]=1.0e4;
    Laser::IniRange[2][0]=-10;
-   Laser::IniRange[2][1]=1.3e5;
+   Laser::IniRange[2][1]=4.e5; //1.3e5
    Laser::IniRange[3][0]=-1;
    Laser::IniRange[3][1]=-1;
    Laser* pl=new Laser(seed);
@@ -60,11 +62,12 @@ int main(int argc, char**argv)
    for(int ii=0;ii<nevent;ii++){
       printf("ievent=%d Time=%d time=%lf\n",ii,Time,time);
       long int ngentel=pl->EventGen(Time,time,true);
-      if(Laser::DoPlot) pl->Draw("al",0,"./");
+      if(Laser::DoPlot) pl->Draw("al",1,"./");
       //fill the event
       hNevt->Fill(0.5,pl->count_gen);
       hNevt->Fill(1.5,ngentel/Laser::scale);
       hraytrace->Add(WFCTAMCEvent::hRayTrace);
+      hweight->Add(WFCTALaserEvent::hweight);
       for(int ipmt=0;ipmt<1024;ipmt++){
          double content=hPMTs->GetBinContent(ipmt+1);
          double econtent=hPMTs->GetBinError(ipmt+1);
@@ -86,8 +89,9 @@ int main(int argc, char**argv)
    hNevt->Write();
    hraytrace->Write();
    hPMTs->Write();
+   hweight->Write();
    fout->Close();
-   delete pl;
+   //delete pl;
    //delete WFTelescopeArray::GetHead();
 
    return 0;

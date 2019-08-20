@@ -240,6 +240,7 @@ void WFCTAEvent::CalculateADC(int itel){
 
 TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
    TH2Poly* image=new TH2Poly();
+   image->SetTitle(";X;Y");
    for(int ii=0;ii<NSIPM;ii++){
       int PixI=ii/PIX;
       int PixJ=ii%PIX;
@@ -256,11 +257,13 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
       image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
    }
    for(int ii=0;ii<iSiPM.size();ii++){
-      if(type==0) {image->SetBinContent(iSiPM.at(ii)+1,ADC_Cut.at(ii)>threshold?1.:0.); /*printf("bin%d cont=%f\n",iSiPM.at(ii)+1,ADC_Cut.at(ii));*/}
-      if(type==1) {image->SetBinContent(iSiPM.at(ii)+1,ImageAdcHigh.at(ii));}
-      if(type==2) {image->SetBinContent(iSiPM.at(ii)+1,ImageAdcLow.at(ii));}
-      if(type==3) {image->SetBinContent(iSiPM.at(ii)+1,myImageAdcHigh.at(ii));}
-      if(type==4) {image->SetBinContent(iSiPM.at(ii)+1,myImageAdcLow.at(ii));}
+      double content=0;
+      if(type==0) content=ADC_Cut.at(ii)>threshold?1.:0.;
+      if(type==1) content=ImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==2) content=ImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==3) content=myImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==4) content=myImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
+      image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
    }
    image->Draw(opt);
    return image;

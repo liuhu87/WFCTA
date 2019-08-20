@@ -2,6 +2,7 @@
 #include "TMath.h"
 #include "TRandom.h"
 #include "common.h"
+#include "WFTelescope.h"
 int WFMirrorArray::NMirror[NCircle]={1,6,6,6,2,2,2};
 void WFMirrorArray::Init(){
    for(int ii=0;ii<NCircle;ii++){
@@ -155,9 +156,9 @@ void WFMirror::SetMirrorPointError(int flag,double error)
        double matrix_[3][3];
        SetEulerMatrix(theta0, phi0,matrix_);
 
-       theta =  gRandom->Rndm();
+       theta =  WFTelescopeArray::prandom->Rndm();
        theta = sqrt(-log(1-theta)*2*sigma2);
-       phi = gRandom->Rndm()*TMath::TwoPi();
+       phi = WFTelescopeArray::prandom->Rndm()*TMath::TwoPi();
 
        x = CURVATURE*sin(theta)*cos(phi) ;
        y = CURVATURE*sin(theta)*sin(phi) ;
