@@ -26,6 +26,8 @@ protected:
    static TBranch* bEvent;
    static TBranch* bTime;
    static TBranch* btime;
+   static TBranch* bfired;
+   static TBranch* bievent;
    static TBranch* bADC_Cut;
    static TBranch* bBaseHigh;
    static TBranch* bBaseLow;
@@ -51,6 +53,7 @@ public:
 	long iEvent;
 	long rabbitTime;
 	double rabbittime;
+	short n_fired;
 
 	vector<long> ievent;
 	vector<float> ADC_Cut;  //!

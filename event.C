@@ -27,7 +27,7 @@ int main(int argc, char**argv)
   map<short, int>* sipm_position;
   map<short, int>::iterator sipm_position_iter;
   int32_t big_pack_lenth;
-  int16_t n_fired; 
+  //int16_t n_fired; 
   int n_Channel;
   int Npoint[28] = {0};  for(int i=0;i<28;i++) {Npoint[i]=i;}
   vector<int>* peakamp = new vector<int>();
@@ -40,7 +40,7 @@ int main(int argc, char**argv)
   TTree *eventShow = new TTree("eventShow","info of evnets");
   wfctaEvent -> CreateBranch(eventShow,1);
   eventShow -> Branch("big_pack_lenth",&big_pack_lenth,"big_pack_lenth/I");
-  eventShow -> Branch("n_fired",&n_fired,"n_fired/S");
+  //eventShow -> Branch("n_fired",&n_fired,"n_fired/S");
   eventShow -> Branch("n_Channel",&n_Channel,"n_Channel/I");
   eventShow -> Branch("peakamp","vector<int>",&peakamp);
   eventShow -> Branch("Npoint",Npoint,"Npoint[28]/I");
@@ -75,10 +75,10 @@ int main(int argc, char**argv)
 	  big_pack_lenth = wfctaDecode->bigpackLen();
           printf("%d:\n",wfctaDecode->eventId(buf));
 
-	  n_fired = wfctaDecode->nFired(buf);
           wfctaEvent->iEvent=wfctaDecode->eventId(buf);
           wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
           wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
+          wfctaEvent->n_fired = wfctaDecode->nFired(buf);
 
 	  //find sipms and their position in this pack//
 	  wfctaDecode->Find_SiPMs(buf,packSize);

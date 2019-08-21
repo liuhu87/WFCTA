@@ -15,6 +15,8 @@ TBranch* WFCTAEvent::bAll=0;
 TBranch* WFCTAEvent::bEvent=0;
 TBranch* WFCTAEvent::bTime=0;
 TBranch* WFCTAEvent::btime=0;
+TBranch* WFCTAEvent::bfired=0;
+TBranch* WFCTAEvent::bievent=0;
 TBranch* WFCTAEvent::bADC_Cut=0;
 TBranch* WFCTAEvent::bBaseHigh=0;
 TBranch* WFCTAEvent::bBaseLow=0;
@@ -37,6 +39,7 @@ TBranch* WFCTAEvent::bledevent=0;
 TBranch* WFCTAEvent::blaserevent=0;
 WFCTAEvent::WFCTAEvent():TSelector()
 {
+   ievent.reserve(MAXPMT);
    ADC_Cut.reserve(MAXPMT);
    ImageBaseHigh.reserve(MAXPMT);
    ImageBaseLow.reserve(MAXPMT);
@@ -68,6 +71,7 @@ void WFCTAEvent::Init()
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
+   n_fired=-1;
    iSiPM.clear();
    ievent.clear();
    gain_marker.clear();
@@ -77,6 +81,7 @@ void WFCTAEvent::Init()
    Record_Threshold.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();
+   ievent.clear();
    ADC_Cut.clear();
    ImageBaseHigh.clear();
    ImageBaseLow.clear();
@@ -96,6 +101,7 @@ void WFCTAEvent::EventInitial()
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
+   n_fired=-1;
    iSiPM.clear();
    ievent.clear();
    gain_marker.clear();
@@ -105,6 +111,7 @@ void WFCTAEvent::EventInitial()
    Record_Threshold.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();
+   ievent.clear();
    ADC_Cut.clear();
    ImageBaseHigh.clear();
    ImageBaseLow.clear();
@@ -153,6 +160,8 @@ void WFCTAEvent::GetBranch(TTree *fChain){
    bEvent=fChain->GetBranch("iEvent");
    bTime=fChain->GetBranch("rabbitTime");
    btime=fChain->GetBranch("rabbittime");
+   bfired=fChain->GetBranch("n_fired");
+   bievent=fChain->GetBranch("ievent");
    bADC_Cut=fChain->GetBranch("ADC_Cut");
    bBaseHigh=fChain->GetBranch("ImageBaseHigh");
    bBaseLow=fChain->GetBranch("ImageBaseLow");
@@ -186,6 +195,8 @@ bool WFCTAEvent::GetAllContents(int _Entry){
    bEvent->GetEntry(_Entry);
    bTime->GetEntry(_Entry);
    btime->GetEntry(_Entry);
+   bfired->GetEntry(_Entry);
+   bievent->GetEntry(_Entry);
    bADC_Cut->GetEntry(_Entry);
    bBaseHigh->GetEntry(_Entry);
    bBaseLow->GetEntry(_Entry);
