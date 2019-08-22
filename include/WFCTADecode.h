@@ -18,13 +18,17 @@ public:
     uint8_t StatusPackCheck(uint8_t *begin, int bufsize);
     int StatusPackCheck(uint8_t *begin, int bufsize,int type);
 
-    bool bigPackCheck(uint8_t *begin, int bufsize);
-    void Find_SiPMs(uint8_t *begin, int packsize);
+    bool FEEDataFragment(uint8_t *begin);
+    bool bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart);
+    void Find_SiPMs(uint8_t *begin);//, int packStart);
 
-    uint64_t PackSize() {return packSize;};
+    int64_t PackSize() {return packSize;};
     int32_t bigpackLen() {return big_pack_len;};
     map<short, int>& GetSiPM_Position() {return m_sipm_position;};
 
+
+    int32_t sliceLength(uint8_t *begin);
+    short Telid(uint8_t *begin);
     uint64_t eventId(uint8_t *begin);
     int16_t nFired(uint8_t *begin);
     uint64_t RabbitTime(uint8_t *begin);

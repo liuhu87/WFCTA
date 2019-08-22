@@ -458,16 +458,29 @@ double  WFCTADecode::GetStatusReadbacktime(uint8_t *begin, int packsize)
  * *****************
  * *****************/
 
+
+/****************************
+ * **find FEE Data Fragment**
+ * **************************/
+bool WFCTADecode::FEEDataFragment(uint8_t *begin)
+{
+    //dumpPacket(begin,4);
+    if( *(begin)==0xbb && *(begin+1)==0x34 && *(begin+2)==0x12 && *(begin+3)==0xbb )
+	return true;
+    else
+	return false;
+}
+
 /**********************
  * **find big package**
  * ********************/
-bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize)
+bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart)
 {
     //int64_t big_pack_len;
     head = 0;
     tail = 0;
 
-    readPos = 0;
+    readPos = 0+packStart;
     while(readPos<bufsize)
     {
 	if(   *(begin+readPos+0)==0xcc && *(begin+readPos+1)==0xcc 
@@ -481,7 +494,7 @@ bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize)
         readPos++;
     }
 
-    readPos = 0;
+    readPos = 0+packStart;
     while(readPos<bufsize)
     {
 	if(   *(begin+readPos+0)==0x11 && *(begin+readPos+1)==0x11 
@@ -497,7 +510,7 @@ bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize)
 
     big_pack_len = tail + 1 - head;
     packSize = tail+1;
-    if(big_pack_len>0)
+    if(big_pack_len>1)
     {
 	    //dumpPacket(begin+head,24);printf("%lld ** %lld ** packsize:%lld | \n",head,tail,packSize);
 	    return true;
@@ -508,30 +521,58 @@ bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize)
     }
 }
 
+/***********************
+ * **  get slice size  **
+ * *********************/
+int32_t WFCTADecode::sliceLength(uint8_t *begin)
+{
+  int32_t sliceLength = ((int32_t)begin[7]<<24)|
+                    ((int32_t)begin[6]<<16)|
+                    ((int32_t)begin[5]<<8)|
+                    ((int32_t)begin[4]);
+  //printf("totle size:%d\n",sliceLength);
+  return sliceLength;
+}
+
+/**********************
+ * **   get tel id   **
+ * ********************/
+short WFCTADecode::Telid(uint8_t *begin)
+{
+  short telId = (short)begin[8];
+  printf("telid:%d\n",telId);
+  return telId;
+}
+
 /**********************
  * **   find sipms   **
  * ********************/
-void WFCTADecode::Find_SiPMs(uint8_t *begin, int packsize)
+void WFCTADecode::Find_SiPMs(uint8_t *begin)//, int packStart)
 {
     short fpga,db;
     short sc,channel,sipm;
     m_sipm_position.clear();
-    readPos = 0;
-    while(readPos<packsize)
+    readPos = head;
+    
+    while(readPos<tail)
     {
         if(   *(begin+readPos+0)==0xaa && *(begin+readPos+1)==0xaa
            && *(begin+readPos+124)==0xbb && *(begin+readPos+125)==0xbb)
         {
 	    fpga = *(begin+readPos+5)&0x0f;
-	    db = *(begin+readPos+5)>>4;
+	    db = (*(begin+readPos+5)>>4)&0x0f;
 	    sc = db*10+fpga;
 	    channel = *(begin+readPos+4);
 	    SC_Channel2SiPM(sc,channel,&sipm);
 	    m_sipm_position.insert(pair<short,int>(sipm,(int)readPos));
+	    readPos += 126;
         }
-        readPos++;
+	else
+	{
+            readPos++;
+	}
     }
-    //dumpPacket(begin,packsize,16);
+    //dumpPacket(begin,packSize,16);
 }
 
 /**********************

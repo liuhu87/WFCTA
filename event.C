@@ -11,19 +11,27 @@
 #include <TFile.h>
 #include <TTree.h>
 
-#define BUF_LEN 200000
-#define STATUS_BUF_LEN 200000
+#define BUF_LEN 2000000
+#define STATUS_BUF_LEN 2000000
 
 using namespace std;
 
 int main(int argc, char**argv)
 {
+  if(argc!=3)
+  {
+      printf("Use %s inputfile outfile\n",argv[0]);
+      return 0;
+  }
+
   FILE *fp;
-  uint8_t *buf = new uint8_t[BUF_LEN];
+  uint8_t *buf;// = new uint8_t[BUF_LEN];
+  int32_t slicelength;
   size_t size_of_read;
+  short ITEL;
   fp = fopen(argv[1],"rb");
 
-  int64_t packSize = 0;
+  int64_t packStart = 0;
   map<short, int>* sipm_position;
   map<short, int>::iterator sipm_position_iter;
   int32_t big_pack_lenth;
@@ -63,71 +71,94 @@ int main(int argc, char**argv)
   fp = fopen(argv[1],"rb");
   while(true)
   {
-      size_of_read = fread((uint8_t *)buf,1,BUF_LEN,fp);
-      fseek(fp,-size_of_read,1);
+      delete buf;
+      buf = new uint8_t[20];
+      size_of_read = fread((uint8_t *)buf,1,20,fp);
       if(size_of_read==0){break;}
-      //dumpPacket(buf,size_of_read,16);
-//printf("test\n");
-      if(wfctaDecode->bigPackCheck(buf,int(size_of_read)))
+      if(wfctaDecode->FEEDataFragment(buf))
       {
-	  //get info eventID and rabbit_time//
-          packSize = wfctaDecode->PackSize();
-	  big_pack_lenth = wfctaDecode->bigpackLen();
-          printf("%d:\n",wfctaDecode->eventId(buf));
+	//printf("a wfcta event\n");
+	//dumpPacket(buf,20,16);
+        slicelength = wfctaDecode->sliceLength(buf); 
+	ITEL = wfctaDecode->Telid(buf);
 
-          wfctaEvent->iEvent=wfctaDecode->eventId(buf);
-          wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
-          wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
-          wfctaEvent->n_fired = wfctaDecode->nFired(buf);
+	delete buf;
+	buf = new uint8_t[slicelength];
+	size_of_read = fread((uint8_t *)buf,1,slicelength,fp);
+	printf("slicelength:%lld\n",slicelength);
+	packStart = 0;
+	while(packStart<size_of_read-20)
+	{
+	  //dumpPacket(buf,24,16);
+          //printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
+          if(wfctaDecode->bigPackCheck(buf,int(size_of_read),packStart))
+          {
+	    wfctaEvent->iTel = ITEL;
+	    printf("ITEL%d:\n",ITEL);
+	    //get info eventID and rabbit_time//
+	    //printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
+	    big_pack_lenth = wfctaDecode->bigpackLen();
 
-	  //find sipms and their position in this pack//
-	  wfctaDecode->Find_SiPMs(buf,packSize);
-	  sipm_position = &(wfctaDecode->GetSiPM_Position());
+            wfctaEvent->iEvent=wfctaDecode->eventId(buf);
+            wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
+            wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
+            wfctaEvent->n_fired = wfctaDecode->nFired(buf);
+            printf("iEvent:%d:\n",wfctaDecode->eventId(buf));
 
-	  //get info of each sipm: q, base, peakposition...//
-	  n_Channel = 0;
-	  for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){
-	    n_Channel++;
-	    wfctaEvent->iSiPM.push_back( sipm_position_iter->first );
-	    wfctaEvent->ievent.push_back( wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first) );
-	    wfctaEvent->Over_Single_Marker.push_back( wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first) );
-	    wfctaEvent->Over_Record_Marker.push_back( wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first) );
-	    wfctaEvent->ImageBaseHigh.push_back( wfctaDecode->BaseHigh(buf,sipm_position_iter->first) );
-            //printf("%d %d:\n",wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first),sipm_position_iter->first);
-	    wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)pulsehigh, (int *)pulselow);
-	    wfctaEvent->mypeak.push_back( wfctaDecode->Getwavepeak(buf,sipm_position_iter->first) );
-            peakamp->push_back( wfctaDecode->GetpeakAmp(buf,sipm_position_iter->first) );
-	    wfctaEvent->myImageBaseHigh.push_back( wfctaDecode->GetwaveImageBaseHigh(buf,sipm_position_iter->first) );
-            wfctaEvent->myImageBaseLow.push_back( wfctaDecode->GetwaveImageBaseLow(buf,sipm_position_iter->first) );
-            wfctaEvent->myImageAdcHigh.push_back( wfctaDecode->GetwaveImageAdcHigh(buf,sipm_position_iter->first) );
-            wfctaEvent->myImageAdcLow.push_back( wfctaDecode->GetwaveImageAdcLow(buf,sipm_position_iter->first) );
-	  }
+  	    //find sipms and their position in this pack//
+  	    wfctaDecode->Find_SiPMs(buf);//,0);
+	    sipm_position = &(wfctaDecode->GetSiPM_Position());
 
-          ///just do some test to exam the reading program
-          //(wfctaEvent->mcevent).iuse=wfctaEvent->iEvent;
-          //(wfctaEvent->mcevent).RayTrace.push_back(wfctaEvent->iEvent*2);
-          //(wfctaEvent->mcevent).TelTrigger[0]=wfctaEvent->iEvent*3;
-          //(wfctaEvent->ledevent).Time=wfctaEvent->rabbitTime;
-          //(wfctaEvent->ledevent).Frequency=wfctaEvent->iEvent;
-          //(wfctaEvent->ledevent).DoorOpen=(wfctaEvent->iEvent%2);
-          //(wfctaEvent->laserevent).Time=wfctaEvent->rabbitTime;
-          //(wfctaEvent->laserevent).Frequency=wfctaEvent->iEvent;
-          //(wfctaEvent->laserevent).flux=wfctaEvent->iEvent*1.0;
+	    //get info of each sipm: q, base, peakposition...//
+	    n_Channel = 0;
+	    for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){
+	      n_Channel++;
+	      wfctaEvent->iSiPM.push_back( sipm_position_iter->first );
+  	      wfctaEvent->ievent.push_back( wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first) );
+	      wfctaEvent->Over_Single_Marker.push_back( wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first) );
+	      wfctaEvent->Over_Record_Marker.push_back( wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first) );
+	      wfctaEvent->ImageBaseHigh.push_back( wfctaDecode->BaseHigh(buf,sipm_position_iter->first) );
+              //printf("%d %d:\n",wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first),sipm_position_iter->first);
+	      wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)pulsehigh, (int *)pulselow);
+	      wfctaEvent->mypeak.push_back( wfctaDecode->Getwavepeak(buf,sipm_position_iter->first) );
+              peakamp->push_back( wfctaDecode->GetpeakAmp(buf,sipm_position_iter->first) );
+	      wfctaEvent->myImageBaseHigh.push_back( wfctaDecode->GetwaveImageBaseHigh(buf,sipm_position_iter->first) );
+              wfctaEvent->myImageBaseLow.push_back( wfctaDecode->GetwaveImageBaseLow(buf,sipm_position_iter->first) );
+              wfctaEvent->myImageAdcHigh.push_back( wfctaDecode->GetwaveImageAdcHigh(buf,sipm_position_iter->first) );
+              wfctaEvent->myImageAdcLow.push_back( wfctaDecode->GetwaveImageAdcLow(buf,sipm_position_iter->first) );
+	    }
 
-          eventShow->Fill();
-	  wfctaEvent->EventInitial();
-	  peakamp->clear();
-	  for(int i=0;i<1024;i++){
-            for(int j=0;j<28;j++){
-              pulsehigh[i][j] = 0;
-              pulselow[i][j] = 0;
-            }
-	  }
-          fseek(fp,packSize,1);
+            ///just do some test to exam the reading program
+            //(wfctaEvent->mcevent).iuse=wfctaEvent->iEvent;
+            //(wfctaEvent->mcevent).RayTrace.push_back(wfctaEvent->iEvent*2);
+            //(wfctaEvent->mcevent).TelTrigger[0]=wfctaEvent->iEvent*3;
+            //(wfctaEvent->ledevent).Time=wfctaEvent->rabbitTime;
+            //(wfctaEvent->ledevent).Frequency=wfctaEvent->iEvent;
+            //(wfctaEvent->ledevent).DoorOpen=(wfctaEvent->iEvent%2);
+            //(wfctaEvent->laserevent).Time=wfctaEvent->rabbitTime;
+            //(wfctaEvent->laserevent).Frequency=wfctaEvent->iEvent;
+            //(wfctaEvent->laserevent).flux=wfctaEvent->iEvent*1.0;
+
+            eventShow->Fill();
+	    wfctaEvent->EventInitial();
+	    peakamp->clear();
+	    for(int i=0;i<1024;i++){
+              for(int j=0;j<28;j++){
+                pulsehigh[i][j] = 0;
+                pulselow[i][j] = 0;
+              }
+	    }
+	    packStart = wfctaDecode->PackSize();
+          }
+          else
+          {
+              fseek(fp,-size_of_read+1,1);
+          }
+        } 
       }
       else
       {
-          fseek(fp,1,1);
+	  fseek(fp,-size_of_read+1,1);
       }
   }
   fclose(fp);

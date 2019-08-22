@@ -23,6 +23,7 @@ protected:
    static TTree* _Tree;
    static const char * _Name;
    static TBranch* bAll;
+   static TBranch* bTel;
    static TBranch* bEvent;
    static TBranch* bTime;
    static TBranch* btime;
@@ -50,6 +51,7 @@ protected:
    static TBranch* blaserevent;
 
 public:
+        short iTel;
 	long iEvent;
 	long rabbitTime;
 	double rabbittime;

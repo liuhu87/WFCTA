@@ -12,6 +12,7 @@ WFCTAEvent* WFCTAEvent::_Head=0;
 TTree* WFCTAEvent::_Tree=0;
 const char* WFCTAEvent::_Name="Event";
 TBranch* WFCTAEvent::bAll=0;
+TBranch* WFCTAEvent::bTel=0;
 TBranch* WFCTAEvent::bEvent=0;
 TBranch* WFCTAEvent::bTime=0;
 TBranch* WFCTAEvent::btime=0;
@@ -68,6 +69,7 @@ WFCTAEvent::~WFCTAEvent()
 
 void WFCTAEvent::Init()
 {
+   iTel=-1;
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
@@ -98,6 +100,7 @@ void WFCTAEvent::Init()
 }
 void WFCTAEvent::EventInitial()
 {
+   iTel=-1;
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
@@ -157,6 +160,7 @@ void WFCTAEvent::CreateBranch(TTree *tree, int branchSplit){
 }
 void WFCTAEvent::GetBranch(TTree *fChain){
    bAll=fChain->GetBranch(BranchName());
+   bTel=fChain->GetBranch("iTel");
    bEvent=fChain->GetBranch("iEvent");
    bTime=fChain->GetBranch("rabbitTime");
    btime=fChain->GetBranch("rabbittime");
@@ -192,6 +196,7 @@ bool WFCTAEvent::GetAllContents(int _Entry){
    if(!blaserevent) exist=false;
    if(!exist) return false;
    int ncount=bAll->GetEntry(_Entry);
+   bTel->GetEntry(_Entry);
    bEvent->GetEntry(_Entry);
    bTime->GetEntry(_Entry);
    btime->GetEntry(_Entry);
