@@ -170,7 +170,7 @@ bool StatusDB::LocateBlk(int Time,double time){
    else if(Time>readtime){ //search from right
       fseek(fp,buflength,1);
       while((size_of_read=fread((uint8_t *)buf,1,STATUS_BUF_LEN,fp))!=0){
-         bool find=wfctaDecode->StatusPackCheck(buf,size_of_read,9)>=0;
+         bool find=wfctaDecode->statusPackCheck(buf,size_of_read,9)>=0;//change "StatusPackCheck" to "statusPackCheck" by youzhiyong --- 2019 08 22
          uint64_t Time0=0;
          double time0=0;
          if(find){
@@ -209,7 +209,7 @@ bool StatusDB::LocateBlk(int Time,double time){
          fseek(fp,offset,1);
       }
       while((size_of_read=fread((uint8_t *)buf,1,-offset,fp))!=0){
-         bool find=wfctaDecode->StatusPackCheck(buf,-offset,9)>=0;
+         bool find=wfctaDecode->statusPackCheck(buf,-offset,9)>=0;//change "StatusPackCheck" to "statusPackCheck" by youzhiyong --- 2019 08 22
          uint64_t Time0=0;
          double time0=0;
          if(find){
@@ -245,8 +245,8 @@ bool StatusDB::LocateBlk(int Time,double time){
    }
 }
 void StatusDB::ResetBuffer(){
-   int find9=wfctaDecode->StatusPackCheck(buf,buflength,9)+63;
-   int find1=wfctaDecode->StatusPackCheck(buf,buflength,1);
+   int find9=wfctaDecode->statusPackCheck(buf,buflength,9)+63;//change "StatusPackCheck" to "statusPackCheck" by youzhiyong --- 2019 08 22
+   int find1=wfctaDecode->statusPackCheck(buf,buflength,1);//change "StatusPackCheck" to "statusPackCheck" by youzhiyong --- 2019 08 22
    if(find1>=0){ //there are all the status packets
       buflength=(find9-find1+1);
       fseek(fp,find1,1);
@@ -268,9 +268,9 @@ void StatusDB::ResetBuffer(){
          fseek(fp,offset,1);
       }
       size_t size_of_read=fread((uint8_t *)buf,1,-offset,fp);
-      find9=wfctaDecode->StatusPackCheck(buf,-offset,9)+63; //F9 packet should exist
+      find9=wfctaDecode->statusPackCheck(buf,-offset,9)+63; //F9 packet should exist //change "StatusPackCheck" to "statusPackCheck" by youzhiyong --- 2019 08 22
       if(find9+1!=-offset) printf("StatusDB::ResetBuffer: Error, there is no F9 packet in the buffer\n");
-      find1=wfctaDecode->StatusPackCheck(buf,-offset,1);
+      find1=wfctaDecode->statusPackCheck(buf,-offset,1);//change "StatusPackCheck" to "statusPackCheck" by youzhiyong --- 2019 08 22
       if(find1>=0){
          buflength=(find9-find1+1);
          fseek(fp,offset+find1,1);
@@ -293,7 +293,7 @@ void StatusDB::Fill(){
    int status_pack_marker;
    int nfilled=0;
    while(true){
-      status_pack_marker=wfctaDecode->StatusPackCheck(buf+offset,buflength-offset);
+      status_pack_marker=wfctaDecode->StatusPackCheck(buf+offset,buflength-offset,0);//add one more argument "0"---by youzhiyong 2019 08 22
       if(status_pack_marker>0){
          packSize = wfctaDecode->PackSize();
          if(status_pack_marker>=1&&status_pack_marker<=8){

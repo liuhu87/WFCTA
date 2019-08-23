@@ -30,6 +30,7 @@ int main(int argc, char**argv)
   size_t size_of_read;
   short ITEL;
   fp = fopen(argv[1],"rb");
+  int FEEDataHead;
 
   int64_t packStart = 0;
   map<short, int>* sipm_position;
@@ -72,38 +73,39 @@ int main(int argc, char**argv)
   while(true)
   {
       delete buf;
-      buf = new uint8_t[20];
-      size_of_read = fread((uint8_t *)buf,1,20,fp);
+      buf = new uint8_t[40];
+      size_of_read = fread((uint8_t *)buf,1,40,fp);
       if(size_of_read==0){break;}
       if(wfctaDecode->FEEDataFragment(buf))
       {
-	//printf("a wfcta event\n");
-	//dumpPacket(buf,20,16);
-        slicelength = wfctaDecode->sliceLength(buf); 
-	ITEL = wfctaDecode->Telid(buf);
+	FEEDataHead = wfctaDecode->feeDataHead();
+        slicelength = wfctaDecode->sliceLength(buf,FEEDataHead); 
+	ITEL = wfctaDecode->Telid(buf,FEEDataHead);
+        fseek(fp,-size_of_read+FEEDataHead,1);
 
 	delete buf;
 	buf = new uint8_t[slicelength];
 	size_of_read = fread((uint8_t *)buf,1,slicelength,fp);
-	printf("slicelength:%lld\n",slicelength);
+	//printf("slicelength:%lld\n",slicelength);
 	packStart = 0;
-	while(packStart<size_of_read-20)
+	while(1)
 	{
 	  //dumpPacket(buf,24,16);
           //printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
           if(wfctaDecode->bigPackCheck(buf,int(size_of_read),packStart))
           {
+	    dumpPacket(buf,24,16);
 	    wfctaEvent->iTel = ITEL;
 	    printf("ITEL%d:\n",ITEL);
 	    //get info eventID and rabbit_time//
-	    //printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
+	    printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
 	    big_pack_lenth = wfctaDecode->bigpackLen();
 
             wfctaEvent->iEvent=wfctaDecode->eventId(buf);
             wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
             wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
             wfctaEvent->n_fired = wfctaDecode->nFired(buf);
-            printf("iEvent:%d:\n",wfctaDecode->eventId(buf));
+            printf("iEvent:%d:\n\n",wfctaDecode->eventId(buf));
 
   	    //find sipms and their position in this pack//
   	    wfctaDecode->Find_SiPMs(buf);//,0);
@@ -152,13 +154,15 @@ int main(int argc, char**argv)
           }
           else
           {
-              fseek(fp,-size_of_read+1,1);
+	      break;
+	      //packStart =wfctaDecode->PackSize();
+              //fseek(fp,-size_of_read+1,1);
           }
         } 
       }
       else
       {
-	  fseek(fp,-size_of_read+1,1);
+	  fseek(fp,-size_of_read+20,1);
       }
   }
   fclose(fp);

@@ -79,6 +79,7 @@ int main(int argc, char**argv)
   /*********************************************************************/
 
   WFCTADecode *wfctaDecode = new WFCTADecode();
+/*
   for(int i=0;i<1024;i++){
     single_thresh[i] = -1000;
     record_thresh[i] = -1000;
@@ -176,7 +177,7 @@ int main(int argc, char**argv)
       }
   }
   fclose(fp);
-
+*/
 
   //Events Initial//
   wfctaEvent->EventInitial();

@@ -15,10 +15,12 @@ public:
     WFCTADecode();
     ~WFCTADecode();
 
-    uint8_t StatusPackCheck(uint8_t *begin, int bufsize);
-    int StatusPackCheck(uint8_t *begin, int bufsize,int type);
+    bool StatusPack(uint8_t *begin, int bufsize, int64_t packStart);
+    uint8_t StatusPackCheck(uint8_t *begin, int bufsize, int64_t packStart);
+    int statusPackCheck(uint8_t *begin, int bufsize,int type);//change "StatusPackCheck" to "statusPackCheck" by youzhiyong --- 2019 08 22
 
     bool FEEDataFragment(uint8_t *begin);
+    int feeDataHead() {return FEEDataHead;};
     bool bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart);
     void Find_SiPMs(uint8_t *begin);//, int packStart);
 
@@ -27,8 +29,8 @@ public:
     map<short, int>& GetSiPM_Position() {return m_sipm_position;};
 
 
-    int32_t sliceLength(uint8_t *begin);
-    short Telid(uint8_t *begin);
+    int32_t sliceLength(uint8_t *begin,int feedatahead);
+    short Telid(uint8_t *begin,int feedatahead);
     uint64_t eventId(uint8_t *begin);
     int16_t nFired(uint8_t *begin);
     uint64_t RabbitTime(uint8_t *begin);
@@ -83,6 +85,7 @@ private:
     //size_t m_size;
     int64_t head,tail;
     int64_t readPos;
+    int FEEDataHead;
 
     uint8_t status_pack_mark;
     int64_t packSize;

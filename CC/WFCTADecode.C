@@ -26,9 +26,37 @@ WFCTADecode::~WFCTADecode()
 /**********************
  * **find status pack**
  * ********************/
-uint8_t WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize)
+bool WFCTADecode::StatusPack(uint8_t *begin, int bufsize, int64_t packStart)
 {
-    readPos = 0;
+    //head = 0;
+    //tail = 0;
+
+    readPos = 0+packStart;
+    while(readPos<bufsize)
+    {   
+        if(   *(begin+readPos+0)==0xbb && *(begin+readPos+1)==0xbb
+           && *(begin+readPos+2)==0xbb && *(begin+readPos+3)==0xbb
+           && *(begin+readPos+4)==0xee && *(begin+readPos+5)==0xee
+           && *(begin+readPos+6)==0xee && *(begin+readPos+7)==0xee
+           && *(begin+readPos+41544)==0xaa && *(begin+readPos+41545)==0xaa
+           && *(begin+readPos+41546)==0xaa && *(begin+readPos+41547)==0xaa
+           && *(begin+readPos+41548)==0xdd && *(begin+readPos+41549)==0xdd
+           && *(begin+readPos+41550)==0xdd && *(begin+readPos+41551)==0xdd)
+        {   
+	    //printf("a status pack\n");
+	    return true;
+        }
+	readPos++;
+    }
+    return false;
+}
+
+/***************************
+ * **find each status pack**
+ * *************************/
+uint8_t WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize, int64_t packStart)
+{
+    readPos = 0+packStart;
     while(readPos<bufsize)
     {
         if( *(begin+readPos+0)==0x12 && *(begin+readPos+1)==0x34 && *(begin+readPos+62)==0xab && *(begin+readPos+63)==0xcd ){
@@ -54,7 +82,7 @@ uint8_t WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize)
     return 0;
 }
 
-int WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize,int type)
+int WFCTADecode::statusPackCheck(uint8_t *begin, int bufsize,int type)
 {
     int find=-1;
     readPos = 0;
@@ -465,10 +493,15 @@ double  WFCTADecode::GetStatusReadbacktime(uint8_t *begin, int packsize)
 bool WFCTADecode::FEEDataFragment(uint8_t *begin)
 {
     //dumpPacket(begin,4);
-    if( *(begin)==0xbb && *(begin+1)==0x34 && *(begin+2)==0x12 && *(begin+3)==0xbb )
+    FEEDataHead = 0;
+    while(FEEDataHead<20)
+    {
+      if( *(begin+FEEDataHead)==0xbb && *(begin+FEEDataHead+1)==0x34 && *(begin+FEEDataHead+2)==0x12 && *(begin+FEEDataHead+3)==0xbb )
 	return true;
-    else
-	return false;
+      else
+	FEEDataHead++;
+    }
+    return false;
 }
 
 /**********************
@@ -524,12 +557,12 @@ bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart)
 /***********************
  * **  get slice size  **
  * *********************/
-int32_t WFCTADecode::sliceLength(uint8_t *begin)
+int32_t WFCTADecode::sliceLength(uint8_t *begin, int feedatahead)
 {
-  int32_t sliceLength = ((int32_t)begin[7]<<24)|
-                    ((int32_t)begin[6]<<16)|
-                    ((int32_t)begin[5]<<8)|
-                    ((int32_t)begin[4]);
+  int32_t sliceLength = ((int32_t)begin[feedatahead+7]<<24)|
+                    ((int32_t)begin[feedatahead+6]<<16)|
+                    ((int32_t)begin[feedatahead+5]<<8)|
+                    ((int32_t)begin[feedatahead+4]);
   //printf("totle size:%d\n",sliceLength);
   return sliceLength;
 }
@@ -537,10 +570,10 @@ int32_t WFCTADecode::sliceLength(uint8_t *begin)
 /**********************
  * **   get tel id   **
  * ********************/
-short WFCTADecode::Telid(uint8_t *begin)
+short WFCTADecode::Telid(uint8_t *begin, int feedatahead)
 {
-  short telId = (short)begin[8];
-  printf("telid:%d\n",telId);
+  short telId = (short)begin[feedatahead+8];
+  //printf("telid:%d\n",telId);
   return telId;
 }
 
