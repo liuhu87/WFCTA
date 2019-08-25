@@ -4,7 +4,7 @@ EventNtuple* EventNtuple::_Head=0;
 TFile* EventNtuple::fout=0;
 int EventNtuple::fillstyle=0;
 const int EventNtuple::branchSplit=1;
-char EventNtuple::branchname[NBranch][20]={"CorsikaEvent","WFCTAEvent"};
+char EventNtuple::branchname[NBranch][20]={"CorsikaEvent","Event"};
 bool EventNtuple::FromIDtoAZ(int PID,int &AA,int &ZZ){
    int nele=11;
    int pid0[]={1,2,3, 5, 6,7,8, 9,13,14,15};
@@ -44,7 +44,7 @@ EventNtuple* EventNtuple::GetHead(char* filename,int style){
 void EventNtuple::Init(){
    if(fillstyle==1||fillstyle==0){//init the tree
       //if(_Tree) delete _Tree;
-      _Tree=new TTree("Event","Event");
+      _Tree=new TTree("eventShow","Event");
    }
    else{
       _Tree=0;
@@ -255,6 +255,7 @@ void EventNtuple::Fill(TSelector** pevt){
             }
          }
          else exist=true;
+         //if(exist) printf("EventNtuple::Fill: event=%ld adc={%f,%f}\n",((WFCTAEvent*)pevt[ibr])->iEvent,((WFCTAEvent*)pevt[ibr])->ImageAdcHigh.at(1),((WFCTAEvent*)pevt[ibr])->ImageAdcLow.at(1));
       }
       if(exist) _Tree->Fill();
    }

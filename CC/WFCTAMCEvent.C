@@ -4,7 +4,7 @@
 #include "WFCTAMCEvent.h"
 #include "EventNtuple.h"
 bool WFCTAMCEvent::RecordRayTrace=false;
-double WFCTAMCEvent::fAmpLow=(9.98*22);
+double WFCTAMCEvent::fAmpLow=(9.98/22);
 double WFCTAMCEvent::fAmpHig=9.98;
 TH1D* WFCTAMCEvent::hRayTrace=new TH1D("MCRayTrace","Ray Trace Result",35,-25-0.5,10-0.5);
 void WFCTAMCEvent::Init(int size){
