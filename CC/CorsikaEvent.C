@@ -248,7 +248,7 @@ bool CorsikaEvent::DoWFCTASim(){
 void CorsikaEvent::Fill(){
    if(EventNtuple::GetHead()){ //fill the data in EventNtuple
       if(DoWFCTASim()){
-         TSelector* pevt0[]={this,(TSelector*)pwfc};
+         TSelector* pevt0[]={0,(TSelector*)pwfc};
          EventNtuple::GetHead()->Fill(pevt0);
       }
       else{

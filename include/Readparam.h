@@ -20,7 +20,19 @@ T(filter), /*will the fiter be used*/\
 T(fadc_bin),            /* total number of fadc bins */\
 T(fadc_bin_length),     /* the bin length of each bin*/\
 T(nsb),                 /* night sky background*/\
-T(end_file)         /* end of the parameters file */ 
+T(Aod_air),         /*extinction coefficient of air*/\
+T(Aod_aerosol),         /*extinction coefficient of aerosol*/\
+T(Scat_air),         /*scattering coefficient of air*/\
+T(Scat_aerosol),         /*scattering coefficient of aerosol*/\
+T(Laser_coo),            /*laser position*/\
+T(Laser_dir),            /*laser generate direction*/\
+T(Laser_intensity),      /*laser intensity*/\
+T(Laser_wavelength),     /*laser wavelength*/\
+T(Laser_frequency),      /*laser frequency (in Hz)*/\
+T(Laser_pulsetime),      /*laser pulsetime*/\
+T(Laser_spotrange),      /*laser spotrange (in mm)*/\
+T(Laser_divergence),     /*laser divergence (in mrad)*/\
+T(end_file)         /* end of the parameters file */
 #define T(x)  x             // define T() as the name as it is
 
 //#define T(x)  #x              // define T() as the string of x
@@ -65,4 +77,19 @@ public:
    int GetFadcBins();
    int GetFadcLength();
    float GetNSB();
+
+   float Getaod_air();
+   float Getaod_aerosol();
+   float Getscat_air();
+   float Getscat_aerosol();
+   float GetLaserCoo(int i);
+   float GetLaserDir(int i);
+   float GetLaserIntensity();
+   float GetLaserIntensityErr();
+   float GetLaserWavelength();
+   float GetLaserWavelengthErr();
+   float GetLaserFrequency();
+   float GetLaserPulsetime();
+   float GetLaserSpotrange(int i=0);
+   float GetLaserDivergence(int i=0);
 };

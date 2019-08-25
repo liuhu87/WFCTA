@@ -13,6 +13,18 @@ static char SimMode[PATH_MAX_LENGTH];          //@< the simulation mode
 static float Fadc_bin = 12;                    //@< the total bin number of fadc
 static float Fadc_bin_length = 20;             //@< the bin length of each fadc
 static float Nsb = 0.;                         //@< the night sky background
+static float aod_air = 0.;                     //@< extinction coefficient of air
+static float aod_aerosol = 0;                  //@<extinction coefficient of aerosol
+static float scat_air = 0;                     //@<scattering coefficient of air
+static float scat_aerosol = 0;                 //@<scattering coefficient of aerosol
+static float laser_coo[3]={0,0,0};             //@<laser generate position (in cm)
+static float laser_dir[2]={0,0};               //@<laser generate direction (in degree)
+static float laser_intensity[2] = {0,0};       //@<laser intensity (in mJ)
+static float laser_wavelength[2] = {0,0};      //@<laser wavelength (in nm)
+static float laser_frequency = 1;              //@<laser frequency (in Hz)
+static float laser_pulsetime = 7;              //@<laser pulsetime (in ns)
+static float laser_spotrange[2] = {1,1};       //@<laser spotrange (in mm)
+static float laser_divergence[2] = {1,1};      //@<laser divergence (in mrad)
 using namespace std;
 WReadConfig::WReadConfig()
 {
@@ -127,6 +139,61 @@ void WReadConfig::readparam(char * filename)
          sscanf(line,"%s %f",token,&x);
          Nsb = x;
          break;
+     case Aod_air:
+         sscanf(line,"%s %f",token,&x);
+         aod_air = x;
+         break;
+     case Aod_aerosol:
+         sscanf(line,"%s %f",token,&x);
+         aod_aerosol = x;
+         break;
+     case Scat_air:
+         sscanf(line,"%s %f",token,&x);
+         scat_air = x;
+         break;
+     case Scat_aerosol:
+         sscanf(line,"%s %f",token,&x);
+         scat_aerosol = x;
+         break;
+     case Laser_coo:
+         sscanf(line,"%s %f %f %f",token,&x,&y,&z);
+         laser_coo[0] = x;
+         laser_coo[1] = y;
+         laser_coo[2] = z;
+         break;
+     case Laser_dir:
+         sscanf(line,"%s %f %f",token,&x,&y);
+         laser_dir[0] = x;
+         laser_dir[1] = y;
+         break;
+     case Laser_intensity:
+         sscanf(line,"%s %f %f",token,&x,&y);
+         laser_intensity[0] = x;
+         laser_intensity[1] = y;
+         break;
+     case Laser_wavelength:
+         sscanf(line,"%s %f %f",token,&x,&y);
+         laser_wavelength[0] = x;
+         laser_wavelength[1] = y;
+         break;
+     case Laser_frequency:
+         sscanf(line,"%s %f",token,&x);
+         laser_frequency = x;
+         break;
+     case Laser_pulsetime:
+         sscanf(line,"%s %f",token,&x);
+         laser_pulsetime = x;
+         break;
+     case Laser_spotrange:
+         sscanf(line,"%s %f %f",token,&x,&y);
+         laser_spotrange[0] = x;
+         laser_spotrange[1] = y;
+         break;
+     case Laser_divergence:
+         sscanf(line,"%s %f %f",token,&x,&y);
+         laser_divergence[0] = x;
+         laser_divergence[1] = y;
+         break;
      case end_file:
         // the end of the input card
         is_end = TRUE;
@@ -203,5 +270,47 @@ int WReadConfig::GetFadcLength()
 float WReadConfig::GetNSB()
 {
   return Nsb;
+}
+float WReadConfig::Getaod_air(){
+  return aod_air;
+}
+float WReadConfig::Getaod_aerosol(){
+  return aod_aerosol;
+}
+float WReadConfig::Getscat_air(){
+  return scat_air;
+}
+float WReadConfig::Getscat_aerosol(){
+  return scat_aerosol;
+}
+float WReadConfig::GetLaserCoo(int i){
+  return laser_coo[i];
+}
+float WReadConfig::GetLaserDir(int i){
+  return laser_dir[i];
+}
+float WReadConfig::GetLaserIntensity(){
+  return laser_intensity[0];
+}
+float WReadConfig::GetLaserIntensityErr(){
+  return laser_intensity[1];
+}
+float WReadConfig::GetLaserWavelength(){
+  return laser_wavelength[0];
+}
+float WReadConfig::GetLaserWavelengthErr(){
+  return laser_wavelength[1];
+}
+float WReadConfig::GetLaserFrequency(){
+  return laser_frequency;
+}
+float WReadConfig::GetLaserPulsetime(){
+  return laser_pulsetime;
+}
+float WReadConfig::GetLaserSpotrange(int i){
+  return laser_spotrange[i];
+}
+float WReadConfig::GetLaserDivergence(int i){
+  return laser_divergence[i];
 }
 

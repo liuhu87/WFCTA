@@ -36,8 +36,8 @@ int main(int argc, char**argv)
    WFTelescopeArray::jdebug=0;
    WFTelescopeArray::DoSim=true;
    WFTelescopeArray::GetHead(Form("%s/default.inp",getenv("WFCTADataDir")));
-   Atmosphere::SetParameters();
-   Atmosphere::scale=1.0e3;
+   Atmosphere::SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
+   Atmosphere::scale=1.0e4;
    Laser::scale=1.0e-8;
    //Laser::Doigen=9632;
    Laser::DoPlot=true;
@@ -54,10 +54,10 @@ int main(int argc, char**argv)
    if(!pl->pwfc) pl->pwfc=new WFCTAEvent();
    WFCTAEvent* pevt=(pl->pwfc);
    printf("WFCTAEvent: %p\n",pevt);
-   pl->SetParameters();
+   pl->SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
    pevt->CreateBranch(tree,1);
 
-   int Time=10000;
+   int Time=1;
    double time=0;
    for(int ii=0;ii<nevent;ii++){
       printf("ievent=%d Time=%d time=%lf\n",ii,Time,time);

@@ -3,6 +3,11 @@
 #include "WFCTAEvent.h"
 #include "WFCamera.h"
 #include "TH2Poly.h"
+#include "TMarker3DBox.h"
+#include "TAxis3D.h"
+#include <TCanvas.h>
+#include <TView3D.h>
+#include <TSystem.h>
 
 using namespace std;
 
@@ -267,4 +272,57 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
    }
    image->Draw(opt);
    return image;
+}
+
+TObjArray* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int ViewOpt){
+   TObjArray* array=new TObjArray();
+   double rmin[3]={1.0e10,1.0e10,1.0e100};
+   double rmax[3]={-1.0e10,-1.0e10,-1.0e100};
+   for(int ii=0;ii<NSIPM;ii++){
+      double content=mcevent.TubeSignal[0][ii];
+      double tmin=mcevent.ArrivalTimeMin[0][ii]*1.0e9; //in ns
+      double tmax=mcevent.ArrivalTimeMax[0][ii]*1.0e9; //in ns
+      if(content<=0) continue;
+      if(tmax<=0) continue;
+      int PixI=ii/PIX;
+      int PixJ=ii%PIX;
+      double ImageX,ImageY;
+      if(PixI%2==0) ImageX=PixJ+0.5-PIX/2.0;
+      else ImageX=PixJ+1.0-PIX/2.0;
+      ImageY=(PIX/2.0-PixI)-1/2.0;
+
+      ImageX=ImageX*16/32.0;
+      ImageY=ImageY*16/32.0;
+      ImageX-=0.31;
+      ImageY-=0.28;
+
+      if(ImageX<rmin[0]) rmin[0]=ImageX;
+      if(ImageX>rmax[0]) rmax[0]=ImageX;
+      if(ImageY<rmin[1]) rmin[1]=ImageY;
+      if(ImageY>rmax[1]) rmax[1]=ImageY;
+      if(tmin<rmin[2]) rmin[2]=tmin;
+      if(tmax>rmax[2]) rmax[2]=tmax;
+      //printf("Draw3D: ii=%d ImageX=%lf ImageY=%lf tmin=%le tmax=%le\n",ii,ImageX,ImageY,tmin,tmax);
+
+      TMarker3DBox* box=new TMarker3DBox();
+      box->SetDirection(0,0);
+      box->SetPosition(ImageX,ImageY,(tmax+tmin)/2.);
+      box->SetSize(0.5,0.5,(tmax-tmin)/2.);
+      box->SetFillColor(2);
+      array->Add((TObject*)box);
+   }
+   rmin[0]=-8.5; rmax[0]=8.5;
+   rmin[1]=-8.5; rmax[1]=8.5;
+   //printf("Draw3D range: xx={%lf,%lf},yy={%lf,%lf},zz={%le,%le}\n",rmin[0],rmax[0],rmin[1],rmax[1],rmin[2],rmax[2]);
+
+   TCanvas* cc=new TCanvas();
+   TView *view = TView::CreateView(1,rmin,rmax);
+   view->ShowAxis();
+   if(ViewOpt==1) view->Front();
+   else if(ViewOpt==2) view->Side();
+   else if(ViewOpt==3) view->Top();
+   cc->SetView(view);
+
+   array->Draw(opt);
+   return array;
 }

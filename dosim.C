@@ -28,7 +28,7 @@ int main(int argc,char* argv[]){
     WFTelescopeArray::jdebug=0;
     WFTelescopeArray::DoSim=true;
     CorsikaChain* pchain=new CorsikaChain(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/%s",runlist),first,last,type);
-    WFTelescopeArray::GetHead(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/default.inp"));
+    WFTelescopeArray::GetHead(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/default.inp"));
     CorsikaEvent* pevt=new CorsikaEvent();
     EventNtuple::GetHead(Form("%s",outname),1);
     //EventNtuple::GetHead(Form("/eos/user/h/hliu/%s",outname),3);

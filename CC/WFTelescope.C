@@ -702,6 +702,7 @@ int WFTelescope::RayTraceUpToCone(double x0, double y0, double z0, double m1, do
          + (ymirror0-ycluster)*(ymirror0-ycluster)
          + (zmirror0-ZCLUSTER0)*(zmirror0-ZCLUSTER0))
          - dist;
+    //printf("tcal: t1=%.9le t2=%.9le(dist=%lfmm dt=%.9le)\n\n",t,t+dist*0.1/vlight,dist,dist*0.1/vlight);
     t += dist*0.1/vlight;  //in second
     return 1;
 }
@@ -736,7 +737,7 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     u = m2;
     v = n2;
     //*ll = l2;
-    xc = -ycluster;
+    xc = ycluster; //-ycluster
     yc = xcluster;
 
     //*The photons that can enter the wenston cone*// 
@@ -751,7 +752,7 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
 
     deltax =  xc - x;
     deltay =  yc - y;
-    dircos[0] = -u;
+    dircos[0] = u; //-u
     dircos[1] = v;
     dircos[2] = -sqrt(1-u*u-v*v);
 

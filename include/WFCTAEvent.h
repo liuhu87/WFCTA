@@ -6,6 +6,7 @@
 #include <string>
 #include <map>
 #include "TObject.h"
+#include "TObjArray.h"
 #include "TTree.h"
 #include "TBranch.h"
 #include "TH2Poly.h"
@@ -96,6 +97,7 @@ public:
         bool GetAllContents(int _Entry);
         void CalculateADC(int itel=0);
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
+        TObjArray* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);
 
    ClassDef(WFCTAEvent,3);
 };

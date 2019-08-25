@@ -63,8 +63,8 @@ class Laser {
       static double wavelength0_err;
       static double frequency;
       static double pulsetime;
-      static double spotrange;
-      static double  divergence;
+      static double spotrange[2];
+      static double  divergence[2];
 
       ///position of the laser generator
       double lasercoo[3];	//in cm
@@ -74,6 +74,7 @@ class Laser {
       int Time_gen;
       double time_gen;
       int ievent_gen;
+      int iphoton_gen;
       double wavelength_gen;	//in nm
       double coor_gen[3];	//in cm
       double dir_gen[3];
