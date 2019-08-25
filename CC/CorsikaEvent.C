@@ -249,7 +249,7 @@ void CorsikaEvent::Fill(){
    if(EventNtuple::GetHead()){ //fill the data in EventNtuple
       if(DoWFCTASim()){
          pwfc->iEvent=event;
-         pwfc->rabbitTime=CommonTools::Convert(date*1000000);
+         pwfc->rabbitTime=CommonTools::Convert(date*1000000.);
          TSelector* pevt0[]={0,(TSelector*)pwfc};
          EventNtuple::GetHead()->Fill(pevt0);
       }

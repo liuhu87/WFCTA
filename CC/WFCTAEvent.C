@@ -242,6 +242,45 @@ void WFCTAEvent::CalculateADC(int itel){
       }
    }
 }
+int WFCTAEvent::GetMaxADCBin(){
+   int res=-1;
+   double maxadc=-1;
+   for(int ii=0;ii<iSiPM.size();ii++){
+      double yy=ImageAdcHigh.at(ii);
+      if(yy<=0) continue;
+      if(yy>maxadc){
+         maxadc=yy;
+         res=ii;
+      }
+   }
+   return res;
+}
+int WFCTAEvent::GetMaxTimeBin(){
+   int res=-1;
+   double maxtime=-1.e20;
+   for(int ii=0;ii<1024;ii++){
+      double yy=mcevent.ArrivalTimeMax[0][ii];
+      if(yy<=0) continue;
+      if(yy>maxtime){
+         maxtime=yy;
+         res=ii;
+      }
+   }
+   return res;
+}
+int WFCTAEvent::GetMinTimeBin(){
+   int res=-1;
+   double mintime=1.e40;
+   for(int ii=0;ii<1024;ii++){
+      double yy=mcevent.ArrivalTimeMin[0][ii];
+      if(yy<=0) continue;
+      if(yy<mintime){
+         mintime=yy;
+         res=ii;
+      }
+   }
+   return res;
+}
 
 TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
    TH2Poly* image=new TH2Poly();

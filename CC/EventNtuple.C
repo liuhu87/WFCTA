@@ -255,7 +255,11 @@ void EventNtuple::Fill(TSelector** pevt){
             }
          }
          else exist=true;
-         //if(exist) printf("EventNtuple::Fill: event=%ld adc={%f,%f}\n",((WFCTAEvent*)pevt[ibr])->iEvent,((WFCTAEvent*)pevt[ibr])->ImageAdcHigh.at(1),((WFCTAEvent*)pevt[ibr])->ImageAdcLow.at(1));
+         if(exist&&false){
+            int ibin1=((WFCTAEvent*)pevt[ibr])->GetMaxADCBin();
+            int ibin2=((WFCTAEvent*)pevt[ibr])->GetMinTimeBin();
+            printf("EventNtuple::Fill: event=%ld rabbitTime=%d bin={%d,%d} adc={%f,%f} time=%.9e\n",((WFCTAEvent*)pevt[ibr])->iEvent,((WFCTAEvent*)pevt[ibr])->rabbitTime,ibin1,ibin2,((WFCTAEvent*)pevt[ibr])->ImageAdcHigh.at(ibin1>=0?ibin1:0),((WFCTAEvent*)pevt[ibr])->ImageAdcLow.at(ibin1>=0?ibin1:0),((WFCTAEvent*)pevt[ibr])->mcevent.ArrivalTimeMin[0][ibin2>=0?ibin2:0]);
+         }
       }
       if(exist) _Tree->Fill();
    }

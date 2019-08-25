@@ -96,6 +96,9 @@ public:
         void GetBranch(TTree *fChain);
         bool GetAllContents(int _Entry);
         void CalculateADC(int itel=0);
+        int GetMaxADCBin();
+        int GetMaxTimeBin();
+        int GetMinTimeBin();
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
         TObjArray* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);
 
