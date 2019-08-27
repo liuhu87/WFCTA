@@ -84,6 +84,11 @@ int main(int argc, char**argv)
   /*********************************************************************/
 
   WFCTADecode *wfctaDecode = new WFCTADecode();
+  clb_initial_Time = -1000;
+  clb_initial_time = -1000;
+  fired_tube = -1000;
+  status_readback_Time = -1000;
+  status_readback_time = -1000;
   for(int i=0;i<1024;i++){
     single_thresh[i] = -1000;
     record_thresh[i] = -1000;
@@ -170,6 +175,11 @@ int main(int argc, char**argv)
 
 		  Status->Fill();
 		  //iTel = -1;
+		  clb_initial_Time = -1000;
+		  clb_initial_time = -1000;
+		  fired_tube = -1000;
+		  status_readback_Time = -1000;
+		  status_readback_time = -1000;
 		  for(int i=0;i<1024;i++){
 		    single_thresh[i] = -1000;
                     record_thresh[i] = -1000;
@@ -191,24 +201,30 @@ int main(int argc, char**argv)
 		  break;
 		case 100:
 		  iTel = ITEL;
+                  Status->Fill();
+                  clb_initial_Time = -1000;
+                  clb_initial_time = -1000;
+                  fired_tube = -1000;
+                  status_readback_Time = -1000;
+                  status_readback_time = -1000;
                   for(int i=0;i<1024;i++){
-                    single_thresh[i] = -5000;
-                    record_thresh[i] = -5000;
-                    single_count[i] = -5000;
-                    single_time[i] = -5000;
-                    DbTemp[i] = -5000;
-                    HV[i] = -5000;
-                    PreTemp[i] = -5000;
-                    BigResistence[i] = -5000;
-                    SmallResistence[i] = -5000;
-                    ClbTime[i] = -5000;
-                    ClbTemp[i] = -5000;
+                    single_thresh[i] = -1000;
+                    record_thresh[i] = -1000;
+                    single_count[i] = -1000;
+                    single_time[i] = -1000;
+                    DbTemp[i] = -1000;
+                    HV[i] = -1000;
+                    PreTemp[i] = -1000;
+                    BigResistence[i] = -1000;
+                    SmallResistence[i] = -1000;
+                    ClbTime[i] = -1000;
+                    ClbTemp[i] = -1000;
                   }
                   for(int i=0;i<10;i++){
-                    fpgaVersion[i] = -5000;
+                    fpgaVersion[i] = -1000;
                   }
                   statuspackloop = false;
-                  Status->Fill();
+		  break;
 	      }
               //if(status_pack_marker>0&&status_pack_marker<10){
               //  wfctaDecode->DealFPGAPackage((int *)fpgaVersion);
