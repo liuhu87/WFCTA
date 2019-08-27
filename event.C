@@ -94,11 +94,11 @@ int main(int argc, char**argv)
           //printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
           if(wfctaDecode->bigPackCheck(buf,int(size_of_read),packStart))
           {
-	    dumpPacket(buf,24,16);
+	    //dumpPacket(buf,24,16);
 	    wfctaEvent->iTel = ITEL;
-	    printf("ITEL%d:\n",ITEL);
+	    //printf("ITEL%d:\n",ITEL);
 	    //get info eventID and rabbit_time//
-	    printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
+	    //printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
 	    big_pack_lenth = wfctaDecode->bigpackLen();
 
             wfctaEvent->iEvent=wfctaDecode->eventId(buf);

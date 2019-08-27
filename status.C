@@ -18,6 +18,12 @@ using namespace std;
 
 int main(int argc, char**argv)
 {
+  if(argc!=3)
+  {
+      printf("Use %s inputfile outfile\n",argv[0]);
+      return 0;
+  }
+
   FILE *fp;
   uint8_t *buf;// = new uint8_t[BUF_LEN];
   size_t size_of_read;
@@ -114,7 +120,7 @@ int main(int argc, char**argv)
         packStart = 0;
 	while(1)
 	{
-          dumpPacket(buf,24,16);
+          //dumpPacket(buf,24,16);
           if(wfctaDecode->StatusPack(buf,int(size_of_read),packStart))
           {
 	    statuspackloop = true;
@@ -123,7 +129,7 @@ int main(int argc, char**argv)
   	      status_pack_marker = wfctaDecode->StatusPackCheck(buf,int(size_of_read),packStart);
               packSize = wfctaDecode->PackSize();
 	      packStart = packSize;
-	      //printf("packSize:%lld | status_pack_marker:%x\n",packSize,status_pack_marker);
+	      printf("packSize:%lld | status_pack_marker:%x\n",packSize,status_pack_marker);
               //dumpPacket(buf,packSize,16);
 
               switch(status_pack_marker){
@@ -162,12 +168,6 @@ int main(int argc, char**argv)
 		  status_readback_Time = wfctaDecode->GetStatusReadbackTime(buf,packSize);
 		  status_readback_time = wfctaDecode->GetStatusReadbacktime(buf,packSize);
 
-		  //printf("a status:\n");
-		  //printf("%d %d\n",single_thresh[0],record_thresh[0]);
-		  //printf("%ld %ld\n",single_count[0],single_time[0]);
-		  //printf("%f %f %f\n",HV[0],PreTemp[0],ClbTemp[0]);
-		  //printf("%ld %lf | %ld %lf\n\n",clb_initial_Time,clb_initial_time,status_readback_Time,status_readback_time);
-
 		  Status->Fill();
 		  //iTel = -1;
 		  for(int i=0;i<1024;i++){
@@ -189,6 +189,26 @@ int main(int argc, char**argv)
 		  statuspackloop = false;
 		  //packStart = packSize;
 		  break;
+		case 100:
+		  iTel = ITEL;
+                  for(int i=0;i<1024;i++){
+                    single_thresh[i] = -5000;
+                    record_thresh[i] = -5000;
+                    single_count[i] = -5000;
+                    single_time[i] = -5000;
+                    DbTemp[i] = -5000;
+                    HV[i] = -5000;
+                    PreTemp[i] = -5000;
+                    BigResistence[i] = -5000;
+                    SmallResistence[i] = -5000;
+                    ClbTime[i] = -5000;
+                    ClbTemp[i] = -5000;
+                  }
+                  for(int i=0;i<10;i++){
+                    fpgaVersion[i] = -5000;
+                  }
+                  statuspackloop = false;
+                  Status->Fill();
 	      }
               //if(status_pack_marker>0&&status_pack_marker<10){
               //  wfctaDecode->DealFPGAPackage((int *)fpgaVersion);

@@ -79,7 +79,7 @@ uint8_t WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize, int64_t packSt
         }
         readPos++;
     }
-    return 0;
+    return 100;
 }
 
 int WFCTADecode::statusPackCheck(uint8_t *begin, int bufsize,int type)
@@ -832,10 +832,10 @@ void WFCTADecode::Calc_Q_Base(uint8_t *begin, short isipm)
         for(int i=m_wavepeak+4;i<28;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
         for(int i=m_wavepeak-2;i<m_wavepeak+4;i++) { m_Adchigh += pulsehigh[i]; m_Adclow += pulselow[i];}
     }
-    //m_Basehigh = m_Basehigh/88.;
-    //m_Baselow = m_Baselow/88.;
-    //m_Adchigh -= m_Basehigh*24;
-    //m_Adclow -= m_Baselow*24;
+    m_Basehigh = m_Basehigh/88.;
+    m_Baselow = m_Baselow/88.;
+    m_Adchigh -= m_Basehigh*24;
+    m_Adclow -= m_Baselow*24;
 
 }
 
@@ -851,14 +851,14 @@ void WFCTADecode::waveform(uint8_t *begin, short isipm)
 
     for(int i=0; i<14; i++)
     {   
-        pulsehigh[i] = ((int)begin[waveStart1+i*4]<<8)|((int)begin[waveStart1+i*4+1]);
-        pulselow[i]  = ((int)begin[waveStart1+i*4+2]<<8)|((int)begin[waveStart1+i*4+3]);
+        pulsehigh[i] = ((int)(begin[waveStart1+i*4]&0x7f)<<8)|((int)begin[waveStart1+i*4+1]);
+        pulselow[i]  = ((int)(begin[waveStart1+i*4+2]&0x7f)<<8)|((int)begin[waveStart1+i*4+3]);
     }   
 
     for(int i=14; i<28; i++)
     {   
-        pulsehigh[i] = ((int)begin[waveStart2+i*4]<<8)|((int)begin[waveStart2+i*4+1]);
-        pulselow[i]  = ((int)begin[waveStart2+i*4+2]<<8)|((int)begin[waveStart2+i*4+3]);
+        pulsehigh[i] = ((int)(begin[waveStart2+i*4]&0x7f)<<8)|((int)begin[waveStart2+i*4+1]);
+        pulselow[i]  = ((int)(begin[waveStart2+i*4+2]&0x7f)<<8)|((int)begin[waveStart2+i*4+3]);
     }
 }
 
