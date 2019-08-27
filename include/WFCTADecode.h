@@ -15,36 +15,47 @@ public:
     WFCTADecode();
     ~WFCTADecode();
 
-    uint8_t StatusPackCheck(uint8_t *begin, int bufsize);
-    int StatusPackCheck(uint8_t *begin, int bufsize,int type);
+    bool StatusPack(uint8_t *begin, int bufsize, int64_t packStart);
+    uint8_t StatusPackCheck(uint8_t *begin, int bufsize, int64_t packStart);
+    int statusPackCheck(uint8_t *begin, int bufsize,int type);//change "StatusPackCheck" to "statusPackCheck" by youzhiyong --- 2019 08 22
 
-    bool bigPackCheck(uint8_t *begin, int bufsize);
-    void Find_SiPMs(uint8_t *begin, int packsize);
+    bool FEEDataFragment(uint8_t *begin);
+    int feeDataHead() {return FEEDataHead;};
+    bool bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart);
+    void Find_SiPMs(uint8_t *begin);//, int packStart);
 
-    uint64_t PackSize() {return packSize;};
+    int64_t PackSize() {return packSize;};
+    int32_t bigpackLen() {return big_pack_len;};
     map<short, int>& GetSiPM_Position() {return m_sipm_position;};
 
+
+    int32_t sliceLength(uint8_t *begin,int feedatahead);
+    short Telid(uint8_t *begin,int feedatahead);
     uint64_t eventId(uint8_t *begin);
+    int16_t nFired(uint8_t *begin);
     uint64_t RabbitTime(uint8_t *begin);
     //uint64_t Rabbittime(uint8_t *begin);
     double Rabbittime(uint8_t *begin);
 
-    uint8_t GetPeak(uint8_t *begin, short isipm);
-    bool Getgain_marker(uint8_t *begin, short isipm);
-    uint8_t Getmypeak(uint8_t *begin, short isipm);
-    uint16_t GetSingle_Thresh(uint8_t *begin, short isipm);
-    uint16_t GetRecord_Thresh(uint8_t *begin, short isipm);
+    uint64_t eventId_in_channel(uint8_t *begin, short isipm);
+    uint8_t zipMode(uint8_t *begin, short isipm);
+    //uint8_t GetPeak(uint8_t *begin, short isipm);
+    //bool Getgain_marker(uint8_t *begin, short isipm);
+    uint8_t Getwavepeak(uint8_t *begin, short isipm);
+    int32_t GetpeakAmp(uint8_t *begin, short isipm);
+    //uint16_t GetSingle_Thresh(uint8_t *begin, short isipm);
+    //uint16_t GetRecord_Thresh(uint8_t *begin, short isipm);
     bool GetOver_Single_Mark(uint8_t *begin, short isipm);
     bool GetOver_Record_Mark(uint8_t *begin, short isipm);
-    float GetADC_Cut(uint8_t *begin, short isipm);
-    float AdcHigh(uint8_t *begin, short isipm);
-    float AdcLow(uint8_t *begin, short isipm);
+    //float GetADC_Cut(uint8_t *begin, short isipm);
+    //float AdcHigh(uint8_t *begin, short isipm);
+    //float AdcLow(uint8_t *begin, short isipm);
     float BaseHigh(uint8_t *begin, short isipm);
-    float BaseLow(uint8_t *begin, short isipm);
-    float GetmyImageBaseHigh(uint8_t *begin, short isipm);
-    float GetmyImageBaseLow(uint8_t *begin, short isipm);
-    float GetmyImageAdcHigh(uint8_t *begin, short isipm);
-    float GetmyImageAdcLow(uint8_t *begin, short isipm);
+    //float BaseLow(uint8_t *begin, short isipm);
+    float GetwaveImageBaseHigh(uint8_t *begin, short isipm);
+    float GetwaveImageBaseLow(uint8_t *begin, short isipm);
+    float GetwaveImageAdcHigh(uint8_t *begin, short isipm);
+    float GetwaveImageAdcLow(uint8_t *begin, short isipm);
     void GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pulsel);
     
 
@@ -74,6 +85,7 @@ private:
     //size_t m_size;
     int64_t head,tail;
     int64_t readPos;
+    int FEEDataHead;
 
     uint8_t status_pack_mark;
     int64_t packSize;
@@ -91,10 +103,12 @@ private:
     float m_Adchigh;
     float m_Adclow;
 
-    uint8_t m_mypeak;
+    int32_t big_pack_len;
+    int32_t peakAmp;
+    uint8_t m_wavepeak;
 
-    int pulsehigh[32];
-    int pulselow[32];
+    int pulsehigh[28];
+    int pulselow[28];
 
   ClassDef(WFCTADecode,1);
 };

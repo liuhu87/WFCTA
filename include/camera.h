@@ -3,7 +3,7 @@
 #include <math.h>
 
 //In subcluster, 23 means F_3DB_2//
-int subcluster[8][8] =
+/*int subcluster[8][8] =
     {
         {11,12,13,14,15,16,17,18},
         {21,22,23,24,25,26,27,28},
@@ -13,9 +13,9 @@ int subcluster[8][8] =
         {61,62,63,64,65,66,67,68},
         {71,72,73,74,75,76,77,78},
         {81,82,83,84,85,86,87,88}
-    };
-//In ADRESS, 23 means row_2 column_3//
-int ADRESS[8][8] =
+    };*/
+//In SC_ADRESS, 23 means row_2 column_3//
+int SC_ADRESS[8][8] =
     {
         {44,42,51,53,55,57,48,46},
         {34,32,61,63,65,67,38,36},
@@ -42,8 +42,8 @@ void SC_Channel2SiPM(short F_DB, short mChannel, short *mSiPM)
     double Channel_Y;
     FPGA = F_DB%10;
     DB = F_DB/10;
-    SC_X = ADRESS[DB-1][FPGA-1]%10;
-    SC_Y = ADRESS[DB-1][FPGA-1]/10;
+    SC_X = SC_ADRESS[DB-1][FPGA-1]%10;
+    SC_Y = SC_ADRESS[DB-1][FPGA-1]/10;
 
     if(mChannel<9)
     {

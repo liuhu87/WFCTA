@@ -17,31 +17,12 @@ WFCTAEvent* WFCTAEvent::_Head=0;
 TTree* WFCTAEvent::_Tree=0;
 const char* WFCTAEvent::_Name="Event";
 TBranch* WFCTAEvent::bAll=0;
-//TBranch* WFCTAEvent::bEvent=0;
-//TBranch* WFCTAEvent::bTime=0;
-//TBranch* WFCTAEvent::btime=0;
-//TBranch* WFCTAEvent::bADC_Cut=0;
-//TBranch* WFCTAEvent::bBaseHigh=0;
-//TBranch* WFCTAEvent::bBaseLow=0;
-//TBranch* WFCTAEvent::bAdcHigh=0;
-//TBranch* WFCTAEvent::bAdcLow=0;
-//TBranch* WFCTAEvent::bmyBaseHigh=0;
-//TBranch* WFCTAEvent::bmyBaseLow=0;
-//TBranch* WFCTAEvent::bmyAdcHigh=0;
-//TBranch* WFCTAEvent::bmyAdcLow=0;
-//TBranch* WFCTAEvent::bSiPM=0;
-//TBranch* WFCTAEvent::bSThr=0;
-//TBranch* WFCTAEvent::bRThr=0;
-//TBranch* WFCTAEvent::bpeak=0;
-//TBranch* WFCTAEvent::bmypeak=0;
-//TBranch* WFCTAEvent::bgain_marker=0;
-//TBranch* WFCTAEvent::bOSMarker=0;
-//TBranch* WFCTAEvent::bORMarker=0;
 TBranch* WFCTAEvent::bmcevent=0;
 TBranch* WFCTAEvent::bledevent=0;
 TBranch* WFCTAEvent::blaserevent=0;
 WFCTAEvent::WFCTAEvent():TSelector()
 {
+   ievent.reserve(MAXPMT);
    ADC_Cut.reserve(MAXPMT);
    ImageBaseHigh.reserve(MAXPMT);
    ImageBaseLow.reserve(MAXPMT);
@@ -88,9 +69,21 @@ WFCTAEvent::~WFCTAEvent()
 
 void WFCTAEvent::Init()
 {
+   iTel=-1;
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
+   n_fired=-1;
+   iSiPM.clear();
+   ievent.clear();
+   gain_marker.clear();
+   peak.clear();
+   mypeak.clear();
+   Single_Threshold.clear();
+   Record_Threshold.clear();
+   Over_Single_Marker.clear();
+   Over_Record_Marker.clear();
+   ievent.clear();
    ADC_Cut.clear();
    ImageBaseHigh.clear();
    ImageBaseLow.clear();
@@ -115,9 +108,21 @@ void WFCTAEvent::Init()
 }
 void WFCTAEvent::EventInitial()
 {
+   iTel=-1;
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
+   n_fired=-1;
+   iSiPM.clear();
+   ievent.clear();
+   gain_marker.clear();
+   peak.clear();
+   mypeak.clear();
+   Single_Threshold.clear();
+   Record_Threshold.clear();
+   Over_Single_Marker.clear();
+   Over_Record_Marker.clear();
+   ievent.clear();
    ADC_Cut.clear();
    ImageBaseHigh.clear();
    ImageBaseLow.clear();
@@ -171,26 +176,6 @@ void WFCTAEvent::CreateBranch(TTree *tree, int branchSplit){
 }
 void WFCTAEvent::GetBranch(TTree *fChain){
    bAll=fChain->GetBranch(BranchName());
-   //bEvent=fChain->GetBranch("iEvent");
-   //bTime=fChain->GetBranch("rabbitTime");
-   //btime=fChain->GetBranch("rabbittime");
-   //bADC_Cut=fChain->GetBranch("ADC_Cut");
-   //bBaseHigh=fChain->GetBranch("ImageBaseHigh");
-   //bBaseLow=fChain->GetBranch("ImageBaseLow");
-   //bAdcHigh=fChain->GetBranch("ImageAdcHigh");
-   //bAdcLow=fChain->GetBranch("ImageAdcLow");
-   //bmyBaseHigh=fChain->GetBranch("myImageBaseHigh");
-   //bmyBaseLow=fChain->GetBranch("myImageBaseLow");
-   //bmyAdcHigh=fChain->GetBranch("myImageAdcHigh");
-   //bmyAdcLow=fChain->GetBranch("myImageAdcLow");
-   //bSiPM=fChain->GetBranch("iSiPM");
-   //bSThr=fChain->GetBranch("Single_Threshold");
-   //bRThr=fChain->GetBranch("Record_Threshold");
-   //bpeak=fChain->GetBranch("peak");
-   //bmypeak=fChain->GetBranch("mypeak");
-   //bgain_marker=fChain->GetBranch("gain_marker");
-   //bOSMarker=fChain->GetBranch("Over_Single_Marker");
-   //bORMarker=fChain->GetBranch("Over_Record_Marker");
    bmcevent=fChain->GetBranch("mcevent");
    bledevent=fChain->GetBranch("ledevent");
    blaserevent=fChain->GetBranch("laserevent");
@@ -204,26 +189,6 @@ bool WFCTAEvent::GetAllContents(int _Entry){
    //if(!blaserevent) exist=false;
    if(!exist) return false;
    int ncount=bAll->GetEntry(_Entry);
-   //bEvent->GetEntry(_Entry);
-   //bTime->GetEntry(_Entry);
-   //btime->GetEntry(_Entry);
-   //bADC_Cut->GetEntry(_Entry);
-   //bBaseHigh->GetEntry(_Entry);
-   //bBaseLow->GetEntry(_Entry);
-   //bAdcHigh->GetEntry(_Entry);
-   //bAdcLow->GetEntry(_Entry);
-   //bmyBaseHigh->GetEntry(_Entry);
-   //bmyBaseLow->GetEntry(_Entry);
-   //bmyAdcHigh->GetEntry(_Entry);
-   //bmyAdcLow->GetEntry(_Entry);
-   //bSiPM->GetEntry(_Entry);
-   //bSThr->GetEntry(_Entry);
-   //bRThr->GetEntry(_Entry);
-   //bpeak->GetEntry(_Entry);
-   //bmypeak->GetEntry(_Entry);
-   //bgain_marker->GetEntry(_Entry);
-   //bOSMarker->GetEntry(_Entry);
-   //bORMarker->GetEntry(_Entry);
    if(bmcevent) bmcevent->GetEntry(_Entry);
    if(bledevent) bledevent->GetEntry(_Entry);
    if(blaserevent) blaserevent->GetEntry(_Entry);
