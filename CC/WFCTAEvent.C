@@ -15,7 +15,7 @@ ClassImp(WFCTAEvent);
 
 WFCTAEvent* WFCTAEvent::_Head=0;
 TTree* WFCTAEvent::_Tree=0;
-const char* WFCTAEvent::_Name="Event";
+const char* WFCTAEvent::_Name="WFCTAEvent";
 TBranch* WFCTAEvent::bAll=0;
 TBranch* WFCTAEvent::bmcevent=0;
 TBranch* WFCTAEvent::bledevent=0;

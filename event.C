@@ -141,8 +141,7 @@ int main(int argc, char**argv)
   fclose(fp);
 
 /******************************************************************************/
-  eventShow->Write();
-  //rootfile->Write();
+  rootfile->Write();
   rootfile->Close();
 
 }
