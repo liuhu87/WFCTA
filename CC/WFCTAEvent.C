@@ -37,6 +37,7 @@ WFCTAEvent::WFCTAEvent():TSelector()
    Record_Threshold.reserve(MAXPMT);
    peak.reserve(MAXPMT);
    mypeak.reserve(MAXPMT);
+   peakamp.reserve(MAXPMT);
    gain_marker.reserve(MAXPMT);
    Over_Single_Marker.reserve(MAXPMT);
    Over_Record_Marker.reserve(MAXPMT);
@@ -55,6 +56,7 @@ WFCTAEvent::WFCTAEvent():TSelector()
    Record_Threshold.resize(MAXPMT);
    peak.resize(MAXPMT);
    mypeak.resize(MAXPMT);
+   peakamp.resize(MAXPMT);
    gain_marker.resize(MAXPMT);
    Over_Single_Marker.resize(MAXPMT);
    Over_Record_Marker.resize(MAXPMT);
@@ -73,12 +75,15 @@ void WFCTAEvent::Init()
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
+   big_pack_lenth=-1;
    n_fired=-1;
+   n_Channel=-1;
    iSiPM.clear();
    ievent.clear();
    gain_marker.clear();
    peak.clear();
    mypeak.clear();
+   peakamp.clear();
    Single_Threshold.clear();
    Record_Threshold.clear();
    Over_Single_Marker.clear();
@@ -98,6 +103,7 @@ void WFCTAEvent::Init()
    Record_Threshold.clear();
    peak.clear();
    mypeak.clear();
+   peakamp.clear();
    gain_marker.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();
@@ -112,12 +118,15 @@ void WFCTAEvent::EventInitial()
    iEvent=-1;
    rabbitTime=0;
    rabbittime=0;
+   big_pack_lenth=-1;
    n_fired=-1;
+   n_Channel=-1;
    iSiPM.clear();
    ievent.clear();
    gain_marker.clear();
    peak.clear();
    mypeak.clear();
+   peakamp.clear();
    Single_Threshold.clear();
    Record_Threshold.clear();
    Over_Single_Marker.clear();
@@ -137,6 +146,7 @@ void WFCTAEvent::EventInitial()
    Record_Threshold.clear();
    peak.clear();
    mypeak.clear();
+   peakamp.clear();
    gain_marker.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();

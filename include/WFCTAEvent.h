@@ -33,7 +33,9 @@ public:
 	long iEvent;
 	long rabbitTime;
 	double rabbittime;
+	int big_pack_lenth;
 	short n_fired;
+	short n_Channel;
 
 	vector<long> ievent;
 	vector<float> ADC_Cut;  //!
@@ -50,6 +52,7 @@ public:
 	vector<short> Record_Threshold;  //!
 	vector<char> peak;  //!
 	vector<char> mypeak;
+	vector<int> peakamp;
 	vector<bool> gain_marker;  //!
 	vector<bool> Over_Single_Marker;
 	vector<bool> Over_Record_Marker;

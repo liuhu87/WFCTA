@@ -29,17 +29,12 @@ int main(int argc, char**argv)
   int32_t slicelength;
   size_t size_of_read;
   short ITEL;
-  fp = fopen(argv[1],"rb");
   int FEEDataHead;
 
   int64_t packStart = 0;
   map<short, int>* sipm_position;
   map<short, int>::iterator sipm_position_iter;
-  int32_t big_pack_lenth;
-  //int16_t n_fired; 
-  int n_Channel;
   int Npoint[28] = {0};  for(int i=0;i<28;i++) {Npoint[i]=i;}
-  vector<int>* peakamp = new vector<int>();
   int pulsehigh[1024][28];
   int pulselow[1024][28];
 
@@ -48,10 +43,6 @@ int main(int argc, char**argv)
   /*********************************************************************/
   TTree *eventShow = new TTree("eventShow","info of evnets");
   wfctaEvent -> CreateBranch(eventShow,1);
-  eventShow -> Branch("big_pack_lenth",&big_pack_lenth,"big_pack_lenth/I");
-  //eventShow -> Branch("n_fired",&n_fired,"n_fired/S");
-  eventShow -> Branch("n_Channel",&n_Channel,"n_Channel/I");
-  eventShow -> Branch("peakamp","vector<int>",&peakamp);
   eventShow -> Branch("Npoint",Npoint,"Npoint[28]/I");
   eventShow -> Branch("pulsehigh",pulsehigh,"pulsehigh[1024][28]/I");
   eventShow -> Branch("pulselow",pulselow,"pulselow[1024][28]/I");
@@ -61,7 +52,6 @@ int main(int argc, char**argv)
 
   //Events Initial//
   wfctaEvent->EventInitial();
-  peakamp->clear();
   for(int i=0;i<1024;i++){
     for(int j=0;j<28;j++){
       pulsehigh[i][j] = 0;
@@ -100,7 +90,7 @@ int main(int argc, char**argv)
 	    //printf("ITEL%d:\n",ITEL);
 	    //get info eventID and rabbit_time//
 	    //printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
-	    big_pack_lenth = wfctaDecode->bigpackLen();
+	    wfctaEvent->big_pack_lenth = wfctaDecode->bigpackLen();
 
             wfctaEvent->iEvent=wfctaDecode->eventId(buf);
             wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
@@ -113,9 +103,9 @@ int main(int argc, char**argv)
 	    sipm_position = &(wfctaDecode->GetSiPM_Position());
 
 	    //get info of each sipm: q, base, peakposition...//
-	    n_Channel = 0;
+	    wfctaEvent->n_Channel = 0;
 	    for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){
-	      n_Channel++;
+	      wfctaEvent->n_Channel++;
 	      wfctaEvent->iSiPM.push_back( sipm_position_iter->first );
   	      wfctaEvent->ievent.push_back( wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first) );
 	      wfctaEvent->Over_Single_Marker.push_back( wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first) );
@@ -124,7 +114,7 @@ int main(int argc, char**argv)
               //printf("%d %d:\n",wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first),sipm_position_iter->first);
 	      wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)pulsehigh, (int *)pulselow);
 	      wfctaEvent->mypeak.push_back( wfctaDecode->Getwavepeak(buf,sipm_position_iter->first) );
-              peakamp->push_back( wfctaDecode->GetpeakAmp(buf,sipm_position_iter->first) );
+              wfctaEvent->peakamp.push_back( wfctaDecode->GetpeakAmp(buf,sipm_position_iter->first) );
 	      wfctaEvent->myImageBaseHigh.push_back( wfctaDecode->GetwaveImageBaseHigh(buf,sipm_position_iter->first) );
               wfctaEvent->myImageBaseLow.push_back( wfctaDecode->GetwaveImageBaseLow(buf,sipm_position_iter->first) );
               wfctaEvent->myImageAdcHigh.push_back( wfctaDecode->GetwaveImageAdcHigh(buf,sipm_position_iter->first) );
@@ -144,7 +134,6 @@ int main(int argc, char**argv)
 
             eventShow->Fill();
 	    wfctaEvent->EventInitial();
-	    peakamp->clear();
 	    for(int i=0;i<1024;i++){
               for(int j=0;j<28;j++){
                 pulsehigh[i][j] = 0;
