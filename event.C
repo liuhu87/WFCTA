@@ -25,7 +25,7 @@ int main(int argc, char**argv)
   }
 
   FILE *fp;
-  uint8_t *buf;// = new uint8_t[BUF_LEN];
+  uint8_t *buf = NULL;// = new uint8_t[BUF_LEN];
   int32_t slicelength;
   size_t size_of_read;
   short ITEL;
@@ -34,39 +34,29 @@ int main(int argc, char**argv)
   int64_t packStart = 0;
   map<short, int>* sipm_position;
   map<short, int>::iterator sipm_position_iter;
-  int Npoint[28] = {0};  for(int i=0;i<28;i++) {Npoint[i]=i;}
-  int pulsehigh[1024][28];
-  int pulselow[1024][28];
 
   TFile *rootfile = new TFile(argv[2],"recreate");
   WFCTAEvent *wfctaEvent = new WFCTAEvent();
   /*********************************************************************/
   TTree *eventShow = new TTree("eventShow","info of evnets");
   wfctaEvent -> CreateBranch(eventShow,1);
-  eventShow -> Branch("Npoint",Npoint,"Npoint[28]/I");
-  eventShow -> Branch("pulsehigh",pulsehigh,"pulsehigh[1024][28]/I");
-  eventShow -> Branch("pulselow",pulselow,"pulselow[1024][28]/I");
   /*********************************************************************/
 
   WFCTADecode *wfctaDecode = new WFCTADecode();
 
   //Events Initial//
   wfctaEvent->EventInitial();
-  for(int i=0;i<1024;i++){
-    for(int j=0;j<28;j++){
-      pulsehigh[i][j] = 0;
-      pulselow[i][j] = 0;
-    }
-  }
 
   fp = fopen(argv[1],"rb");
   int nevent=0;
   while(true)
   {
-      delete buf;
+      if(buf!=NULL)
+        {delete buf;}
       buf = new uint8_t[40];
       size_of_read = fread((uint8_t *)buf,1,40,fp);
       if(size_of_read==0){break;}
+      //dumpPacket(buf,24,16);
       if(wfctaDecode->FEEDataFragment(buf))
       {
 	FEEDataHead = wfctaDecode->feeDataHead();
@@ -112,7 +102,7 @@ int main(int argc, char**argv)
 	      wfctaEvent->Over_Record_Marker.push_back( wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first) );
 	      wfctaEvent->ImageBaseHigh.push_back( wfctaDecode->BaseHigh(buf,sipm_position_iter->first) );
               //printf("%d %d:\n",wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first),sipm_position_iter->first);
-	      wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)pulsehigh, (int *)pulselow);
+	      wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)(wfctaEvent->pulsehigh), (int *)(wfctaEvent->pulselow));
 	      wfctaEvent->mypeak.push_back( wfctaDecode->Getwavepeak(buf,sipm_position_iter->first) );
               wfctaEvent->peakamp.push_back( wfctaDecode->GetpeakAmp(buf,sipm_position_iter->first) );
 	      wfctaEvent->myImageBaseHigh.push_back( wfctaDecode->GetwaveImageBaseHigh(buf,sipm_position_iter->first) );
@@ -134,19 +124,12 @@ int main(int argc, char**argv)
 
             eventShow->Fill();
 	    wfctaEvent->EventInitial();
-	    for(int i=0;i<1024;i++){
-              for(int j=0;j<28;j++){
-                pulsehigh[i][j] = 0;
-                pulselow[i][j] = 0;
-              }
-	    }
+
 	    packStart = wfctaDecode->PackSize();
           }
           else
           {
 	      break;
-	      //packStart =wfctaDecode->PackSize();
-              //fseek(fp,-size_of_read+1,1);
           }
         } 
       }

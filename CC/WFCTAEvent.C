@@ -88,7 +88,6 @@ void WFCTAEvent::Init()
    Record_Threshold.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();
-   ievent.clear();
    ADC_Cut.clear();
    ImageBaseHigh.clear();
    ImageBaseLow.clear();
@@ -98,16 +97,15 @@ void WFCTAEvent::Init()
    myImageBaseLow.clear();
    myImageAdcHigh.clear();
    myImageAdcLow.clear();
-   iSiPM.clear();
-   Single_Threshold.clear();
-   Record_Threshold.clear();
-   peak.clear();
-   mypeak.clear();
-   peakamp.clear();
-   gain_marker.clear();
-   Over_Single_Marker.clear();
-   Over_Record_Marker.clear();
-   
+
+   for(int j=0;j<28;j++){
+     Npoint[j]=j;
+     for(int i=0;i<1024;i++){
+       pulsehigh[i][j] = 0;
+       pulselow[i][j] = 0;
+     }
+   }
+  
    mcevent.Init();
    ledevent.Init();
    laserevent.Init();
@@ -131,7 +129,6 @@ void WFCTAEvent::EventInitial()
    Record_Threshold.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();
-   ievent.clear();
    ADC_Cut.clear();
    ImageBaseHigh.clear();
    ImageBaseLow.clear();
@@ -141,16 +138,14 @@ void WFCTAEvent::EventInitial()
    myImageBaseLow.clear();
    myImageAdcHigh.clear();
    myImageAdcLow.clear();
-   iSiPM.clear();
-   Single_Threshold.clear();
-   Record_Threshold.clear();
-   peak.clear();
-   mypeak.clear();
-   peakamp.clear();
-   gain_marker.clear();
-   Over_Single_Marker.clear();
-   Over_Record_Marker.clear();
-   
+
+   for(int j=0;j<28;j++){
+     for(int i=0;i<1024;i++){
+       pulsehigh[i][j] = 0;
+       pulselow[i][j] = 0;
+     }
+   }
+  
    mcevent.Reset();
    ledevent.Reset();
    laserevent.Reset();
