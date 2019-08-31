@@ -79,6 +79,7 @@ uint8_t WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize, int64_t packSt
         }
         readPos++;
     }
+    packSize = readPos;
     return 100;
 }
 

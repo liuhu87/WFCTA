@@ -1,0 +1,16 @@
+# .bash_profile
+#export ROOTSYS=/afs/ihep.ac.cn/soft/YBJ/anysw/slc5_ia64_gcc41/external/root/5.34.03
+export ROOTSYS=/afs/ihep.ac.cn/soft/YBJ/anysw/slc6_ia64_gcc44/external/root/5.34.36
+#export PATH=$PATH:$ROOTSYS/bin
+#export PATH=$PATH:$ROOTSYS/bin:/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin
+export PATH=${ROOTSYS}/bin:${PATH}:/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin/
+export LD_LIBRARY_PATH=$ROOTSYS/lib:$LD_LIBRARY_PATH
+export FLUPRO=/workfs/ybj/youzhiyong/fluka2011.2c 
+#export TMPDIR=/ybj/ybjx02d/user/llma/MagicSoft/Simulation/Corsika/output
+#export FLUPRO=/ybj/ybjx02d/user/llma/Simulation/Corsika/Mmcs6500/fluka2008.3
+export FLUFOR=g77
+export F77=g77
+#source /afs/ihep.ac.cn/users/l/lit/soft/lodestar-dev/setup.sh
+#source /afs/ihep.ac.cn/users/l/lhasoft/slc5/lodestar-dev/setup.sh
+#source /scratchfs/ybj/biby/FrameworkFile/setup.sh
+#export DISPLAY=localhost
