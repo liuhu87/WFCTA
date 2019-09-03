@@ -489,10 +489,10 @@ double Laser::mindist(double zero[3],double coor_in[3],double dir_in[3],double *
 }
 double Laser::mindist(double coor_in[3],double dir_in[3],int &whichtel,double *coor_min,bool &decrease){
    int nct;
-   double telcoor[NCTMax][2];
+   double telcoor[NCTMax][3];
    WFTelescopeArray* pta=WFTelescopeArray::GetHead();
    if(!pta){
-      nct=1; telcoor[0][0]=telcoor[0][1]=0;
+      nct=1; telcoor[0][0]=telcoor[0][1]=telcoor[0][2]=0;
    }
    else{
       nct=pta->CTNumber;
@@ -500,6 +500,7 @@ double Laser::mindist(double coor_in[3],double dir_in[3],int &whichtel,double *c
          WFTelescope* pt=pta->pct[ii];
          telcoor[ii][0]=pt->Telx_;
          telcoor[ii][1]=pt->Tely_;
+         telcoor[ii][2]=pt->Telz_;
       }
    }
    whichtel=-2;
@@ -507,7 +508,7 @@ double Laser::mindist(double coor_in[3],double dir_in[3],int &whichtel,double *c
    double min=1.0e10;
    for(int ii=0;ii<nct;ii++){
       double coor_min0[3];
-      double zero[3]={telcoor[ii][0],telcoor[ii][1],0};
+      double zero[3]={telcoor[ii][0],telcoor[ii][1],telcoor[ii][2]};
       double dis=mindist(zero,coor_in,dir_in,coor_min0,decrease);
       //printf("mindist ct=%d: zero={%lf,%lf,%lf} coo={%lf,%lf,%lf} dist=%lf\n",ii,zero[0],zero[1],zero[2],coor_min0[0],coor_min0[1],coor_min0[2],dis);
       if(dis<min){
@@ -549,6 +550,23 @@ void Laser::DirectionDis(double &theta,double &phi){
    phi=(dx==0)?(dy>=0?(PI/2):(-PI/2)):atan(dy/dx);
    if(dx<0) phi+=PI;
 }
+void Laser::GetAveTelPos(double zero[3]){
+   WFTelescopeArray* pta=WFTelescopeArray::GetHead();
+   if(!pta) return;
+   double avecoo[3]={0,0,0};
+   int ncount=0;
+   for(int ii=0;ii<pta->CTNumber;ii++){
+      WFTelescope* pt=pta->pct[ii];
+      if(!pt) continue;
+      ncount++;
+      avecoo[0]+=pt->Telx_;
+      avecoo[1]+=pt->Tely_;
+      avecoo[2]+=pt->Telz_;
+   }
+   if(ncount>0){
+      for(int ii=0;ii<3;ii++) zero[ii]=avecoo[ii]/ncount;
+   }
+}
 bool Laser::InitialGen(){
    double norm=1;
    //direction
@@ -556,6 +574,7 @@ bool Laser::InitialGen(){
    DirectionDis(theta,phi);
    double xdir[3],ydir[3],zdir[3];
    double zero[3]={0,0,0};
+   GetAveTelPos(zero);
    double dir_in[3]={sin(laserdir[0]/180.*PI)*cos(laserdir[1]/180.*PI),sin(laserdir[0]/180.*PI)*sin(laserdir[1]/180.*PI),cos(laserdir[0]/180.*PI)};
    double dir_in2[3]={0,0,1};
    if(!CartesianFrame(zero,lasercoo,dir_in,dir_in2,xdir,ydir,zdir)) return false;
@@ -1100,7 +1119,7 @@ int Laser::Propagate(double &distance,double &weight){
       WFTelescope* pt=(pta)?pta->pct[itel]:0;
       if(!pt) continue;
       double dir_tel[3]={-sin(pt->TelZ_)*cos(pt->TelA_),-sin(pt->TelZ_)*sin(pt->TelA_),-cos(pt->TelZ_)}; //pointing direction of the telescope
-      double zero[3]={pt->Telx_,pt->Tely_,0};
+      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_};
       double range[2];
       int findres=FindLengthRange(zero,coor_gen,dir_gen,dir_tel,range);
       if(jdebug>5) printf("Laser::Propagate: find telescope and length range, ntel=%d itel=%d lengthrange={%le,%le} return=%d\n",ntel,itel,range[0],range[1],findres);
@@ -1138,6 +1157,7 @@ int Laser::Propagate(double &distance,double &weight){
    else{
       zero[0]=pt->Telx_;
       zero[1]=pt->Tely_;
+      zero[2]=pt->Telz_;
       dir_tel[0]=-sin(pt->TelZ_)*cos(pt->TelA_);
       dir_tel[1]=-sin(pt->TelZ_)*sin(pt->TelA_);
       dir_tel[2]=-cos(pt->TelZ_);
@@ -1368,8 +1388,8 @@ bool Laser::DoWFCTASim(){
          WFTelescope* pt=pct->pct[whichtel];
          if(!pt) continue;
 
-         x0=vocoo[0].at(il)-pt->Telx_;
-         y0=vocoo[1].at(il)-pt->Tely_;
+         x0=vocoo[0].at(il);
+         y0=vocoo[1].at(il);
          z0=vocoo[2].at(il);
          m1=vodir[0].at(il);
          n1=vodir[1].at(il);
@@ -1539,7 +1559,7 @@ TCanvas* Laser::Draw(const char* option,int ViewOpt,const char* savedir){
          WFTelescope* pt=(pta)?pta->pct[itel]:0;
          if(!pt) continue;
          TPolyLine3D* line=new TPolyLine3D(2);
-         double postel[3]={pt->Telx_,pt->Tely_,0};
+         double postel[3]={pt->Telx_,pt->Tely_,pt->Telz_};
          double dirtel[3]={sin(pt->TelZ_)*cos(pt->TelA_),sin(pt->TelZ_)*sin(pt->TelA_),cos(pt->TelZ_)};
          double xyzmax[3]={TMath::Max(fabs(plotrange[0][0]),fabs(plotrange[0][1])),TMath::Max(fabs(plotrange[1][0]),fabs(plotrange[1][1])),TMath::Max(fabs(plotrange[2][0]),fabs(plotrange[2][1]))};
          double length_dir=sqrt(pow(xyzmax[0],2)+pow(xyzmax[1],2)+pow(xyzmax[2],2));

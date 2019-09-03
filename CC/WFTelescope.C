@@ -121,7 +121,7 @@ void WFTelescopeArray::ReadFromFile(char* filename){
   if(!pct) pct=new WFTelescope*[CTNumber];
   for(int ict=0; ict<CTNumber; ict++){
      pct[ict]=new WFTelescope();
-     pct[ict]->SetXY(CT_X[ict],CT_Y[ict]);
+     pct[ict]->SetXYZ(CT_X[ict],CT_Y[ict],CT_Z[ict]);
      pct[ict]->SetPointing(CT_Zen[ict],CT_Azi[ict]);
      pct[ict]->SetEulerMatrix(CT_Zen[ict],CT_Azi[ict]);
      //GetMirror(ict)->SetMirror();
@@ -144,12 +144,15 @@ void WFTelescopeArray::ReadFromFile(char* filename){
   delete []timemean;
   delete []ncphoton;
 }
-int WFTelescopeArray::WhichTel(double x0, double y0){
+int WFTelescopeArray::WhichTel(double x0, double y0,double z0,double m1,double n1,double l1){
    int whichct=-1;
    if(!CheckTelescope()) return whichct;
+   if(m1*m1+n1*n1+l1*l1<=0) return whichct;
    double mindist=10000000000000;
    for(int ict=0;ict<CTNumber;ict++){
-      double dist=sqrt(pow(x0-(pct[ict]->Telx_),2)+pow(y0-(pct[ict]->Tely_),2));
+      double x1=(l1==0)?x0:(x0+(pct[ict]->Telz_-z0)/l1*m1);
+      double y1=(l1==0)?y0:(y0+(pct[ict]->Telz_-z0)/l1*n1);
+      double dist=sqrt(pow(x1-(pct[ict]->Telx_),2)+pow(y1-(pct[ict]->Tely_),2));
       if(dist<mindist){
          mindist=dist;
          whichct=ict;
@@ -158,7 +161,7 @@ int WFTelescopeArray::WhichTel(double x0, double y0){
    return whichct;
 }
 int WFTelescopeArray::RayTrace(double x0, double y0, double z0, double m1, double n1, double l1,double weight,double wavelength,int &itel,double &t,int &itube,int &icell){
-   int whichct=WhichTel(x0,y0);
+   int whichct=WhichTel(x0,y0,z0,m1,n1,l1);
    if(whichct<0) return -1000;
    ///inside telescope
    if(jdebug>0) printf("WFTelescopeArray::RayTrace: Passing Telescope InCoo={%f,%f,%f} TelCoo={%f,%f}\n",x0,y0,z0,pct[whichct]->Telx_,pct[whichct]->Tely_);
@@ -318,6 +321,7 @@ double WFTelescope::mirror_wl_max, WFTelescope::mirror_wl_min, WFTelescope::mirr
 void WFTelescope::Init(){
    Telx_=0;
    Tely_=0;
+   Telz_=0;
    TelZ_=0;
    TelA_=0;
    for(int ii=0;ii<3;ii++){
@@ -339,10 +343,11 @@ void WFTelescope::Clear(){
    if(Transmissivity) {delete Transmissivity; Transmissivity=0;}
    if(quantumeff) {delete quantumeff; quantumeff=0;}
 }
-void WFTelescope::SetXY(double x, double y)
+void WFTelescope::SetXYZ(double x, double y, double z)
 {
     Telx_ = x;
     Tely_ = y;
+    Telz_ = z;
 }
 void WFTelescope::SetPointing(double zenith,double azimuth)
 {
@@ -552,7 +557,8 @@ bool WFTelescope::GetQuantumEff(double wavelength){
 void WFTelescope::ConvertCoor(double x0,double y0,double z0,double m1,double n1,double l1,double &x0new,double &y0new,double &z0new,double &m1new,double &n1new,double &l1new){
    double x1=x0-Telx_;
    double y1=y0-Tely_;
-   Euler(x1,y1,z0,&x0new,&y0new,&z0new);
+   double z1=z0-Telz_;
+   Euler(x1,y1,z1,&x0new,&y0new,&z0new);
    //from cm to mm;
    x0new*=10;
    y0new*=10;

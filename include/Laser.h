@@ -112,6 +112,7 @@ class Laser {
       static void PositionDis(double &xx,double &yy);
       static void DirectionDis(double &theta,double &phi);
       double WaveLengthGen();
+      void GetAveTelPos(double zero[3]);
       bool InitialGen();
       long int EventGen(int &Time,double &time,bool SimPulse=false);
       int FindLengthRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double lengthrange[2]);
