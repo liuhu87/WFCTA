@@ -677,12 +677,12 @@ uint64_t WFCTADecode::eventId_in_channel(uint8_t *begin, short isipm)
 /****************************************************************
  * ** get zip mode, 00 represent 4 point zipped into one point **
  * **************************************************************/
-uint8_t WFCTADecode::zipMode(uint8_t *begin, short isipm)
+int16_t WFCTADecode::zipMode(uint8_t *begin, short isipm)
 {
     m_sipm_position_iter = m_sipm_position.find(isipm);
     int packposition = m_sipm_position_iter->second;
 
-    int8_t zip_mode = (((int8_t)begin[packposition+3]&0x3f)>>4);
+    int16_t zip_mode = ((int16_t)((begin[packposition+3]>>4)&0x03));
     return zip_mode;
 }
 
@@ -698,9 +698,9 @@ bool WFCTADecode::GetOver_Single_Mark(uint8_t *begin, short isipm)
     return m_Over_Single_Mark;
 }
 
-/************************
- * **over record marker**
- * **********************/
+/*********************************************
+ * ** get trigger marker, over record marker**
+ * *******************************************/
 bool WFCTADecode::GetOver_Record_Mark(uint8_t *begin, short isipm)
 {
     m_sipm_position_iter = m_sipm_position.find(isipm);
@@ -781,6 +781,18 @@ float WFCTADecode::GetwaveImageAdcLow(uint8_t *begin, short isipm)
     return m_Adclow;
 }
 
+bool WFCTADecode::eSaturationHigh(uint8_t *begin, short isipm)
+{
+    WFCTADecode::Stauration(begin,isipm);
+    return eSatH;
+}
+
+bool WFCTADecode::eSaturationLow(uint8_t *begin, short isipm)
+{
+    WFCTADecode::Stauration(begin,isipm);
+    return eSatL;
+}
+
 /******************************
  * ** get wave form [public] **
  * ****************************/
@@ -806,6 +818,21 @@ void WFCTADecode::GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pul
 
 
 
+
+/************************************************
+ * ** get saturation marker of high & low gain **
+ * **********************************************/
+void WFCTADecode::Stauration(uint8_t *begin, short isipm)
+{
+    WFCTADecode::waveform(begin,isipm);
+    eSatH = 0;
+    eSatL = 0;
+    for(int i=0;i<28;i++)
+    {
+        if(saturationH[i]==1) {eSatH = 1;}
+        if(saturationL[i]==1) {eSatL = 1;}
+    }
+}
 
 /*************************************
  * ** calc q and base from waveform **
@@ -853,13 +880,17 @@ void WFCTADecode::waveform(uint8_t *begin, short isipm)
     for(int i=0; i<14; i++)
     {   
         pulsehigh[i] = ((int)(begin[waveStart1+i*4]&0x7f)<<8)|((int)begin[waveStart1+i*4+1]);
+	saturationH[i] = ((int)((begin[waveStart1+i*4]>>7)&0x01));
         pulselow[i]  = ((int)(begin[waveStart1+i*4+2]&0x7f)<<8)|((int)begin[waveStart1+i*4+3]);
+        saturationL[i] = ((int)((begin[waveStart1+i*4+2]>>7)&0x01));
     }   
 
     for(int i=14; i<28; i++)
     {   
         pulsehigh[i] = ((int)(begin[waveStart2+i*4]&0x7f)<<8)|((int)begin[waveStart2+i*4+1]);
+        saturationH[i] = ((int)((begin[waveStart1+i*4]>>7)&0x01));
         pulselow[i]  = ((int)(begin[waveStart2+i*4+2]&0x7f)<<8)|((int)begin[waveStart2+i*4+3]);
+        saturationL[i] = ((int)((begin[waveStart1+i*4+2]>>7)&0x01));
     }
 }
 

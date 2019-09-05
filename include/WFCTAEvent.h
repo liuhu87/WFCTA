@@ -31,34 +31,40 @@ protected:
 public:
         short iTel;
 	long iEvent;
+        long eEvent;
 	long rabbitTime;
 	double rabbittime;
 	int big_pack_lenth;
 	short n_fired;
 	short n_Channel;
 
-	vector<long> ievent;
-	vector<float> ADC_Cut;  //!
-	vector<float> ImageBaseHigh;  
-	vector<float> ImageBaseLow;  //!
-	vector<float> ImageAdcHigh;  //!
-	vector<float> ImageAdcLow;  //!
-	vector<float> myImageBaseHigh;
-	vector<float> myImageBaseLow;
-	vector<float> myImageAdcHigh;
-	vector<float> myImageAdcLow;
+	vector<long> eevent;
+        vector<short> zipmod;
         vector<short> iSiPM;
+	vector<float> ADC_Cut;  //!
+	vector<float> eBaseH;  
+	vector<float> eBaseL;  //!
+	vector<float> eAdcH;  //!
+	vector<float> eAdcL;  //!
+        vector<bool> eSatH;
+        vector<bool> eSatL;
+	vector<float> BaseH;
+	vector<float> BaseL;
+	vector<float> AdcH;
+	vector<float> AdcL;
+        vector<bool> SatH;
+        vector<bool> SatL;
 	vector<short> Single_Threshold;  //!
 	vector<short> Record_Threshold;  //!
 	vector<char> peak;  //!
-	vector<char> mypeak;
-	vector<int> peakamp;
+	vector<char> PeakPos;
+	vector<int> PeakAm;
 	vector<bool> gain_marker;  //!
 	vector<bool> Over_Single_Marker;
 	vector<bool> Over_Record_Marker;
 
 	int Npoint[28]; //! 
-	int pulsehigh[1024][28]; //! 
+	int pulsehigh[1024][28]; //!
 	int pulselow[1024][28];  //!
 
         WFCTAMCEvent mcevent;  //!
