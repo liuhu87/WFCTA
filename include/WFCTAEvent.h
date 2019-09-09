@@ -41,8 +41,9 @@ public:
 	vector<long> eevent;
         vector<short> zipmod;
         vector<short> iSiPM;
+	vector<float> winsum;
 	vector<float> ADC_Cut;  //!
-	vector<float> eBaseH;  
+	vector<float> eBaseH;  //!
 	vector<float> eBaseL;  //!
 	vector<float> eAdcH;  //!
 	vector<float> eAdcL;  //!

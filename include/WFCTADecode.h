@@ -52,8 +52,9 @@ public:
     //float GetADC_Cut(uint8_t *begin, short isipm);
     //float AdcHigh(uint8_t *begin, short isipm);
     //float AdcLow(uint8_t *begin, short isipm);
-    float BaseHigh(uint8_t *begin, short isipm);
+    //float BaseHigh(uint8_t *begin, short isipm);
     //float BaseLow(uint8_t *begin, short isipm);
+    float Getwinsum(uint8_t *begin, short isipm);
     float GetwaveImageBaseHigh(uint8_t *begin, short isipm);
     float GetwaveImageBaseLow(uint8_t *begin, short isipm);
     float GetwaveImageAdcHigh(uint8_t *begin, short isipm);
@@ -101,7 +102,7 @@ private:
     //char m_peak;
     float m_adc_high;
     float m_adc_low;
-    float m_base_high;
+    //float m_base_high;
     float m_base_low;
 
     float m_Basehigh;

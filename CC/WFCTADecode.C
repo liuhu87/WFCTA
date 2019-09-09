@@ -720,16 +720,16 @@ bool WFCTADecode::GetOver_Record_Mark(uint8_t *begin, short isipm)
 /**********************
  * ** high gain base **
  * ********************/
-float WFCTADecode::BaseHigh(uint8_t *begin, short isipm)
+float WFCTADecode::Getwinsum(uint8_t *begin, short isipm)
 {
     m_sipm_position_iter = m_sipm_position.find(isipm);
     int packposition = m_sipm_position_iter->second;
 
-    m_base_high = (float)( ((uint64_t)begin[packposition+120]<<24)|
-                          ((uint64_t)begin[packposition+121]<<16)|
-                          ((uint64_t)begin[packposition+122]<<8)|
-                          ((uint64_t)begin[packposition+123]) ) / 256.;
-    return m_base_high;
+    float m_winsum = (float)( ((uint64_t)begin[packposition+64]<<24)|
+                          ((uint64_t)begin[packposition+65]<<16)|
+                          ((uint64_t)begin[packposition+66]<<8)|
+                          ((uint64_t)begin[packposition+67]) ) ;
+    return m_winsum;
 }
 
 
@@ -899,7 +899,7 @@ void WFCTADecode::waveform(uint8_t *begin, short isipm)
     m_sipm_position_iter = m_sipm_position.find(isipm);
     int packposition = m_sipm_position_iter->second;
     int waveStart1 = packposition+6;
-    int waveStart2 = packposition+8;
+    int waveStart2 = packposition+12;
 
     for(int i=0; i<14; i++)
     {   

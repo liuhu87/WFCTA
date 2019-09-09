@@ -25,6 +25,7 @@ WFCTAEvent::WFCTAEvent():TSelector()
    eevent.reserve(MAXPMT);
    zipmod.reserve(MAXPMT);
    iSiPM.reserve(MAXPMT);
+   winsum.reserve(MAXPMT);
    ADC_Cut.reserve(MAXPMT);
    eBaseH.reserve(MAXPMT);
    eBaseL.reserve(MAXPMT);
@@ -53,6 +54,7 @@ WFCTAEvent::WFCTAEvent():TSelector()
    eevent.resize(MAXPMT);
    zipmod.resize(MAXPMT);
    iSiPM.resize(MAXPMT);
+   winsum.resize(MAXPMT);
    eBaseH.resize(MAXPMT);
    eBaseL.resize(MAXPMT);
    eAdcH.resize(MAXPMT);
@@ -107,6 +109,7 @@ void WFCTAEvent::Init()
    Record_Threshold.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();
+   winsum.clear();
    ADC_Cut.clear();
    eBaseH.clear();
    eBaseL.clear();
@@ -156,6 +159,7 @@ void WFCTAEvent::EventInitial()
    Record_Threshold.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();
+   winsum.clear();
    ADC_Cut.clear();
    eBaseH.clear();
    eBaseL.clear();
