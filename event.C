@@ -107,8 +107,10 @@ int main(int argc, char**argv)
 	      wfctaEvent->eBaseH.push_back( wfctaDecode->BaseHigh(buf,sipm_position_iter->first) );
               //printf("%d %d:\n",wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first),sipm_position_iter->first);
 	      wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)(wfctaEvent->pulsehigh), (int *)(wfctaEvent->pulselow));
-	      wfctaEvent->PeakPos.push_back( wfctaDecode->Getwavepeak(buf,sipm_position_iter->first) );
-              wfctaEvent->PeakAm.push_back( wfctaDecode->GetpeakAmp(buf,sipm_position_iter->first) );
+	      wfctaEvent->PeakPosH.push_back( wfctaDecode->GetPeakPosH(buf,sipm_position_iter->first) );
+              wfctaEvent->PeakPosL.push_back( wfctaDecode->GetPeakPosL(buf,sipm_position_iter->first) );
+              wfctaEvent->PeakAmH.push_back( wfctaDecode->GetPeakAmH(buf,sipm_position_iter->first) );
+              wfctaEvent->PeakAmL.push_back( wfctaDecode->GetPeakAmL(buf,sipm_position_iter->first) );
 	      wfctaEvent->BaseH.push_back( wfctaDecode->GetwaveImageBaseHigh(buf,sipm_position_iter->first) );
               wfctaEvent->BaseL.push_back( wfctaDecode->GetwaveImageBaseLow(buf,sipm_position_iter->first) );
 	      adch = wfctaDecode->GetwaveImageAdcHigh(buf,sipm_position_iter->first);

@@ -43,8 +43,10 @@ public:
     bool GetOver_Record_Mark(uint8_t *begin, short isipm);
     //uint8_t GetPeak(uint8_t *begin, short isipm);
     //bool Getgain_marker(uint8_t *begin, short isipm);
-    uint8_t Getwavepeak(uint8_t *begin, short isipm);
-    int32_t GetpeakAmp(uint8_t *begin, short isipm);
+    uint8_t GetPeakPosH(uint8_t *begin, short isipm);
+    uint8_t GetPeakPosL(uint8_t *begin, short isipm);
+    int32_t GetPeakAmH(uint8_t *begin, short isipm);
+    int32_t GetPeakAmL(uint8_t *begin, short isipm);
     //uint16_t GetSingle_Thresh(uint8_t *begin, short isipm);
     //uint16_t GetRecord_Thresh(uint8_t *begin, short isipm);
     //float GetADC_Cut(uint8_t *begin, short isipm);
@@ -80,6 +82,7 @@ public:
 
 private:
 
+    void wavepeak(uint8_t *begin, short isipm);
     void waveform(uint8_t *begin, short isipm);
     void Calc_Q_Base(uint8_t *begin, short isipm);
     void Stauration(uint8_t *begin, short isipm);
@@ -110,8 +113,10 @@ private:
     bool eSatL;
 
     int32_t big_pack_len;
-    int32_t peakAmp;
-    uint8_t m_wavepeak;
+    int32_t peakAmpH;
+    int32_t peakAmpL;
+    uint8_t m_wavepeakH;
+    uint8_t m_wavepeakL;
 
     int pulsehigh[28];
     int pulselow[28];

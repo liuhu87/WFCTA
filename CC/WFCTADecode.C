@@ -733,25 +733,31 @@ float WFCTADecode::BaseHigh(uint8_t *begin, short isipm)
 }
 
 
-/****************************
- * ** get peak in waveform **
- * **************************/
-uint8_t WFCTADecode::Getwavepeak(uint8_t *begin, short isipm)
+/***********************************************************************
+ * ** get PeakPosH,PeakPosL,PeakAmH,PeakAmL, which calc from waveform **
+ * *********************************************************************/
+uint8_t WFCTADecode::GetPeakPosH(uint8_t *begin, short isipm)
 {
-    WFCTADecode::waveform(begin,isipm);
-    double sumhighmax = -1000;
-    double sumhigh;
-    for(int i=0;i<28;i++){
-	sumhigh = pulsehigh[i];
-	if(sumhighmax<sumhigh) {sumhighmax = sumhigh; m_wavepeak = i; peakAmp = sumhigh;}
-    }
-    return m_wavepeak;
+    WFCTADecode::wavepeak(begin,isipm);
+    return m_wavepeakH;
 }
 
-int32_t WFCTADecode::GetpeakAmp(uint8_t *begin, short isipm)
+uint8_t WFCTADecode::GetPeakPosL(uint8_t *begin, short isipm)
 {
-    WFCTADecode::Getwavepeak(begin,isipm);
-    return peakAmp;
+    WFCTADecode::wavepeak(begin,isipm);
+    return m_wavepeakL;
+}
+
+int32_t WFCTADecode::GetPeakAmH(uint8_t *begin, short isipm)
+{
+    WFCTADecode::wavepeak(begin,isipm);
+    return peakAmpH;
+}
+
+int32_t WFCTADecode::GetPeakAmL(uint8_t *begin, short isipm)
+{
+    WFCTADecode::wavepeak(begin,isipm);
+    return peakAmpL;
 }
 
 /*****************************************************************
@@ -839,27 +845,45 @@ void WFCTADecode::Stauration(uint8_t *begin, short isipm)
  * ***********************************/
 void WFCTADecode::Calc_Q_Base(uint8_t *begin, short isipm)
 {
-    WFCTADecode::Getwavepeak(begin,isipm);
+    WFCTADecode::wavepeak(begin,isipm);
     m_Basehigh = 0;
     m_Baselow = 0;
     m_Adchigh = 0;
     m_Adclow = 0;
-    if(m_wavepeak<3)
+    if(m_wavepeakH<3)
     {
-        for(int i=6;i<28;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
-	for(int i=0;i<6;i++) { m_Adchigh += pulsehigh[i]; m_Adclow += pulselow[i];}
+        for(int i=6;i<28;i++)  { m_Basehigh += pulsehigh[i];}
+	for(int i=0;i<6;i++)   { m_Adchigh += pulsehigh[i]; }
     }
-    else if(m_wavepeak>23)
+    else if(m_wavepeakH>23)
     {
-        for(int i=0;i<22;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
-        for(int i=22;i<28;i++) { m_Adchigh += pulsehigh[i]; m_Adclow += pulselow[i];}
+        for(int i=0;i<22;i++)  { m_Basehigh += pulsehigh[i];}
+        for(int i=22;i<28;i++) { m_Adchigh += pulsehigh[i]; }
     }
     else
     {
-        for(int i=0;i<m_wavepeak-2;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
-        for(int i=m_wavepeak+4;i<28;i++)  { m_Basehigh += pulsehigh[i]; m_Baselow += pulselow[i];}
-        for(int i=m_wavepeak-2;i<m_wavepeak+4;i++) { m_Adchigh += pulsehigh[i]; m_Adclow += pulselow[i];}
+        for(int i=0;i<m_wavepeakH-2;i++)             { m_Basehigh += pulsehigh[i];}
+        for(int i=m_wavepeakH+4;i<28;i++)            { m_Basehigh += pulsehigh[i];}
+        for(int i=m_wavepeakH-2;i<m_wavepeakH+4;i++) { m_Adchigh += pulsehigh[i]; }
     }
+
+    if(m_wavepeakL<3)
+    {
+        for(int i=6;i<28;i++)  { m_Baselow += pulselow[i];}
+        for(int i=0;i<6;i++)   { m_Adclow += pulselow[i]; }
+    }
+    else if(m_wavepeakL>23)
+    {
+        for(int i=0;i<22;i++)  { m_Baselow += pulselow[i];}
+        for(int i=22;i<28;i++) { m_Adclow += pulselow[i]; }
+    }
+    else
+    {
+        for(int i=0;i<m_wavepeakL-2;i++)             { m_Baselow += pulselow[i];}
+        for(int i=m_wavepeakL+4;i<28;i++)            { m_Baselow += pulselow[i];}
+        for(int i=m_wavepeakL-2;i<m_wavepeakL+4;i++) { m_Adclow += pulselow[i]; }
+    }
+
     m_Basehigh = m_Basehigh/88.;
     m_Baselow = m_Baselow/88.;
     m_Adchigh -= m_Basehigh*24;
@@ -895,6 +919,25 @@ void WFCTADecode::waveform(uint8_t *begin, short isipm)
 }
 
 
+/***************************************
+ * ** get peak and peakam in waveform **
+ * *************************************/
+void WFCTADecode::wavepeak(uint8_t *begin, short isipm)
+{
+    WFCTADecode::waveform(begin,isipm);
+    double sumhighmax = -1000;
+    double sumhigh;
+    for(int i=0;i<28;i++){
+        sumhigh = pulsehigh[i];
+        if(sumhighmax<sumhigh) {sumhighmax = sumhigh; m_wavepeakH = i; peakAmpH = sumhigh;}
+    }
+    double sumlowmax = -1000;
+    double sumlow;
+    for(int i=0;i<28;i++){
+        sumlow = pulselow[i];
+        if(sumlowmax<sumlow) {sumlowmax = sumlow; m_wavepeakL = i; peakAmpL = sumlow;}
+    }
+}
 
 
 

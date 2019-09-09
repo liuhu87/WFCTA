@@ -57,8 +57,10 @@ public:
 	vector<short> Single_Threshold;  //!
 	vector<short> Record_Threshold;  //!
 	vector<char> peak;  //!
-	vector<char> PeakPos;
-	vector<int> PeakAm;
+	vector<char> PeakPosH;
+        vector<char> PeakPosL;
+	vector<int> PeakAmH;
+        vector<int> PeakAmL;
 	vector<bool> gain_marker;  //!
 	vector<bool> Over_Single_Marker;
 	vector<bool> Over_Record_Marker;
