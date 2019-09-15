@@ -212,7 +212,7 @@ void WFCTAEvent::CalculateADC(int itel){
       }
    }
 }
-int WFCTAEvent::GetMaxADCBin(){
+int WFCTAEvent::GetMaxADCBin(int itel){
    int res=-1;
    double maxadc=-1;
    for(int ii=0;ii<iSiPM.size();ii++){
@@ -225,11 +225,11 @@ int WFCTAEvent::GetMaxADCBin(){
    }
    return res;
 }
-int WFCTAEvent::GetMaxTimeBin(){
+int WFCTAEvent::GetMaxTimeBin(int itel){
    int res=-1;
    double maxtime=-1.e20;
    for(int ii=0;ii<1024;ii++){
-      double yy=mcevent.ArrivalTimeMax[0][ii];
+      double yy=mcevent.ArrivalTimeMax[itel][ii];
       if(yy<=0) continue;
       if(yy>maxtime){
          maxtime=yy;
@@ -238,11 +238,11 @@ int WFCTAEvent::GetMaxTimeBin(){
    }
    return res;
 }
-int WFCTAEvent::GetMinTimeBin(){
+int WFCTAEvent::GetMinTimeBin(int itel){
    int res=-1;
    double mintime=1.e40;
    for(int ii=0;ii<1024;ii++){
-      double yy=mcevent.ArrivalTimeMin[0][ii];
+      double yy=mcevent.ArrivalTimeMin[itel][ii];
       if(yy<=0) continue;
       if(yy<mintime){
          mintime=yy;
@@ -269,6 +269,71 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
       ImageY-=0.28;
 
       image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
+   }
+   for(int ii=0;ii<iSiPM.size();ii++){
+      double content=0;
+      if(type==0) content=ADC_Cut.at(ii)>threshold?1.:0.;
+      if(type==1) content=ImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==2) content=ImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==3) content=myImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==4) content=myImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
+      image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
+   }
+   image->Draw(opt);
+   return image;
+}
+void WFCTAEvent::slaDtp2s(double xi, double eta, double raz, double decz, double &ra, double &dec ){
+  double sdecz, cdecz, denom;
+
+  sdecz = sin ( decz );
+  cdecz = cos ( decz );
+  denom = cdecz - eta * sdecz;
+  ra = ( atan2 ( xi, denom ) + raz );
+  dec = atan2 ( sdecz + eta * cdecz, sqrt ( xi * xi + denom * denom ) );
+  if(ra<0) ra=ra+2*PI;
+}
+TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
+   TH2Poly* image=new TH2Poly();
+   image->SetTitle(";Theta [degree];Phi [degree]");
+   double raz=16.4/180*PI;
+   double decz=60./180*PI;
+   for(int ii=0;ii<NSIPM;ii++){
+      int PixI=ii/PIX;
+      int PixJ=ii%PIX;
+      double ImageX,ImageY;
+      if(PixI%2==0) ImageX=PixJ+0.5-PIX/2.0;
+      else ImageX=PixJ+1.0-PIX/2.0;
+      ImageY=(PIX/2.0-PixI)-1/2.0;
+
+      ImageX=ImageX*25.4/2870/PI*180;
+      ImageY=ImageY*25.4/2870/PI*180;
+      ImageX-=0.31;
+      ImageY-=0.28;
+
+      double theta0[4],phi0[4];
+      for(int i2=0;i2<4;i2++){
+         double xx,yy;
+         if(i2==0){
+            xx=ImageX-0.25;
+            yy=ImageY-0.25;
+         }
+         else if(i2==1){
+            xx=ImageX-0.25;
+            yy=ImageY+0.25;
+         }
+         else if(i2==2){
+            xx=ImageX+0.25;
+            yy=ImageY+0.25;
+         }
+         else if(i2==3){
+            xx=ImageX+0.25;
+            yy=ImageY-0.25;
+         }
+         slaDtp2s(-xx,yy,raz,decz,phi0[i2],theta0[i2]);
+         theta0[i2]=90-theta0[i2]/PI*180;
+         phi0[i2]=phi0[i2]/PI*180;
+      }
+      image->AddBin(4,theta0,phi0);
    }
    for(int ii=0;ii<iSiPM.size();ii++){
       double content=0;
@@ -335,3 +400,4 @@ TObjArray* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int View
    array->Draw(opt);
    return array;
 }
+

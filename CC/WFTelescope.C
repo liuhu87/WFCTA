@@ -164,7 +164,7 @@ int WFTelescopeArray::RayTrace(double x0, double y0, double z0, double m1, doubl
    int whichct=WhichTel(x0,y0,z0,m1,n1,l1);
    if(whichct<0) return -1000;
    ///inside telescope
-   if(jdebug>0) printf("WFTelescopeArray::RayTrace: Passing Telescope InCoo={%f,%f,%f} TelCoo={%f,%f}\n",x0,y0,z0,pct[whichct]->Telx_,pct[whichct]->Tely_);
+   if(jdebug>0) printf("WFTelescopeArray::RayTrace: Passing Telescope InCoo={%f,%f,%f} TelCoo={%f,%f,%f}\n",x0,y0,z0,pct[whichct]->Telx_,pct[whichct]->Tely_,pct[whichct]->Telz_);
    if(!pct[whichct]->IncidentTel(x0,y0)) return -1;
    if(jdebug>0) printf("WFTelescopeArray::RayTrace: Inside Telescope%d\n",whichct);
 
@@ -727,6 +727,8 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
 
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Passing From Door to Cone InCoo={%.f,%.f,%.f} InDir={%.f,%.f,%.f}\n",x0,y0,z0,m1,n1,l1);
     double result=RayTraceUpToCone(x0,y0,z0,m1,n1,l1,t,xcluster,ycluster,m2,n2,l2);
+    //l2=sqrt(1-m2*m2-n2*n2);
+    if(!(l2>=0)) l2=0;
     if(result<0) return result;
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Go Through From Door to Cone OtCoo={%.f,%.f} OtDir={%.f,%.f,%.f}\n",xcluster,ycluster,m2,n2,l2);
 
@@ -739,10 +741,10 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     }
 
     //from Tel Coo to Cone Coo.
-    double u,v,xc,yc;
-    u = m2;
-    v = n2;
-    //*ll = l2;
+    double u,v,w,xc,yc;
+    u = n2; //m2
+    v = m2; //n2
+    w = -l2;
     xc = ycluster; //-ycluster
     yc = xcluster;
 
@@ -750,6 +752,7 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Before Cone InCoo={%.f,%.f}\n",xc,yc);
     icone = pcame->GetCone(xc,yc);
     if(icone<0) return -7;
+    //else{itube=icone; return 1;}
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Inside Cone%d\n",icone);
 
     //*To Get the cone coordinates*//
@@ -759,8 +762,8 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     deltax =  xc - x;
     deltay =  yc - y;
     dircos[0] = u; //-u
-    dircos[1] = v;
-    dircos[2] = -sqrt(1-u*u-v*v);
+    dircos[1] = v; //v
+    dircos[2] = w; //-sqrt(1-u*u-v*v)
 
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Passinfg Cone%d delta={%f.%f} dircos={%f,%f,%f}\n",icone,deltax,deltay,dircos[0],dircos[1],dircos[2]);
     //*The ray trace in the cone *//

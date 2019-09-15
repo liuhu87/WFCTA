@@ -57,9 +57,9 @@ public:
 	vector<bool> Over_Single_Marker;
 	vector<bool> Over_Record_Marker;
 
-	int Npoint[28];  
-	int pulsehigh[1024][28];  
-	int pulselow[1024][28];  
+	int Npoint[28];  //!
+	int pulsehigh[1024][28];  //!
+	int pulselow[1024][28];  //!
 
         WFCTAMCEvent mcevent;  //!
         WFCTALedEvent ledevent;  //!
@@ -78,10 +78,12 @@ public:
         void GetBranch(TTree *fChain);
         bool GetAllContents(int _Entry);
         void CalculateADC(int itel=0);
-        int GetMaxADCBin();
-        int GetMaxTimeBin();
-        int GetMinTimeBin();
+        int GetMaxADCBin(int itel=0);
+        int GetMaxTimeBin(int itel=0);
+        int GetMinTimeBin(int itel=0);
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
+        static void slaDtp2s ( double xi, double eta, double raz, double decz, double &ra, double &dec );
+	TH2Poly* DrawGlobal(int type=0,const char* opt="scat colz",double threshold=500.);
         TObjArray* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);
 
    ClassDef(WFCTAEvent,3);

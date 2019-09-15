@@ -43,13 +43,13 @@ int main(int argc, char**argv)
    Laser::DoPlot=true;
    Laser::jdebug=3;
    Laser::IniRange[0][0]=-1.e3;
-   Laser::IniRange[0][1]=1.0e5;
+   Laser::IniRange[0][1]=2.0e5;
    Laser::IniRange[1][0]=-1.e4;
    Laser::IniRange[1][1]=1.0e4;
    Laser::IniRange[2][0]=-10;
-   Laser::IniRange[2][1]=2.e5; //1.3e5
-   Laser::IniRange[3][0]=-1;
-   Laser::IniRange[3][1]=-1;
+   Laser::IniRange[2][1]=5.e5; //1.3e5
+   //Laser::IniRange[3][0]=-1;
+   //Laser::IniRange[3][1]=-1;
    Laser* pl=new Laser(seed);
    if(!pl->pwfc) pl->pwfc=new WFCTAEvent();
    WFCTAEvent* pevt=(pl->pwfc);
@@ -62,7 +62,7 @@ int main(int argc, char**argv)
    for(int ii=0;ii<nevent;ii++){
       printf("ievent=%d Time=%d time=%lf\n",ii,Time,time);
       long int ngentel=pl->EventGen(Time,time,true);
-      if(Laser::DoPlot) pl->Draw("al",0,"./");
+      if(Laser::DoPlot) pl->Draw("al",1,"./");
       //fill the event
       hNevt->Fill(0.5,pl->count_gen);
       hNevt->Fill(1.5,ngentel/Laser::scale);

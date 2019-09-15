@@ -276,7 +276,7 @@ double Atmosphere::FreePathLength(double z0,double dir0[3],double lengthrange[2]
       else{
          double z00=z0;
          bool findlowrange=false;
-         while(integ<lengthrange[1]){
+         while(length<lengthrange[1]){
             double z1=z00+DeltaZ(z00);
             double dleng=fabs((z1-z00)/dir0[2]*norm);
             double dintg=(aod_air+aod_aerosol)*ZDependence((z00+z1)/2)*dleng;
@@ -350,7 +350,7 @@ bool Laser::DoPlot=false;
 float Laser::IniRange[4][2]={{1.0e9,-1.0e9},{1.0e9,-1.0e9},{1.0e9,-1.0e9},{1.0e9,-1.0e9}};
 TRandom3* Laser::prandom = 0;
 double Laser::TelSimDist=400.; //in cm
-double Laser::TelSimAngl=10.; //in degree
+double Laser::TelSimAngl=12.; //in degree
 double Laser::scale=1.0;
 double Laser::unittime=1600.; //in ns
 double Laser::intensity = 0;//mj
