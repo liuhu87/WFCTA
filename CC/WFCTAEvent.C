@@ -225,12 +225,26 @@ int WFCTAEvent::GetMaxADCBin(int itel){
    }
    return res;
 }
+int WFCTAEvent::GetPeakADCBin(int isipm,int itel){
+   if(itel<0||itel>=WFTelescopeArray::CTNumber) return -3;
+   if(isipm<0||isipm>=NSIPM) return -2;
+   double maxcontent=-1;
+   int index=-1;
+   for(int ii=0;ii<mcevent.NArrival[itel];ii++){
+      double content=mcevent.ArrivalCount[itel][isipm][ii];
+      if(content>maxcontent){
+         maxcontent=content;
+         index=ii;
+      }
+   }
+   return index;
+}
 int WFCTAEvent::GetMaxTimeBin(int itel){
+   if(itel<0||itel>=WFTelescopeArray::CTNumber) return -2;
    int res=-1;
-   double maxtime=-1.e20;
-   for(int ii=0;ii<1024;ii++){
-      double yy=mcevent.ArrivalTimeMax[itel][ii];
-      if(yy<=0) continue;
+   double maxtime=-1.e40;
+   for(int ii=0;ii<mcevent.NArrival[itel];ii++){
+      double yy=mcevent.ArrivalTime[itel][ii];
       if(yy>maxtime){
          maxtime=yy;
          res=ii;
@@ -239,11 +253,11 @@ int WFCTAEvent::GetMaxTimeBin(int itel){
    return res;
 }
 int WFCTAEvent::GetMinTimeBin(int itel){
+   if(itel<0||itel>=WFTelescopeArray::CTNumber) return -2;
    int res=-1;
    double mintime=1.e40;
-   for(int ii=0;ii<1024;ii++){
-      double yy=mcevent.ArrivalTimeMin[itel][ii];
-      if(yy<=0) continue;
+   for(int ii=0;ii<mcevent.NArrival[itel];ii++){
+      double yy=mcevent.ArrivalTime[itel][ii];
       if(yy<mintime){
          mintime=yy;
          res=ii;
@@ -290,13 +304,20 @@ void WFCTAEvent::slaDtp2s(double xi, double eta, double raz, double decz, double
   denom = cdecz - eta * sdecz;
   ra = ( atan2 ( xi, denom ) + raz );
   dec = atan2 ( sdecz + eta * cdecz, sqrt ( xi * xi + denom * denom ) );
-  if(ra<0) ra=ra+2*PI;
+  //if(ra<0) ra=ra+2*PI;
+  //printf("xi=%lf eta=%lf raz=%lf decz=%lf ra=%lf dec=%lf\n",xi/PI*180,eta/PI*180,raz/PI*180,decz/PI*180,ra/PI*180,dec/PI*180);
 }
 TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
+   WFTelescopeArray* pct=WFTelescopeArray::GetHead();
+   if(!pct) return 0;
+   WFTelescope* pt=pct->pct[0];
+   if(!pt) return 0;
+   double raz=pt->TelA_;
+   double decz=PI/2-pt->TelZ_;
    TH2Poly* image=new TH2Poly();
-   image->SetTitle(";Theta [degree];Phi [degree]");
-   double raz=16.4/180*PI;
-   double decz=60./180*PI;
+   image->SetTitle(";Azimuth [degree];Elevation [degree]");
+   double xrange[2]={1.0e5,-1.0e5};
+   double yrange[2]={1.0e5,-1.0e5};
    for(int ii=0;ii<NSIPM;ii++){
       int PixI=ii/PIX;
       int PixJ=ii%PIX;
@@ -307,10 +328,10 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
 
       ImageX=ImageX*25.4/2870/PI*180;
       ImageY=ImageY*25.4/2870/PI*180;
-      ImageX-=0.31;
-      ImageY-=0.28;
+      //ImageX-=0.31;
+      //ImageY-=0.28;
 
-      double theta0[4],phi0[4];
+      double theta0[5],phi0[5];
       for(int i2=0;i2<4;i2++){
          double xx,yy;
          if(i2==0){
@@ -329,11 +350,18 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
             xx=ImageX+0.25;
             yy=ImageY-0.25;
          }
-         slaDtp2s(-xx,yy,raz,decz,phi0[i2],theta0[i2]);
-         theta0[i2]=90-theta0[i2]/PI*180;
+         slaDtp2s(-xx/180*PI,yy/180*PI,raz,decz,phi0[i2],theta0[i2]);
+         theta0[i2]=theta0[i2]/PI*180;
          phi0[i2]=phi0[i2]/PI*180;
+         //printf("iSiPM=%d xx=%.1lf yy=%.1lf theta=%.1lf phi=%.1lf\n",ii,xx,yy,theta0[i2],phi0[i2]);
+         if(phi0[i2]<xrange[0]) xrange[0]=phi0[i2];
+         if(phi0[i2]>xrange[1]) xrange[1]=phi0[i2];
+         if(theta0[i2]<yrange[0]) yrange[0]=theta0[i2];
+         if(theta0[i2]>yrange[1]) yrange[1]=theta0[i2];
       }
-      image->AddBin(4,theta0,phi0);
+      theta0[4]=theta0[0];
+      phi0[4]=phi0[0];
+      image->AddBin(5,phi0,theta0);
    }
    for(int ii=0;ii<iSiPM.size();ii++){
       double content=0;
@@ -345,6 +373,8 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
    }
    image->Draw(opt);
+   image->GetXaxis()->SetRangeUser(xrange[0]-2.,xrange[1]+2.);
+   image->GetYaxis()->SetRangeUser(yrange[0]-2.,yrange[1]+2.);
    return image;
 }
 
@@ -352,10 +382,10 @@ TObjArray* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int View
    TObjArray* array=new TObjArray();
    double rmin[3]={1.0e10,1.0e10,1.0e100};
    double rmax[3]={-1.0e10,-1.0e10,-1.0e100};
+   double tmin=mcevent.ArrivalTimeMin[0]*1.0e9; //in ns
+   double tmax=mcevent.ArrivalTimeMax[0]*1.0e9; //in ns
    for(int ii=0;ii<NSIPM;ii++){
       double content=mcevent.TubeSignal[0][ii];
-      double tmin=mcevent.ArrivalTimeMin[0][ii]*1.0e9; //in ns
-      double tmax=mcevent.ArrivalTimeMax[0][ii]*1.0e9; //in ns
       if(content<=0) continue;
       if(tmax<=0) continue;
       int PixI=ii/PIX;

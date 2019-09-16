@@ -12,6 +12,8 @@
 ///number of pmt in x,y direction
 #define PIX 32
 #define NSIPM (PIX*PIX)
+const double timebinunit=20.; //in unit of nano second
+#define MaxTimeBin 1000
 using namespace std;
 
 /*!
@@ -33,10 +35,14 @@ class WCamera
 
   vector<double> TubeSignal;
   vector<double> eTubeSignal;
-  vector<double> ArrivalTimeMin;
-  vector<double> ArrivalTimeMax;
-  vector<double> ArrivalAccTime;
-  vector<int> NArrival;
+  //Arrival Time Information
+  int NArrival;
+  double ArrivalTimeMin;
+  double ArrivalTimeMax;
+  bool OverFlow;
+  long int ArrivalTime[MaxTimeBin];
+  double ArrivalCount[NSIPM][MaxTimeBin];
+  double ArrivalCountE[NSIPM][MaxTimeBin];
   vector<int> TubeTrigger;
   int TelTrigger;
   //int **Trigger;
@@ -57,12 +63,13 @@ class WCamera
   //void PhotonIntoCone(int ict, int itube, int outpe);
   //void PhotonAfterConeTracing(int ict, int itube, int outpe);
   //void PhotonIntoCell(int ict, int itube, int icell, int outpe);
+  static long int FindBin(double time);
   void Fill(int itube,double time=0,double weight=1.0);
   void GetTubeTrigger();
   //void GetTrigger();
   void AddNSB();
-  double GetSiPMX(int itube);
-  double GetSiPMY(int itube);
+  static double GetSiPMX(int itube);
+  static double GetSiPMY(int itube);
   //void GetTelescopeTrigger(int CTNumber,float *CT_Zen, float *CT_AZi);
   //void GetEulerMatrix(float TelZ,float TelA);
   //void InverseEuler(double x0, double y0, double z0, double *x, double *y, double *z);

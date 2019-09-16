@@ -79,6 +79,7 @@ public:
         bool GetAllContents(int _Entry);
         void CalculateADC(int itel=0);
         int GetMaxADCBin(int itel=0);
+        int GetPeakADCBin(int isipm,int itel=0);
         int GetMaxTimeBin(int itel=0);
         int GetMinTimeBin(int itel=0);
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);

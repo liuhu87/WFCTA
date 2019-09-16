@@ -97,11 +97,18 @@ void WCamera::Init()
 {
   TubeSignal.resize(NSIPM);
   eTubeSignal.resize(NSIPM);
-  ArrivalTimeMin.resize(NSIPM);
-  ArrivalTimeMax.resize(NSIPM);
-  ArrivalAccTime.resize(NSIPM);
-  NArrival.resize(NSIPM);
   TubeTrigger.resize(NSIPM); 
+  NArrival=0;
+  ArrivalTimeMin=1.0e20;
+  ArrivalTimeMax=-1.0e20;
+  OverFlow=false;
+  for(int jj=0;jj<MaxTimeBin;jj++){
+     ArrivalTime[jj]=0;
+     for(int ii=0;ii<NSIPM;ii++){
+        ArrivalCount[ii][jj]=0;
+        ArrivalCountE[ii][jj]=0;
+     }
+  }
 }
 
 void WCamera::ReSet()
@@ -109,13 +116,21 @@ void WCamera::ReSet()
    for(int i=0; i<NSIPM; i++){
       TubeSignal[i] = 0;
       eTubeSignal[i] = 0;
-      ArrivalTimeMin[i]=0;
-      ArrivalTimeMax[i]=0;
-      ArrivalAccTime[i]=0;
-      NArrival[i]=0;
       TubeTrigger[i] = 0;
    }
    TelTrigger = 0;
+
+   NArrival=0;
+   ArrivalTimeMin=1.0e20;
+   ArrivalTimeMax=-1.0e20;
+   OverFlow=false;
+   for(int jj=0;jj<MaxTimeBin;jj++){
+      ArrivalTime[jj]=0;
+      for(int ii=0;ii<NSIPM;ii++){
+         ArrivalCount[ii][jj]=0;
+         ArrivalCountE[ii][jj]=0;
+      }
+   }
 }
 
 void WCamera::AddNSB()
@@ -128,23 +143,35 @@ void WCamera::AddNSB()
   }
 }
 
+long int WCamera::FindBin(double time){
+   long int index=(long int)(time/(timebinunit*1.0e-9));
+   if(time<0) index=index-1;
+   return index;
+}
 void WCamera::Fill(int itube,double time,double weight){
    if(itube<0||itube>=NSIPM) return;
    else{
       TubeSignal[itube] += weight;
       eTubeSignal[itube] = sqrt(pow(eTubeSignal[itube],2)+pow(weight,2));
+      //process time information
       if(time!=0){
-         if(ArrivalTimeMin[itube]!=0){
-            if(time<ArrivalTimeMin[itube]) ArrivalTimeMin[itube]=time;
+         if(time<ArrivalTimeMin) ArrivalTimeMin=time;
+         if(time>ArrivalTimeMax) ArrivalTimeMax=time;
+         long int index=FindBin(time);
+         int i0=-1;
+         for(int ii=0;ii<NArrival;ii++){
+            if(index==ArrivalTime[ii]) {i0=ii; break;}
          }
-         else ArrivalTimeMin[itube]=time;
-         if(ArrivalTimeMax[itube]!=0){
-            if(time>ArrivalTimeMax[itube]) ArrivalTimeMax[itube]=time;
+         if(i0<0&&NArrival<MaxTimeBin){
+            ArrivalTime[NArrival]=index;
+            i0=NArrival;
+            NArrival++;
          }
-         else ArrivalTimeMax[itube]=time;
-
-         ArrivalAccTime[itube]+=time;
-         NArrival[itube]+=1;
+         if(i0>=0){
+            ArrivalCount[itube][i0]+=weight;
+            ArrivalCountE[itube][i0]=sqrt(pow(ArrivalCountE[itube][i0],2)+pow(weight,2));
+         }
+         else OverFlow=true;
       }
    }
 }
