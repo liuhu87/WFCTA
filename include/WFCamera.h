@@ -13,7 +13,7 @@
 #define PIX 32
 #define NSIPM (PIX*PIX)
 const double timebinunit=20.; //in unit of nano second
-#define MaxTimeBin 1000
+#define MaxTimeBin 150
 using namespace std;
 
 /*!

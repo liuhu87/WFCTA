@@ -61,6 +61,8 @@ public:
 	int pulsehigh[1024][28];  //!
 	int pulselow[1024][28];  //!
 
+        double fitpars[NCTMax][2];
+
         WFCTAMCEvent mcevent;  //!
         WFCTALedEvent ledevent;  //!
         WFCTALaserEvent laserevent;  //!
@@ -82,6 +84,9 @@ public:
         int GetPeakADCBin(int isipm,int itel=0);
         int GetMaxTimeBin(int itel=0);
         int GetMinTimeBin(int itel=0);
+        bool CleanImage(int isipm,int itel=0,int type=0);
+        bool DoLinearFit(int itel=0,int type=0);
+        bool GetVector(double dir[3],int itel=0,int type=0);
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
         static void slaDtp2s ( double xi, double eta, double raz, double decz, double &ra, double &dec );
 	TH2Poly* DrawGlobal(int type=0,const char* opt="scat colz",double threshold=500.);

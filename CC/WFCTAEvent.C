@@ -8,6 +8,7 @@
 #include <TCanvas.h>
 #include <TView3D.h>
 #include <TSystem.h>
+#include "TF1.h"
 
 using namespace std;
 
@@ -105,6 +106,11 @@ void WFCTAEvent::Init()
        pulselow[i][j] = 0;
      }
    }
+
+   for(int ii=0;ii<NCTMax;ii++){
+      fitpars[ii][0]=0;
+      fitpars[ii][1]=0;
+   }
   
    mcevent.Init();
    ledevent.Init();
@@ -144,6 +150,11 @@ void WFCTAEvent::EventInitial()
        pulsehigh[i][j] = 0;
        pulselow[i][j] = 0;
      }
+   }
+
+   for(int ii=0;ii<NCTMax;ii++){
+      fitpars[ii][0]=0;
+      fitpars[ii][1]=0;
    }
   
    mcevent.Reset();
@@ -266,8 +277,81 @@ int WFCTAEvent::GetMinTimeBin(int itel){
    return res;
 }
 
+bool WFCTAEvent::CleanImage(int isipm,int itel,int type){
+   if(itel<0||itel>=WFTelescopeArray::CTNumber) return false;
+   if(isipm<0||isipm>=NSIPM) return false;
+   bool res=false;
+   double trig0=500;
+   int size=(type==0)?myImageAdcHigh.size():myImageAdcLow.size();
+   for(int ii=0;ii<size;ii++){
+      int isipm0=iSiPM.at(ii);
+      if(isipm0!=isipm) continue;
+      if(ADC_Cut.at(ii)<trig0) continue;
+      double content=(type==0)?myImageAdcHigh.at(ii):myImageAdcLow.at(ii);
+      double ImageXi=0,ImageYi=0;
+      ImageXi=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
+      ImageYi=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
+      int nneigh=0;
+      for(int jj=0;jj<size;jj++){
+         if(jj==ii) continue;
+         double ImageXj=0,ImageYj=0;
+         ImageXj=WCamera::GetSiPMX(jj)/WFTelescope::FOCUS/PI*180;
+         ImageYj=WCamera::GetSiPMY(jj)/WFTelescope::FOCUS/PI*180;
+         double dist=sqrt(pow(ImageXi-ImageXj,2)+pow(ImageYi-ImageYj,2));
+         if(dist>0.6) continue;
+         if(ADC_Cut.at(jj)<trig0) continue;
+         nneigh++;
+      }
+      if(nneigh<2) continue;
+      res=true;
+   }
+   return res;
+}
+bool WFCTAEvent::DoLinearFit(int itel,int type){
+   if(itel<0||itel>=WFTelescopeArray::CTNumber) return false;
+   TH2Poly* image=new TH2Poly();
+   image->SetName("dofit");
+   int size=(type==0)?myImageAdcHigh.size():myImageAdcLow.size();
+   int nbin=0;
+   for(int ii=0;ii<size;ii++){
+      int isipm0=iSiPM.at(ii);
+      if(!CleanImage(isipm0,itel,type)) continue;
+      double content=(type==0)?myImageAdcHigh.at(ii):myImageAdcLow.at(ii);
+      double ImageX,ImageY;
+      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS/PI*180;
+      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS/PI*180;
+
+      int ibin=image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
+      nbin=ibin;
+      image->SetBinContent(ibin,content);
+   }
+   if(nbin<4) {delete image; return false;}
+   image->Fit("pol1","QS0");
+   fitpars[itel][0]=image->GetFunction("pol1")->GetParameter(0);
+   fitpars[itel][1]=image->GetFunction("pol1")->GetParameter(1);
+   delete image;
+   return true;
+}
+bool WFCTAEvent::GetVector(double dir[3],int itel,int type){
+   WFTelescopeArray* pct=WFTelescopeArray::GetHead();
+   if(!pct) return false;
+   WFTelescope* pt=pct->pct[itel];
+   if(!pt) return false;
+   double phi0=pt->TelA_;
+   double theta=PI/2-pt->TelZ_;
+   if(!DoLinearFit(itel,type)) return false;
+   double AA=-1;
+   double BB=fitpars[itel][1];
+   double CC=fitpars[itel][0]/180.*PI;
+   dir[0]=AA*sin(theta)*cos(phi0)-BB*sin(phi0)-CC*cos(theta)*cos(phi0);
+   dir[1]=AA*sin(theta)*sin(phi0)+BB*cos(phi0)-CC*cos(theta)*sin(phi0);
+   dir[2]=-AA*cos(theta)-CC*sin(theta);
+   return true;
+}
+
 TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
    TH2Poly* image=new TH2Poly();
+   image->SetName("DrawPlot");
    image->SetTitle(";X;Y");
    for(int ii=0;ii<NSIPM;ii++){
       int PixI=ii/PIX;
@@ -315,6 +399,7 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
    double raz=pt->TelA_;
    double decz=PI/2-pt->TelZ_;
    TH2Poly* image=new TH2Poly();
+   image->SetName("DrawGlobalPlot");
    image->SetTitle(";Azimuth [degree];Elevation [degree]");
    double xrange[2]={1.0e5,-1.0e5};
    double yrange[2]={1.0e5,-1.0e5};
