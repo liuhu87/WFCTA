@@ -15,6 +15,10 @@
 #include "WFCTALedEvent.h"
 #include "WFCTALaserEvent.h"
 
+#include "Math/Minimizer.h"
+#include "Math/Factory.h"
+#include "Math/Functor.h"
+
 using namespace std;
 const int MAXPMT=1024;
 class WFCTAEvent : public TSelector
@@ -61,7 +65,9 @@ public:
 	int pulsehigh[1024][28];  //!
 	int pulselow[1024][28];  //!
 
-        double fitpars[NCTMax][2];
+        TF1* fModel; //!
+        TGraph* gDrawErr; //!
+        ROOT::Math::Minimizer* minimizer; //!
 
         WFCTAMCEvent mcevent;  //!
         WFCTALedEvent ledevent;  //!
@@ -84,10 +90,13 @@ public:
         int GetPeakADCBin(int isipm,int itel=0);
         int GetMaxTimeBin(int itel=0);
         int GetMinTimeBin(int itel=0);
-        bool CleanImage(int isipm,int itel=0,int type=0);
-        bool DoLinearFit(int itel=0,int type=0);
-        bool GetVector(double dir[3],int itel=0,int type=0);
+        bool CleanImage(int isipm,int itel=0,int type=3);
+        double Interface(const double* par);
+        bool DoFit(int itel=0,int type=3,bool force=false);
+        bool GetPlane(double xyzdir[3][3],double exyzdir[3][3],int itel=0,int type=3);
+        TGraph* DrawAxis(int iaxis,int itel=0,int type=3);
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
+        void DrawFit();
         static void slaDtp2s ( double xi, double eta, double raz, double decz, double &ra, double &dec );
 	TH2Poly* DrawGlobal(int type=0,const char* opt="scat colz",double threshold=500.);
         TObjArray* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);

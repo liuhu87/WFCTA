@@ -21,19 +21,36 @@ WCamera::~WCamera()
 
 void WCamera::SetSiPMMAP()
 {
-  int  k;
-  for(int i=0; i<PIX; i++){
-     for(int j=0; j<PIX; j++){
-         k = i*PIX + j;
-         if(i%2==0)
-            SiPMMAP[k][0] = (j+0.5-PIX/2.0)*SquareCone::D_ConeOut;
+  //int  k;
+  //for(int i=0; i<PIX; i++){
+  //   for(int j=0; j<PIX; j++){
+  //       k = i*PIX + j;
+  //       if(i%2==0)
+  //          SiPMMAP[k][0] = (j+0.5-PIX/2.0)*SquareCone::D_ConeOut;
 
-         if(i%2==1)
-            SiPMMAP[k][0] = (j+1-PIX/2.0)*SquareCone::D_ConeOut;
+  //       if(i%2==1)
+  //          SiPMMAP[k][0] = (j+1-PIX/2.0)*SquareCone::D_ConeOut;
 
-         SiPMMAP[k][1] = (PIX/2.0-i)*SquareCone::D_ConeOut - SquareCone::D_ConeOut/2.0;
-     }
-  }
+  //       SiPMMAP[k][1] = (PIX/2.0-i)*SquareCone::D_ConeOut - SquareCone::D_ConeOut/2.0;
+  //   }
+  //}
+
+   double interval = 1.0; //mm, gaps between subclusters
+   int Interx,Intery;
+   double centerx, centery;
+   centerx = 410;
+   centery = 410;
+   for(int k=0;k<1024;k++){
+      int i = k/PIX;
+      int j = k%PIX;
+      Intery = i/4;
+      Interx = j/4;
+      if(i%2==0)
+          SiPMMAP[k][0] = (j+0.5)*SquareCone::D_ConeOut + interval*Interx-centerx;
+      if(i%2==1)
+          SiPMMAP[k][0]  = (j+1)*SquareCone::D_ConeOut + interval*Interx-centerx;
+      SiPMMAP[k][1] = (PIX-i)*SquareCone::D_ConeOut + interval*Intery-centery;
+   }
 }
 
 double WCamera::GetSiPMX(int itube)
