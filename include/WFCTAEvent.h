@@ -71,7 +71,7 @@ public:
 
         WFCTAMCEvent mcevent;  //!
         WFCTALedEvent ledevent;  //!
-        WFCTALaserEvent laserevent;  //!
+        WFCTALaserEvent laserevent;
 
 public:
         WFCTAEvent();
@@ -100,6 +100,8 @@ public:
         static void slaDtp2s ( double xi, double eta, double raz, double decz, double &ra, double &dec );
 	TH2Poly* DrawGlobal(int type=0,const char* opt="scat colz",double threshold=500.);
         TObjArray* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);
+        static int CalTelDir(double kk,double bb,double ekkbb[3],double zdir[3],double ezdir[3],double &elevation,double &errel,double &azimuth,double &erraz);
+        int GetTelDir(double &elevation,double &errel,double &azimuth,double &erraz);
 
    ClassDef(WFCTAEvent,3);
 };

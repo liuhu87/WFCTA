@@ -358,9 +358,11 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
       sy += ImageY*ImageY*content;
       sxy += ImageX*ImageY*content;
       nn += content;
+
+      nbin++;
    }
 
-   if(nn>0){
+   if(nn>0&&nbin>8){
       mx/=nn;
       my/=nn;
       sx/=nn;
@@ -393,8 +395,8 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
    //printf("LinearFit: kk=%lf bb=%lf\n",a,b);
    minimizer->SetFixedVariable(0,"iTel",0);
    minimizer->SetFixedVariable(1,"Type",3);
-   minimizer->SetLimitedVariable(2,"bb",b,fabs(0.01*b),-1000,1000);
-   minimizer->SetLimitedVariable(3,"kk",a,fabs(0.01*a),-1000,1000);
+   minimizer->SetLimitedVariable(2,"bb",b,fabs(0.01*b),-1.e6,1.e6);
+   minimizer->SetLimitedVariable(3,"kk",a,fabs(0.01*a),-1.e6,1.e6);
    minimizer->Minimize();
    minimizer->Hesse();
    return true;
@@ -489,6 +491,7 @@ TGraph* WFCTAEvent::DrawAxis(int iaxis,int itel,int type){
    double exyzdir[3][3];
    if(!GetPlane(xyzdir,exyzdir,itel,type)) return 0;
    TGraph* gr=new TGraph();
+   gr->SetTitle(";X [cm];Y [cm]");
    int np=100;
    for(int ii=0;ii<np;ii++){
       double xx=exp(log(0.5)+(log(1.0e7/0.5))/np*ii);
@@ -541,6 +544,7 @@ void WFCTAEvent::DrawFit(){
    gDrawErr->Draw("F");
    fModel->SetParameters(fitpars[0],fitpars[1]);
    fModel->Draw("same");
+   printf("WFCTAEvent::DrawFit: kk={%lf,%lf} bb={%lf,%lf}\n",fitpars[1],fitparse[1],fitpars[0],fitparse[0]);
 }
 TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
    TH2Poly* image=new TH2Poly();
@@ -702,3 +706,78 @@ TObjArray* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int View
    return array;
 }
 
+int WFCTAEvent::CalTelDir(double kk,double bb,double ekkbb[3],double zdir[3],double ezdir[3],double &elevation,double &errel,double &azimuth,double &erraz){
+   double sum=1+kk*kk+bb*bb;
+   double delta=1+bb*bb-pow(zdir[2],2)*sum;
+   if(delta<0) return -2;
+   double sintheta[4];
+   sintheta[0]=(-bb*zdir[2]*sqrt(sum)+sqrt(delta))/(1+bb*bb);
+   sintheta[1]=(-bb*zdir[2]*sqrt(sum)-sqrt(delta))/(1+bb*bb);
+   sintheta[2]=(bb*zdir[2]*sqrt(sum)+sqrt(delta))/(1+bb*bb);
+   sintheta[3]=(bb*zdir[2]*sqrt(sum)-sqrt(delta))/(1+bb*bb);
+   int index=-1;
+   int nsol=0;
+   for(int ii=0;ii<(fabs(bb*zdir[2]*sqrt(sum)/sqrt(delta))<1.0e-3?2:4);ii++){
+      if(sintheta[ii]>=0&&sintheta[ii]<=1){
+         index=ii;
+         nsol++;
+      }
+   }
+   if(nsol!=1){
+      printf("WFCTAEvent::CalTelDir: nsol=%d(bb*l=%le) sintheta={%lf,%lf,%lf,%lf}\n",nsol,bb*zdir[2],sintheta[0],sintheta[1],sintheta[2],sintheta[3]);
+      return -3;
+   }
+   elevation=asin(sintheta[index])/PI*180.;
+   if(index>1){
+      for(int icoo=0;icoo<3;icoo++) zdir[icoo]*=(-1);
+   }
+   double AA=(-sintheta[index]-sqrt(1-pow(sintheta[index],2))*bb)/sqrt(sum);
+   double BB=-kk/sqrt(sum);
+   double cosphi=(zdir[0]*AA-zdir[1]*BB)/(zdir[0]*zdir[0]+zdir[1]*zdir[1]);
+   double sinphi=(zdir[1]*AA+zdir[0]*BB)/(zdir[0]*zdir[0]+zdir[1]*zdir[1]);
+   azimuth=sinphi>0?acos(cosphi):(2*PI-acos(cosphi));
+   azimuth*=180./PI;
+
+   //error calculation
+   double dsintheta_dl=(-bb*sqrt(sum)-((index%2)==0?1:-1)/sqrt(delta)*zdir[2]*sum)/(1+bb*bb);
+   double dsintheta_dk=(-bb*zdir[2]*kk/sqrt(sum)-((index%2)==0?1:-1)/sqrt(delta)*zdir[2]*zdir[2]*kk)/(1+bb*bb);
+   double dsintheta_db=(-2*sintheta[index]*bb+(-zdir[2]*sqrt(sum)-bb*bb*zdir[2]/sqrt(sum)+((index%2)==0?1:-1)/sqrt(delta)*(1-zdir[2]*zdir[2])*bb))/(1+bb*bb)/180.*PI;
+   double dsintheta=sqrt(pow(dsintheta_dl*ezdir[2],2)+pow(dsintheta_dk,2)*ekkbb[2]+2*dsintheta_dk*dsintheta_db*ekkbb[1]+pow(dsintheta_db,2)*ekkbb[0]);
+   double costheta=sqrt(1-sintheta[index]*sintheta[index]);
+   errel=(180./PI)/costheta*dsintheta;
+
+   double dsinphi_dm=(zdir[1]*zdir[1]-zdir[0]*zdir[0])/pow(zdir[0]*zdir[0]+zdir[1]*zdir[1],2)*BB;
+   double dsinphi_dn=(zdir[0]*zdir[0]-zdir[1]*zdir[1])/pow(zdir[0]*zdir[0]+zdir[1]*zdir[1],2)*AA;
+   double dsinphi_dk=(zdir[1]*(-AA/sum*kk)+zdir[0]*(BB/kk-BB*kk/sum))/(zdir[0]*zdir[0]+zdir[1]*zdir[1]);
+   double dsinphi_db=(zdir[1]*(-costheta/sqrt(sum)-AA/sum*bb)+zdir[0]*(-BB/sum*bb))/(zdir[0]*zdir[0]+zdir[1]*zdir[1])/180.*PI;
+   double dsinphi_dsintheta=-zdir[1]/(zdir[0]*zdir[0]+zdir[1]*zdir[1])*(1+bb*sintheta[index]/costheta)/sqrt(sum);
+   double dsinphi=sqrt(pow(dsinphi_dm*ezdir[0],2)+pow(dsinphi_dn*ezdir[1],2)+pow(dsinphi_dsintheta*dsintheta,2)+pow(dsinphi_dk,2)*ekkbb[2]+2*dsinphi_dk*dsinphi_db*ekkbb[1]+pow(dsinphi_db,2)*ekkbb[0]);
+   erraz=(180./PI)/cosphi*dsinphi;
+   //printf("dsinphi: dsinphi_dm=%lf(%lf) dsinphi_dn=%lf(%lf) dsinphi_dk=%lf dsinphi_db=%lf dsinphi_dsintheta=%lf dsinphi=%lf\n",dsinphi_dm,ezdir[0],dsinphi_dn,ezdir[1],dsinphi_dk,dsinphi_db,dsinphi_dsintheta,dsinphi);
+}
+int WFCTAEvent::GetTelDir(double &elevation,double &errel,double &azimuth,double &erraz){
+   if(!minimizer) return -1;
+   double lasercoo[3]={laserevent.LaserCoo[0],laserevent.LaserCoo[1],laserevent.LaserCoo[2]};
+   double lasertheta=laserevent.LaserDir[0]/180.*PI;
+   double laserphi=laserevent.LaserDir[1]/180.*PI;
+   double laserdir[3]={sin(lasertheta)*cos(laserphi),sin(lasertheta)*sin(laserphi),cos(lasertheta)};
+   double xdir[3]={lasercoo[0]-0,lasercoo[1]-0,lasercoo[2]-0};
+   double length=sqrt(xdir[0]*xdir[0]+xdir[1]*xdir[1]+xdir[2]*xdir[2]);
+   double zdir[3];
+   Laser::cross(xdir,laserdir,zdir);
+   double norm=sqrt(zdir[0]*zdir[0]+zdir[1]*zdir[1]+zdir[2]*zdir[2]);
+   for(int icoo=0;icoo<3;icoo++) zdir[icoo]/=norm;
+   double kk=minimizer->X()[3];
+   double ekk=minimizer->Errors()[3];
+   double bb=minimizer->X()[2]/180*PI;
+   double ebb=minimizer->Errors()[2];
+   double ekkbb[3]={minimizer->CovMatrix(2,2),minimizer->CovMatrix(2,3),minimizer->CovMatrix(3,3)};
+
+   double ezdir[3];
+   ezdir[0]=sqrt(pow(-xdir[0]*Laser::LaserCooErr/length/length*zdir[0],2)+pow(-xdir[1]*Laser::LaserCooErr/length/length*zdir[0]-cos(lasertheta)/length*Laser::LaserCooErr,2)+pow(-xdir[2]*Laser::LaserCooErr/length/length*zdir[0]+sin(lasertheta)*sin(laserphi)/length*Laser::LaserCooErr,2)+pow((xdir[2]*cos(lasertheta)*sin(laserphi)+xdir[1]*sin(lasertheta))/length*Laser::LaserZenErr/180.*PI,2)+pow(xdir[2]*sin(lasertheta)*cos(laserphi)/length*Laser::LaserAziErr/180.*PI,2));
+   ezdir[1]=sqrt(pow(-xdir[0]*Laser::LaserCooErr/length/length*zdir[1]+cos(lasertheta)/length*Laser::LaserCooErr,2)+pow(-xdir[1]*Laser::LaserCooErr/length/length*zdir[1],2)+pow(-xdir[2]*Laser::LaserCooErr/length/length*zdir[1]-sin(lasertheta)*cos(laserphi)/length*Laser::LaserCooErr,2)+pow((-xdir[0]*sin(lasertheta)-xdir[2]*cos(lasertheta)*cos(laserphi))/length*Laser::LaserZenErr/180.*PI,2)+pow(xdir[2]*sin(lasertheta)*sin(laserphi)/length*Laser::LaserAziErr/180.*PI,2));
+   ezdir[2]=sqrt(pow(-xdir[0]*Laser::LaserCooErr/length/length*zdir[2]-sin(lasertheta)*sin(laserphi)/length*Laser::LaserCooErr,2)+pow(-xdir[1]*Laser::LaserCooErr/length/length*zdir[2]+sin(lasertheta)*cos(laserphi)/length*Laser::LaserCooErr,2)+pow(-xdir[2]*Laser::LaserCooErr/length/length*zdir[2],2)+pow((xdir[1]*cos(lasertheta)*cos(laserphi)-xdir[0]*cos(lasertheta)*sin(laserphi))/length*Laser::LaserZenErr/180.*PI,2)+pow((-xdir[1]*sin(lasertheta)*sin(laserphi)-xdir[0]*sin(lasertheta)*cos(laserphi))/length*Laser::LaserAziErr/180.*PI,2));
+   printf("zdir={%lf,%lf,%lf} ezdir={%lf,%lf,%lf} kk={%lf,%lf,%lf} bb={%lf,%lf,%lf}\n",zdir[0],zdir[1],zdir[2],ezdir[0],ezdir[1],ezdir[2],kk,ekk,sqrt(ekkbb[2]),bb/PI*180.,ebb,sqrt(ekkbb[0]));
+
+   return CalTelDir(kk,bb,ekkbb,zdir,ezdir,elevation,errel,azimuth,erraz);
+}

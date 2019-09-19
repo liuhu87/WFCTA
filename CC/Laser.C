@@ -362,6 +362,10 @@ double Laser::pulsetime = 0;
 double Laser::spotrange[2] = {0,0};//0.001;//mm, the range of the initial laser spot
 double Laser::divergence[2] = {0,0};//0.0573; //mrad
 
+double Laser::LaserCooErr=100.; //in cm
+double Laser::LaserZenErr=1.; //in degree
+double Laser::LaserAziErr=1.; //in degree
+
 void Laser::Init(int seed){
    if(!prandom) prandom = new TRandom3();
    prandom->SetSeed(seed);

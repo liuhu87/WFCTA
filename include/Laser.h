@@ -66,6 +66,10 @@ class Laser {
       static double spotrange[2];
       static double  divergence[2];
 
+      static double LaserCooErr;
+      static double LaserZenErr;
+      static double LaserAziErr;
+
       ///position of the laser generator
       double lasercoo[3];	//in cm
       ///pointing direction of the laser generator
