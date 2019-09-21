@@ -370,3 +370,141 @@ TObjArray* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int View
    array->Draw(opt);
    return array;
 }
+
+/******************************************
+ * read root file and do iamge processing *
+ * ****************************************/
+//set x and y, unit in degree
+void WFCTAEvent::SetImage()
+{
+    int PixI,PixJ;
+    for(int k=0;k<1024;k++)
+    {
+        PixI = (k) / PIX;
+        PixJ = (k) % PIX;
+        if(PixI%2==0)  {ImageX[k] = PixJ+0.5-PIX/2.0;}
+        if(PixI%2==1)  {ImageX[k] = PixJ+1-PIX/2.0;}
+        ImageY[k] = (PIX/2.0-PixI) - 1/2.0;
+
+        ImageX[k] = ImageX[k]*16/32.;
+        ImageY[k] = ImageY[k]*16/32.;// "-" is WCDA map, "+" is WFCTA map
+
+        ImageX[k] -= 0.31;
+        ImageY[k] -= 0.28;
+    }
+
+}
+
+//change rabbit time to local time
+void WFCTAEvent::rabbittime2lt()
+{
+    double MJD19700101 = 40587;
+    double TAI2UTC = 37;
+    double djm = MJD19700101 + (rabbitTime + rabbittime*20/1000000000. - TAI2UTC)/86400;
+
+    int j;
+    double fd, d;
+    long jd, n4, nd10;
+    /* Check if date is acceptable */
+    if ( ( djm <= -2395520.0 ) || ( djm >= 1e9 ) ) {
+        j = -1;
+    } else {
+        j = 0;
+    /* Separate day and fraction */
+        fd = (djm)>0.0?djm-floor(djm):djm+floor(-djm);
+        if ( fd < 0.0 ) fd += 1.0;
+        d = djm - fd;
+        d = d<0.0?ceil(d):floor(d);
+    /* Express day in Gregorian calendar */
+        jd = (long)d + 2400001;
+        n4 = 4L*(jd+((6L*((4L*jd-17918L)/146097L))/4L+1L)/2L-37L);
+        nd10 = 10L*(((n4-237L)%1461L)/4L)+5L;
+        year = (int) (n4/1461L-4712L);
+        month = (int) (((nd10/306L+2L)%12L)+1L);
+        day = (int) ((nd10%306L)/10L+1L);
+        j = 0;
+        hour = int(fd * 24 + 8);
+        minite = int((fd*24+8 - hour)*60);
+        second = int(((fd*24+8-hour)*60-minite)*60);
+	printf("time:%04d %02d%02d %02d:%02d:%02d\n",year,month,day,hour,minite,second);
+    }
+
+}
+
+//initiate
+void WFCTAEvent::InitImage()
+{
+   FullImagePe.clear();
+   FullImageX.clear();
+   FullImageY.clear();
+   fNpixfriends.clear();
+   CleanImagePe.clear();
+   CleanImageX.clear();
+   CleanImageY.clear();
+   Npix = 0;
+}
+
+//change adc count to number of pe
+void WFCTAEvent::AdcToPe()
+{
+   int isipm;
+   double pe;
+   double Ntotal = 360000;
+   for(int ii=0;ii<iSiPM.size();ii++){
+      isipm = (int)iSiPM.at(ii);
+      if(SatH.at(ii)==0){  pe = AdcH.at(ii)/9.98;}
+      else              {  pe = (AdcL.at(ii)*22)/9.98;}
+      if(pe<0)          {  pe = 0;}
+      else if(pe>Ntotal){  pe = Ntotal;}
+      else              {  pe = -Ntotal*log(1-pe/Ntotal);}
+
+      //pe = pe/factor[isipm];
+      //pe = pe*(1 + deltag_20[isipm]*(correct_PreTemp[isipm]-T0));
+      FullImagePe.push_back(pe);
+      FullImageX.push_back(ImageX[isipm]);
+      FullImageY.push_back(ImageY[isipm]);
+   }
+
+}
+//clean image
+void WFCTAEvent::ImageClean(double cut)
+{
+/*
+    int cnt;
+    double x0,y0,x1,y1,distance;
+    double MAXDIST = 0.6;
+    vector<float>::iterator pe1_iter;
+    vector<double>::iterator x1_iter;
+    vector<double>::iterator y1_iter;
+
+    x_iter=FullX.begin();
+    y_iter=FullY.begin();
+    for(pe_iter=FullPe.begin();pe_iter!=FullPe.end();pe_iter++)
+    {
+        cnt = 0;
+        x0 = *x_iter;
+        y0 = *y_iter;
+        x_iter++;
+        y_iter++;
+        if(*pe_iter<=0)  {continue;}
+        else
+        {
+            x1_iter=FullX.begin();
+            y1_iter=FullY.begin();
+            for(pe1_iter=FullPe.begin();pe1_iter!=FullPe.end();pe1_iter++){
+                x1 = *x1_iter;
+                y1 = *y1_iter;
+                x1_iter++;
+                y1_iter++;
+                distance = sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1));
+                if(distance<=MAXDIST && *pe1_iter>0)  {cnt++;}
+            }
+            if(cnt>3){
+                CleanPe.push_back( *pe_iter );
+                CleanX.push_back( x0 );
+                CleanY.push_back( y0 );
+            }
+        }
+    }
+*/
+}

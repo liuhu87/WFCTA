@@ -43,7 +43,7 @@ public:
         vector<short> iSiPM;
 	vector<float> winsum;
 	vector<float> ADC_Cut;  //!
-	vector<float> eBaseH;  //!
+	vector<float> eBaseH;  
 	vector<float> eBaseL;  //!
 	vector<float> eAdcH;  //!
 	vector<float> eAdcL;  //!
@@ -69,10 +69,37 @@ public:
 	int Npoint[28]; //! 
 	int pulsehigh[1024][28]; //!
 	int pulselow[1024][28];  //!
+        double ImageX[1024];  //!
+        double ImageY[1024];  //!
 
         WFCTAMCEvent mcevent;  //!
         WFCTALedEvent ledevent;  //!
         WFCTALaserEvent laserevent;  //!
+
+public:
+        int year;  //!
+        int month;  //!
+        int day;  //!
+        int hour;  //!
+        int minite;  //!
+        int second;  //!
+        vector<double> FullImagePe;  //!
+        vector<double> FullImageX;  //!
+	vector<double> FullImageY;  //!
+	vector<double> CleanImagePe;  //!
+	vector<double> CleanImageX;  //!
+	vector<double> CleanImageY;  //!
+
+	vector<double>::iterator it_pe;  //!
+	vector<double>::iterator it_x;  //!
+	vector<double>::iterator it_y;  //!
+	vector<double>::iterator it_pe0;  //!
+	vector<double>::iterator it_x0;  //!
+	vector<double>::iterator it_y0;  //!
+
+        vector<int> fNpixfriends;  //!
+	vector<int>::iterator it_npix;  //!
+	int Npix;  //!
 
 public:
         WFCTAEvent();
@@ -92,6 +119,12 @@ public:
         int GetMinTimeBin();
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
         TObjArray* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);
+
+	void SetImage();
+	void rabbittime2lt();
+	void InitImage();
+	void AdcToPe();
+	void ImageClean(double cut);
 
    ClassDef(WFCTAEvent,3);
 };
