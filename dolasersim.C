@@ -23,6 +23,8 @@ int main(int argc, char**argv)
    cout<< nevent << "  " << outname << "  " << seed <<endl;
 
    TH1::SetDefaultSumw2();
+   CommonTools::IsLaser=true;
+   CommonTools::InitHArrival();
 
    TFile *fout = new TFile(outname,"RECREATE");
    TH1D* hNevt = new TH1D("NEvent","",2,0,2);
@@ -42,7 +44,7 @@ int main(int argc, char**argv)
    }
    if(!pt) return 0;
    Atmosphere::SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
-   Atmosphere::scale=1.0e3;
+   Atmosphere::scale=1.0e2;
    Laser::scale=1.0e-8;
    //Laser::Doigen=9632;
    Laser::DoPlot=false;
@@ -70,6 +72,9 @@ int main(int argc, char**argv)
    double time=0;
    for(int ii=0;ii<nevent;ii++){
       printf("ievent=%d Time=%d time=%lf\n",ii,Time,time);
+      double angle=-90.+180./nevent*ii;
+      pl->lasercoo[0]=1.0e5*cos(angle/180.*PI);
+      pl->lasercoo[1]=1.0e5*sin(angle/180.*PI);
       //pl->laserdir[0]=lasertheta+(ii/10)*3.;
       //pl->laserdir[1]=laserphi+(ii%10)*1.;
       long int ngentel=pl->EventGen(Time,time,true);
@@ -79,7 +84,7 @@ int main(int argc, char**argv)
       hNevt->Fill(1.5,ngentel/Laser::scale);
       hraytrace->Add(WFCTAMCEvent::hRayTrace);
       hweight->Add(WFCTALaserEvent::hweight);
-      for(int ipmt=0;ipmt<1024;ipmt++){
+      for(int ipmt=0;ipmt<NSIPM;ipmt++){
          double content=hPMTs->GetBinContent(ipmt+1);
          double econtent=hPMTs->GetBinError(ipmt+1);
          hPMTs->SetBinContent(ipmt+1,content+pevt->mcevent.TubeSignal[0][ipmt]);
@@ -101,6 +106,9 @@ int main(int argc, char**argv)
    hraytrace->Write();
    hPMTs->Write();
    hweight->Write();
+   for(int ii=0;ii<NSIPM;ii++){
+      if(CommonTools::HArrival[ii]->Integral()>1000) CommonTools::HArrival[ii]->Write();
+   }
    fout->Close();
    //delete pl;
    //delete WFTelescopeArray::GetHead();

@@ -1,6 +1,7 @@
 #ifndef __WFCamera__
 #define __WFCamera__
 
+#include "common.h"
 #include <iostream>
 #include <fstream>
 #include <string.h>
@@ -12,8 +13,6 @@
 ///number of pmt in x,y direction
 #define PIX 32
 #define NSIPM (PIX*PIX)
-const double timebinunit=20.; //in unit of nano second
-#define MaxTimeBin 150
 using namespace std;
 
 /*!

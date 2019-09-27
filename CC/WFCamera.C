@@ -161,7 +161,7 @@ void WCamera::AddNSB()
 }
 
 long int WCamera::FindBin(double time){
-   long int index=(long int)(time/(timebinunit*1.0e-9));
+   long int index=(long int)(time/(CommonTools::timebinunit[CommonTools::IsLaser]*1.0e-9));
    if(time<0) index=index-1;
    return index;
 }
@@ -189,6 +189,7 @@ void WCamera::Fill(int itube,double time,double weight){
             ArrivalCountE[itube][i0]=sqrt(pow(ArrivalCountE[itube][i0],2)+pow(weight,2));
          }
          else OverFlow=true;
+         //printf("WCamera::Fill:time=%lf PMT=%d i0=%d NArrival=%d index=%ld ArrivalCount=%lf OverFlow=%d\n",time,itube,i0,NArrival,index,ArrivalCount[itube][i0>=0?i0:0],OverFlow);
       }
    }
 }

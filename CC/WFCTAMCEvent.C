@@ -72,11 +72,23 @@ void WFCTAMCEvent::Copy(WFTelescopeArray* pct){
       for(int ii=0;ii<NSIPM;ii++){
          TubeSignal[ict][ii]=(pcame->TubeSignal).at(ii);
          eTubeSignal[ict][ii]=(pcame->eTubeSignal).at(ii);
+         int peaktime=-1;
+         long int itmin=10000000000;
+         long int itmax=-1;
+         double maxcount=-1;
          for(int jj=0;jj<MaxTimeBin;jj++){
             ArrivalCount[ict][ii][jj]=pcame->ArrivalCount[ii][jj];
             ArrivalCountE[ict][ii][jj]=pcame->ArrivalCountE[ii][jj];
+            if(ArrivalCount[ict][ii][jj]>maxcount){
+               maxcount=ArrivalCount[ict][ii][jj];
+               peaktime=jj;
+            }
+            if(ArrivalCount[ict][ii][jj]>0){
+               if(ArrivalTime[ict][jj]<itmin) itmin=ArrivalTime[ict][jj];
+               if(ArrivalTime[ict][jj]>itmax) itmax=ArrivalTime[ict][jj];
+            }
          }
-         //printf("WFCTAMCEvent::Copy: T%d PMT%d signal=%lf\n",ict,ii,TubeSignal[ict][ii]);
+         //if(maxcount>5) printf("WFCTAMCEvent::Copy: T%d PMT%d signal=%lf ipeak=%d time={%ld,%ld,%ld} peakcount=%lf\n",ict,ii,TubeSignal[ict][ii],peaktime,ArrivalTime[ict][peaktime],itmin,itmax,maxcount);
       }
    }
 }

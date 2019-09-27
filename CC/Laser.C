@@ -363,8 +363,8 @@ double Laser::spotrange[2] = {0,0};//0.001;//mm, the range of the initial laser 
 double Laser::divergence[2] = {0,0};//0.0573; //mrad
 
 double Laser::LaserCooErr=100.; //in cm
-double Laser::LaserZenErr=1.; //in degree
-double Laser::LaserAziErr=1.; //in degree
+double Laser::LaserZenErr=0.02;//0.02; //in degree
+double Laser::LaserAziErr=0.02;//0.02; //in degree
 
 void Laser::Init(int seed){
    if(!prandom) prandom = new TRandom3();
@@ -1436,7 +1436,7 @@ bool Laser::DoWFCTASim(){
          //(pwfc->mcevent).Wavegen.insert((pwfc->mcevent).Wavegen.begin(),vgwav.begin(),vgwav.end());
          if(findtel){
             (pwfc->mcevent).Copy(pct);
-            pwfc->CalculateADC();
+            pwfc->CalculateDataVar();
             (pwfc->mcevent).GetTubeTrigger();
             (pwfc->mcevent).GetTelescopeTrigger(pct);
          }

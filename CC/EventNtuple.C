@@ -1,10 +1,11 @@
 #include "EventNtuple.h"
 #include "TMath.h"
+#include "WFCTAEvent.h"
 EventNtuple* EventNtuple::_Head=0;
 TFile* EventNtuple::fout=0;
 int EventNtuple::fillstyle=0;
 const int EventNtuple::branchSplit=1;
-char EventNtuple::branchname[NBranch][20]={"CorsikaEvent","Event"};
+char EventNtuple::branchname[NBranch][20]={"CorsikaEvent","WFCTAEvent"};
 bool EventNtuple::FromIDtoAZ(int PID,int &AA,int &ZZ){
    int nele=11;
    int pid0[]={1,2,3, 5, 6,7,8, 9,13,14,15};
@@ -42,109 +43,112 @@ EventNtuple* EventNtuple::GetHead(char* filename,int style){
    }
 }
 void EventNtuple::Init(){
-   if(fillstyle==1||fillstyle==0){//init the tree
-      //if(_Tree) delete _Tree;
-      _Tree=new TTree("eventShow","Event");
+   _Tree=0;
+   hlist=0;
+   if((fillstyle&0x1)){//init the tree
+      if(!_Tree) _Tree=new TTree("eventShow","Event");
    }
-   else{
-      _Tree=0;
-   }
-   if((fillstyle==2||fillstyle==3)||fillstyle==0){//init the histograms
-      hlist=new TList();
-      if(fillstyle==2||fillstyle==0){
-         double PEL=1.0e3,PEH=5.0e5;
-         double SPL[2]={-3.2e4,-1.0e5},SPH[2]={3.2e4,1.0e5};
-         double SNL[2]={1.0e2,1.0e1},SNH[2]={5.0e6,1.0e5};
-         //some primary particle distribution
-         ///primary particle type distribution
-         TH1F* Hptp=new TH1F("Hptp","Primary particle nucleon number distribution;Atomic Number;Events",102,-1.5,100.5);
-         hlist->Add(Hptp);
-         ///primary particle energy distribution
-         TH1F* Hpe=new TH1F("Hpe","Primary particle energy distribution;Energy [GeV];Events",1000,PEL,PEH);
-         hlist->Add(Hpe);
-         ///primary particle direction distribution
-         TH2F* Hpdir=new TH2F("Hpdir","Primary particle direction distribution;cos^{2}(Theta);Phi;Events",100,0,1.,100,0,2*PI);
-         hlist->Add(Hpdir);
-         ///primary particle position distribution
-         TH2F* Hppos=new TH2F("Hppos","Primary particle position distribution;x [cm];y [cm]",100,SPL[0],SPH[0],100,SPL[0],SPH[0]);
-         hlist->Add(Hppos);
-         //some secondary particle distribution
-         TH2F *Hspos[2],*Hsdir[2],*Hpse[2],*Hpspos[2],*Hpsdir[2],*Hpstp[2];
-         for(int ii=0;ii<2;ii++){
-            ///position distribution of clight and particle at observation level
-            Hspos[ii]=new TH2F(Form("Hspos_s%d",ii),"Secondary particle position distribution;x [cm];y[cm]",100,SPL[ii],SPH[ii],100,SPL[ii],SPH[ii]);
-            hlist->Add(Hspos[ii]);
-            ///arrival direction distribution of clight and particle at observation level
-            Hsdir[ii]=new TH2F(Form("Hsdir_s%d",ii),"Secondary particle direction distribution;cos(Theta);Phi",100,-1,1,100,0,2*PI);
-            hlist->Add(Hsdir[ii]);
-            ///number of clight or electrons vs primary particle energy
-            Hpse[ii]=new TH2F(Form("Hpse_s%d",ii),"Number of secondary particle vs primary particle energy;primary particle energy [GeV];log(secondary particle number)",1000,PEL,PEH,100,log10(SNL[ii]),log10(SNH[ii]));
-            hlist->Add(Hpse[ii]);
-            ///number of clight or electrons vs primary particle position
-            Hpspos[ii]=new TH2F(Form("Hpspos_s%d",ii),"Number of secondary particle vs primary core position;primary particle dist;log(secondary particle number)",100,SPL[ii],SPH[ii],100,log10(SNL[ii]),log10(SNH[ii]));
-            hlist->Add(Hpspos[ii]);
-            ///number of clight or electrons vs primary particle direction
-            Hpsdir[ii]=new TH2F(Form("Hpsdir_s%d",ii),"Number of secondary particle vs primary particle direction;primary particle theta;log(secondary particle number)",100,-1.,1.,100,log10(SNL[ii]),log10(SNH[ii]));
-            hlist->Add(Hpsdir[ii]);
-            ///number of clight or electrons vs primary particle type
-            Hpstp[ii]=new TH2F(Form("Hpstp_s%d",ii),"Number of secondary particle vs primary particle type;primary particle atomic number;log(secondary particle number)",102,-1.5,100.5,100,log10(SNL[ii]),log10(SNH[ii]));
-            hlist->Add(Hpstp[ii]);
-         }
-
-         ///position of secondary with respect to telescope
-         TH2F* Hstpos=new TH2F("Hstpos","Secondary particle position distribution;x [cm];y[cm]",100,-500.,500.,100,-500.,500.);
-         hlist->Add(Hstpos);
-
-         //WFCTA simulation result
-         const int nbin=13;
-         char label[nbin][100]={"All","InTel","RefEff","Door","OutCluster","ZMirror","InMirror","InCluster","Filter","InCone","ConeStrike","InSiPM","Signal"};
-         ///number of clight when pass through different geometry
-         TH1F* Hsn=new TH1F("Hsn",";Stage;",nbin,-0.5,nbin-0.5);
-         hlist->Add(Hsn);
-         ///number of clight when pass through different geometry vs energy
-         TH2F* Hsne=new TH2F("Hsne",";Primary Particle Energy;Stage",1000,PEL,PEH,nbin,-0.5,nbin-0.5);
-         hlist->Add(Hsne);
-         ///number of clight when pass through different geometry vs position
-         TH2F* Hsnposx=new TH2F("Hsnposx",";position x;Stage",1000,SPL[0],SPH[0],nbin,-0.5,nbin-0.5);
-         hlist->Add(Hsnposx);
-         TH2F* Hsnposy=new TH2F("Hsnposy",";position x;Stage",1000,SPL[0],SPH[0],nbin,-0.5,nbin-0.5);
-         hlist->Add(Hsnposy);
-         ///number of clight when pass through different geometry vs direction
-         TH2F* Hsndiru=new TH2F("Hsndiru",";;Stage",100,-1,1,nbin,-0.5,nbin-0.5);
-         hlist->Add(Hsndiru);
-         TH2F* Hsndirv=new TH2F("Hsndirv",";;Stage",100,0,2*PI,nbin,-0.5,nbin-0.5);
-         hlist->Add(Hsndirv);
-         for(int ibin=1;ibin<=nbin;ibin++){
-            Hsn->GetXaxis()->SetBinLabel(ibin,label[ibin-1]);
-            Hsne->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
-            Hsnposx->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
-            Hsnposy->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
-            Hsndiru->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
-            Hsndirv->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
-         }
-         TH2F* Hsimg[20];
-         for(int ict=0;ict<20;ict++){
-            if(ict<WFTelescopeArray::CTNumber){
-               ///image of fired pmt for each telescope
-               Hsimg[ict]=new TH2F(Form("Hsimg_T%d",ict),Form("Telescope %d;x index;y index",ict),32,-0.5,31.5,32,-0.5,31.5);
-               hlist->Add(Hsimg[ict]);
-            }
-            else Hsimg[ict]=0;
-         }
+   if((fillstyle&0x2)){//init the histograms
+      if(!hlist) hlist=new TList();
+      double PEL=1.0e3,PEH=5.0e5;
+      double SPL[2]={-3.2e4,-1.0e5},SPH[2]={3.2e4,1.0e5};
+      double SNL[2]={1.0e2,1.0e1},SNH[2]={5.0e6,1.0e5};
+      //some primary particle distribution
+      ///primary particle type distribution
+      TH1F* Hptp=new TH1F("Hptp","Primary particle nucleon number distribution;Atomic Number;Events",102,-1.5,100.5);
+      hlist->Add(Hptp);
+      ///primary particle energy distribution
+      TH1F* Hpe=new TH1F("Hpe","Primary particle energy distribution;Energy [GeV];Events",1000,PEL,PEH);
+      hlist->Add(Hpe);
+      ///primary particle direction distribution
+      TH2F* Hpdir=new TH2F("Hpdir","Primary particle direction distribution;cos^{2}(Theta);Phi;Events",100,0,1.,100,0,2*PI);
+      hlist->Add(Hpdir);
+      ///primary particle position distribution
+      TH2F* Hppos=new TH2F("Hppos","Primary particle position distribution;x [cm];y [cm]",100,SPL[0],SPH[0],100,SPL[0],SPH[0]);
+      hlist->Add(Hppos);
+      //some secondary particle distribution
+      TH2F *Hspos[2],*Hsdir[2],*Hpse[2],*Hpspos[2],*Hpsdir[2],*Hpstp[2];
+      for(int ii=0;ii<2;ii++){
+         ///position distribution of clight and particle at observation level
+         Hspos[ii]=new TH2F(Form("Hspos_s%d",ii),"Secondary particle position distribution;x [cm];y[cm]",100,SPL[ii],SPH[ii],100,SPL[ii],SPH[ii]);
+         hlist->Add(Hspos[ii]);
+         ///arrival direction distribution of clight and particle at observation level
+         Hsdir[ii]=new TH2F(Form("Hsdir_s%d",ii),"Secondary particle direction distribution;cos(Theta);Phi",100,-1,1,100,0,2*PI);
+         hlist->Add(Hsdir[ii]);
+         ///number of clight or electrons vs primary particle energy
+         Hpse[ii]=new TH2F(Form("Hpse_s%d",ii),"Number of secondary particle vs primary particle energy;primary particle energy [GeV];log(secondary particle number)",1000,PEL,PEH,100,log10(SNL[ii]),log10(SNH[ii]));
+         hlist->Add(Hpse[ii]);
+         ///number of clight or electrons vs primary particle position
+         Hpspos[ii]=new TH2F(Form("Hpspos_s%d",ii),"Number of secondary particle vs primary core position;primary particle dist;log(secondary particle number)",100,SPL[ii],SPH[ii],100,log10(SNL[ii]),log10(SNH[ii]));
+         hlist->Add(Hpspos[ii]);
+         ///number of clight or electrons vs primary particle direction
+         Hpsdir[ii]=new TH2F(Form("Hpsdir_s%d",ii),"Number of secondary particle vs primary particle direction;primary particle theta;log(secondary particle number)",100,-1.,1.,100,log10(SNL[ii]),log10(SNH[ii]));
+         hlist->Add(Hpsdir[ii]);
+         ///number of clight or electrons vs primary particle type
+         Hpstp[ii]=new TH2F(Form("Hpstp_s%d",ii),"Number of secondary particle vs primary particle type;primary particle atomic number;log(secondary particle number)",102,-1.5,100.5,100,log10(SNL[ii]),log10(SNH[ii]));
+         hlist->Add(Hpstp[ii]);
       }
-      else if(fillstyle==3||fillstyle==0){
-         double PEL=1.0e3,PEH=5.0e5;
-         hlist=new TList();
-         ///primary particle energy distribution
-         TH1F* MCHpe=new TH1F("MCHpe","Primary particle energy distribution;Energy [GeV];Events",100,PEL,PEH);
-         hlist->Add(MCHpe);
+
+      ///position of secondary with respect to telescope
+      TH2F* Hstpos=new TH2F("Hstpos","Secondary particle position distribution;x [cm];y[cm]",100,-500.,500.,100,-500.,500.);
+      hlist->Add(Hstpos);
+
+      //WFCTA simulation result
+      const int nbin=13;
+      char label[nbin][100]={"All","InTel","RefEff","Door","OutCluster","ZMirror","InMirror","InCluster","Filter","InCone","ConeStrike","InSiPM","Signal"};
+      ///number of clight when pass through different geometry
+      TH1F* Hsn=new TH1F("Hsn",";Stage;",nbin,-0.5,nbin-0.5);
+      hlist->Add(Hsn);
+      ///number of clight when pass through different geometry vs energy
+      TH2F* Hsne=new TH2F("Hsne",";Primary Particle Energy;Stage",1000,PEL,PEH,nbin,-0.5,nbin-0.5);
+      hlist->Add(Hsne);
+      ///number of clight when pass through different geometry vs position
+      TH2F* Hsnposx=new TH2F("Hsnposx",";position x;Stage",1000,SPL[0],SPH[0],nbin,-0.5,nbin-0.5);
+      hlist->Add(Hsnposx);
+      TH2F* Hsnposy=new TH2F("Hsnposy",";position x;Stage",1000,SPL[0],SPH[0],nbin,-0.5,nbin-0.5);
+      hlist->Add(Hsnposy);
+      ///number of clight when pass through different geometry vs direction
+      TH2F* Hsndiru=new TH2F("Hsndiru",";;Stage",100,-1,1,nbin,-0.5,nbin-0.5);
+      hlist->Add(Hsndiru);
+      TH2F* Hsndirv=new TH2F("Hsndirv",";;Stage",100,0,2*PI,nbin,-0.5,nbin-0.5);
+      hlist->Add(Hsndirv);
+      for(int ibin=1;ibin<=nbin;ibin++){
+         Hsn->GetXaxis()->SetBinLabel(ibin,label[ibin-1]);
+         Hsne->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
+         Hsnposx->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
+         Hsnposy->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
+         Hsndiru->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
+         Hsndirv->GetYaxis()->SetBinLabel(ibin,label[ibin-1]);
+      }
+      TH2F* Hsimg[20];
+      for(int ict=0;ict<20;ict++){
+         if(ict<WFTelescopeArray::CTNumber){
+            ///image of fired pmt for each telescope
+            Hsimg[ict]=new TH2F(Form("Hsimg_T%d",ict),Form("Telescope %d;x index;y index",ict),32,-0.5,31.5,32,-0.5,31.5);
+            hlist->Add(Hsimg[ict]);
+         }
+         else Hsimg[ict]=0;
       }
    }
-   else hlist=0;
+   if((fillstyle&0x4)){//init the histograms
+      if(!hlist) hlist=new TList();
+      double PEL=1.0e3,PEH=5.0e5;
+      ///primary particle energy distribution
+      TH1F* MCHpe=new TH1F("MCHpe","Primary particle energy distribution;Energy [GeV];Events",100,PEL,PEH);
+      hlist->Add(MCHpe);
+   }
+   if((fillstyle&0x8)){//init the histograms
+      if(!hlist) hlist=new TList();
+      TH1D* hraytrace = (TH1D*) WFCTAMCEvent::hRayTrace->Clone("RayTraceRes");
+      hraytrace->Reset();
+      TH1D* hPMTs = new TH1D("PMTs","",1024,-0.5,1023.5);
+      hlist->Add(hraytrace);
+      hlist->Add(hPMTs);
+   }
 }
 EventNtuple::EventNtuple(char* filename,int style){
    if(style>0) fillstyle=style;
-   else fillstyle=-1;
+   else fillstyle=0;
    Init();
    if(!filename){
       printf("There is no output filename. Exiting\n");
@@ -176,6 +180,12 @@ void EventNtuple::Write(){
          for(int ii=0;ii<hlist->GetEntries();ii++){
             if(hlist->At(ii)) hlist->At(ii)->Write();
          }
+      }
+      for(int ii=0;ii<1024;ii++){
+         if(!CommonTools::HArrival[ii]) continue;
+         if(CommonTools::HArrival[ii]->Integral()<5) continue;
+         //printf("Write Commontools PMT=%d\n",ii);
+         CommonTools::HArrival[ii]->Write();
       }
       fout->Close();
    }
@@ -228,18 +238,23 @@ void EventNtuple::ConvertCoor(double pos[3],double pp[3],double InCoo[3],double 
    ConvertThetaPhi(pp,theta,phi);
    ConvertCoor(pos,theta,phi,InCoo,InDir,OutCoo,OutDir);
 }
-void EventNtuple::Fill(TSelector** pevt){
-   if(!pevt) return;
-   if(fillstyle==1||fillstyle==0){//fill the tree
+void EventNtuple::Fill(CorsikaEvent* pcor,WFCTAEvent* pevt,int iuse0){
+   if((!pevt)&&(!pcor)) return;
+   if((fillstyle&0x1)){//fill the tree
       if(!_Tree) return;
       bool exist=false;
       for(int ibr=0;ibr<NBranch;ibr++){
-         if(!pevt[ibr]) continue;
+         if(ibr==0&&(!pcor)) continue;
+         if(ibr==1&&(!pevt)) continue;
+         if(ibr==0) continue;
          TBranch* branch=_Tree->GetBranch(branchname[ibr]);
          if(!branch){
             printf("EventNtuple::Fill: No branch %s, newly created\n",branchname[ibr]);
-            if(ibr==0) _Tree->Branch(branchname[ibr],branchname[ibr],((CorsikaEvent*)pevt[ibr]),128000,branchSplit);
-            if(ibr==1) _Tree->Branch(branchname[ibr],branchname[ibr],((WFCTAEvent*)pevt[ibr]),128000,branchSplit);
+            if(ibr==0) _Tree->Branch(branchname[ibr],branchname[ibr],pcor,128000,branchSplit);
+            if(ibr==1){
+               //((WFCTAEvent*)pevt[ibr])->CreateBranch(_Tree,branchSplit);
+               _Tree->Branch(branchname[ibr],branchname[ibr],pevt,128000,branchSplit);
+            }
             branch=_Tree->GetBranch(branchname[ibr]);
             if(branch){
                int clevel=branch->GetCompressionLevel();
@@ -256,17 +271,17 @@ void EventNtuple::Fill(TSelector** pevt){
          }
          else exist=true;
          if(exist&&false){
-            int ibin1=((WFCTAEvent*)pevt[ibr])->GetMaxADCBin();
+            //int ibin1=((WFCTAEvent*)pevt[ibr])->GetMaxADCBin();
             //int ibin2=((WFCTAEvent*)pevt[ibr])->GetMinTimeBin();
             //printf("EventNtuple::Fill: event=%ld rabbitTime=%d bin={%d,%d} adc={%f,%f} time=%.9e\n",((WFCTAEvent*)pevt[ibr])->iEvent,((WFCTAEvent*)pevt[ibr])->rabbitTime,ibin1,ibin2,((WFCTAEvent*)pevt[ibr])->ImageAdcHigh.at(ibin1>=0?ibin1:0),((WFCTAEvent*)pevt[ibr])->ImageAdcLow.at(ibin1>=0?ibin1:0),((WFCTAEvent*)pevt[ibr])->mcevent.ArrivalTimeMin[0][ibin2>=0?ibin2:0]);
          }
       }
       if(exist) _Tree->Fill();
    }
-   if(fillstyle==2||fillstyle==0){//fill the histograms
+   if((fillstyle&0x2)){//fill the histograms
       for(int ibr=0;ibr<NBranch;ibr++){
-         if(ibr==0&&pevt[ibr]){
-            CorsikaEvent* padd=(CorsikaEvent*)pevt[ibr];
+         if(ibr==0&&pcor){
+            CorsikaEvent* padd=pcor;
             int AA,ZZ;
             EventNtuple::FromIDtoAZ(padd->partp,AA,ZZ);
             ((TH1F*)hlist->FindObject(Form("Hptp")))->Fill(AA);
@@ -278,8 +293,8 @@ void EventNtuple::Fill(TSelector** pevt){
             for(int ii=0;ii<2;ii++){
                if(ii==0){
                   int ntot=0;
-                  int ntotcore[Nuse];
-                  for(int i0=0;i0<Nuse;i0++) ntotcore[i0]=0;
+                  int ntotcore[NuseMax];
+                  for(int i0=0;i0<NuseMax;i0++) ntotcore[i0]=0;
                   for(int jj=0;jj<nclight;jj++){
                      double cosx=(padd->cu).at(jj);
                      double cosy=(padd->cv).at(jj);
@@ -330,9 +345,9 @@ void EventNtuple::Fill(TSelector** pevt){
                }
             }
          }
-         if(ibr==1&&pevt[ibr]){
-            CorsikaEvent* padd0=(CorsikaEvent*)pevt[0];
-            WFCTAEvent*   padd1=(WFCTAEvent*)pevt[ibr];
+         if(ibr==1&&pevt){
+            CorsikaEvent* padd0=pcor;
+            WFCTAEvent*   padd1=pevt;
             WFCTAMCEvent* padd=(WFCTAMCEvent*)(&(padd1->mcevent));
             int size=padd->RayTrace.size();
             for(int ii=0;ii<size;ii++){
@@ -373,9 +388,23 @@ void EventNtuple::Fill(TSelector** pevt){
          }
       }
    }
-   if(fillstyle==3||fillstyle==0){//fill the histograms
-      CorsikaEvent* padd=(CorsikaEvent*)pevt[0];
+   if((fillstyle&0x4)){//fill the histograms
+      CorsikaEvent* padd=pcor;
       if(padd) ((TH1F*)hlist->FindObject(Form("MCHpe")))->Fill(padd->ep,Nuse);
+   }
+   if((fillstyle&0x8)){//fill the histograms
+      WFCTAEvent* padd=pevt;
+      TH1F* hraytrace=((TH1F*)hlist->FindObject(Form("RayTraceRes")));
+      TH1F* hPMTs=((TH1F*)hlist->FindObject(Form("PMTs")));
+      if(padd){
+         hraytrace->Add(WFCTAMCEvent::hRayTrace);
+         for(int ipmt=0;ipmt<NSIPM;ipmt++){
+            double content=hPMTs->GetBinContent(ipmt+1);
+            double econtent=hPMTs->GetBinError(ipmt+1);
+            hPMTs->SetBinContent(ipmt+1,content+padd->mcevent.TubeSignal[0][ipmt]);
+            hPMTs->SetBinError(ipmt+1,sqrt(pow(econtent,2)+pow(content+padd->mcevent.eTubeSignal[0][ipmt],2)));
+         }
+      }
    }
 }
 

@@ -3,6 +3,11 @@
 #include "string.h"
 #include "stdlib.h"
 using namespace std;
+
+int Nuse=0;
+TH1F* CommonTools::HArrival[1024]={0};
+double CommonTools::timebinunit[2]={0.3,3000};
+bool CommonTools::IsLaser=false;
 ///check wheather the year is leap year
 bool CommonTools::Is366(int year){
    if((year%4==0)&&(year%100!=0)) return true;
@@ -186,3 +191,15 @@ void CommonTools::getFiles(string path,vector<string>& files){
    }
    closedir(dirp);
 }
+
+void CommonTools::InitHArrival(){
+   for(int ii=0;ii<1024;ii++){
+      HArrival[ii]=new TH1F(Form("PMT_%d",ii),"",(MaxTimeBin*2),-MaxTimeBin,MaxTimeBin);
+   }
+}
+void CommonTools::ResetHArrival(){
+   for(int ii=0;ii<1024;ii++){
+      if(HArrival[ii]) HArrival[ii]->Reset();
+   }
+}
+

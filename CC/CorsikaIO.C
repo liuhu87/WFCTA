@@ -245,9 +245,13 @@ Int_t CorsikaIO::FillBlk(int iblk_beg,int iblk_end,CorsikaEvent* pevt){
         Evt.stheight = recbuff.f[iptr+158];
         corex = recbuff.f[iptr+98+1];
         corey = recbuff.f[iptr+118+1];
-        for(int ii=1;ii<=Nuse;ii++){
-        Evt.corex[ii-1]=recbuff.f[iptr+98+ii];
-        Evt.corey[ii-1]=recbuff.f[iptr+118+ii];
+        Nuse=recbuff.f[iptr+98];
+        for(int ii=1;ii<=NuseMax;ii++){
+           if(ii<=Nuse){
+           Evt.corex[ii-1]=recbuff.f[iptr+98+ii];
+           Evt.corey[ii-1]=recbuff.f[iptr+118+ii];
+           }
+           else {Evt.corex[ii-1]=0; Evt.corey[ii-1]=0;}
         }
         Firstheight = -(Firstheight+430000.);
         Firstheight = sqrt(Firstheight*Firstheight+corex*corex+corey*corey);

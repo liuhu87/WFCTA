@@ -31,8 +31,8 @@ class CorsikaEvent: public TSelector {
    Float_t thetap;	//primary particle theta
    Float_t phip;	//primary particle phi
    Float_t stheight;	//primary starting height
-   Float_t corex[Nuse];
-   Float_t corey[Nuse];
+   Float_t corex[NuseMax];
+   Float_t corey[NuseMax];
    ///EVTE
    Int_t nphoton;//!	//total photon number
    Int_t nelectron;//!	//total electron number
@@ -88,7 +88,7 @@ class CorsikaEvent: public TSelector {
    ///which corex or corey
    int WhichCore(double x0,double y0);
    ///Do WFCTA Simulation
-   bool DoWFCTASim();
+   bool DoWFCTASim(int iuse=0);
    ///Fill the event information to the EventNtuple
    void Fill();
 };

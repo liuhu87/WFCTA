@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <time.h>
+#include "TH1F.h"
 using namespace std;
 using std::vector;
 
@@ -18,8 +19,17 @@ using std::vector;
 const double hplank=6.62607015e-34; //in J*s
 const double hplank_gev=4.1356676969e-24; //in GeV*s
 const double vlight=2.998e10;
+extern int Nuse;
   ///convert time
 class CommonTools {
+   public:
+   ///cerenkov photon arrival information
+   static TH1F* HArrival[1024];
+   ///time bin width,in unit of nano second
+   static double timebinunit[2];
+   ///check wheather it is laser event
+   static bool IsLaser;
+
    public:
    static bool Is366(int year);
    static int Convert(double time);
@@ -31,8 +41,15 @@ class CommonTools {
    static int GetTelIndex(const char* filename,int start,int length);
    static int get_file_size_time(const char* filename);
    static void getFiles(string path,vector<string>& files);
+
+   static void InitHArrival();
+   static void ResetHArrival();
 };
 
 /// Max number of Telescopes
 #define NCTMax 20
+
+/// Max number of time bins
+#define MaxTimeBin 150
+
 #endif

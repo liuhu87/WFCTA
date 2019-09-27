@@ -54,8 +54,8 @@ public:
         vector<short> iSiPM;
 	vector<short> Single_Threshold;  //!
 	vector<short> Record_Threshold;  //!
-	vector<char> peak;  //!
-	vector<char> mypeak;
+	vector<int> peak;  //!
+	vector<int> mypeak;
 	vector<int> peakamp;
 	vector<bool> gain_marker;  //!
 	vector<bool> Over_Single_Marker;
@@ -65,11 +65,12 @@ public:
 	int pulsehigh[1024][28];  //!
 	int pulselow[1024][28];  //!
 
-        TF1* fModel; //!
+        /// for the fitting of the image
+        TGraph* gDraw; //!
         TGraph* gDrawErr; //!
         ROOT::Math::Minimizer* minimizer; //!
 
-        WFCTAMCEvent mcevent;  //!
+        WFCTAMCEvent mcevent;  
         WFCTALedEvent ledevent;  //!
         WFCTALaserEvent laserevent;
 
@@ -85,23 +86,38 @@ public:
         void CreateBranch(TTree *tree, int branchSplit);
         void GetBranch(TTree *fChain);
         bool GetAllContents(int _Entry);
-        void CalculateADC(int itel=0);
+        bool CheckLaser();
+        bool CheckMC();
+        void CalculateDataVar(int itel=0);
         int GetMaxADCBin(int itel=0);
         int GetPeakADCBin(int isipm,int itel=0);
         int GetMaxTimeBin(int itel=0);
         int GetMinTimeBin(int itel=0);
-        bool CleanImage(int isipm,int itel=0,int type=3);
+        double GetContent(int isipm,int itel=0,int type=3,bool IsIndex=false);
+        bool CleanImage(int isipm,int itel=0,int type=3,bool IsIndex=false);
         double Interface(const double* par);
         bool DoFit(int itel=0,int type=3,bool force=false);
+        bool GetCrossCoor(double x, double y, double &x0, double &y0);
+        TH1F* GetLongDistribution(int itel=0,int type=3);
+        TH1F* GetShortDistribution(int itel=0,int type=3);
+        int GetSign(bool IsLaser,bool IsMC);
+        double GetApar(double CC,double phi,double zenith,double azimuth);
+        bool CalPlane(double CC,double phi,double zenith,double azimuth,double &planephi,double &nz);
+        bool CalPlane(double CC,double phi,double zenith,double azimuth,double xyzdir[3][3]);
+        bool GetPlane(double &planephi,double &eplanephi,double &nz,double &enz,int itel=0,int type=3);
         bool GetPlane(double xyzdir[3][3],double exyzdir[3][3],int itel=0,int type=3);
-        TGraph* DrawAxis(int iaxis,int itel=0,int type=3);
+        int CalTelDir(double CC,double phi,double* lasercoo,double* laserdir,double &elevation,double &azimuth);
+        int GetTelDir(double &elevation,double &errel,double &azimuth,double &erraz);
+        static void GetImageXYCoo(double zenith,double azimuth,double* lasercoo,double* laserdir,double PHI_in,double &xx,double &yy);
+        void GetPHI(double zenith,double azimuth,double CC,double phi,double* ImageCoo,double &PHI_in);
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
         void DrawFit();
+        TGraph* DrawImageLine(int itel=0);
+        TGraph* DrawCorePos(double* corepos,int itel=0,int type=3);
+        TGraph* DrawCoreReg(double* corepos,int itel=0,int type=3);
         static void slaDtp2s ( double xi, double eta, double raz, double decz, double &ra, double &dec );
 	TH2Poly* DrawGlobal(int type=0,const char* opt="scat colz",double threshold=500.);
-        TObjArray* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);
-        static int CalTelDir(double kk,double bb,double ekkbb[3],double zdir[3],double ezdir[3],double &elevation,double &errel,double &azimuth,double &erraz);
-        int GetTelDir(double &elevation,double &errel,double &azimuth,double &erraz);
+        TGraph2D* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);
 
    ClassDef(WFCTAEvent,3);
 };
