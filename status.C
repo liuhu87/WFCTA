@@ -25,7 +25,7 @@ int main(int argc, char**argv)
   }
 
   FILE *fp;
-  uint8_t *buf;// = new uint8_t[BUF_LEN];
+  uint8_t *buf=NULL;// = new uint8_t[BUF_LEN];
   size_t size_of_read;
   fp = fopen(argv[1],"rb");
   bool statuspackloop;
@@ -227,6 +227,7 @@ int main(int argc, char**argv)
                   statuspackloop = false;
 		  printf("statuspackloop:%d itel:%d---\n\n",statuspackloop,iTel);
 		  break;
+		default: break;
 	      }
               //if(status_pack_marker>0&&status_pack_marker<10){
               //  wfctaDecode->DealFPGAPackage((int *)fpgaVersion);

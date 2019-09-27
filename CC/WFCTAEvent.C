@@ -387,7 +387,7 @@ void WFCTAEvent::SetImage()
         ImageY[k] = (PIX/2.0-PixI) - 1/2.0;
 
         ImageX[k] = ImageX[k]*16/32.;
-        ImageY[k] = ImageY[k]*16/32.;// "-" is WCDA map, "+" is WFCTA map
+        ImageY[k] = ImageY[k]*16/32.;
 
         ImageX[k] -= 0.31;
         ImageY[k] -= 0.28;
@@ -400,20 +400,20 @@ void WFCTAEvent::rabbittime2lt()
 {
     double MJD19700101 = 40587;
     double TAI2UTC = 37;
-    double djm = MJD19700101 + (rabbitTime + rabbittime*20/1000000000. - TAI2UTC)/86400;
+    mjd = MJD19700101 + (rabbitTime + rabbittime*20/1000000000. - TAI2UTC)/86400;
 
     int j;
     double fd, d;
     long jd, n4, nd10;
     /* Check if date is acceptable */
-    if ( ( djm <= -2395520.0 ) || ( djm >= 1e9 ) ) {
+    if ( ( mjd <= -2395520.0 ) || ( mjd >= 1e9 ) ) {
         j = -1;
     } else {
         j = 0;
     /* Separate day and fraction */
-        fd = (djm)>0.0?djm-floor(djm):djm+floor(-djm);
+        fd = (mjd)>0.0?mjd-floor(mjd):mjd+floor(-mjd);
         if ( fd < 0.0 ) fd += 1.0;
-        d = djm - fd;
+        d = mjd - fd;
         d = d<0.0?ceil(d):floor(d);
     /* Express day in Gregorian calendar */
         jd = (long)d + 2400001;
@@ -426,7 +426,7 @@ void WFCTAEvent::rabbittime2lt()
         hour = int(fd * 24 + 8);
         minite = int((fd*24+8 - hour)*60);
         second = int(((fd*24+8-hour)*60-minite)*60);
-	printf("time:%04d %02d%02d %02d:%02d:%02d\n",year,month,day,hour,minite,second);
+	//printf("time:%04d %02d%02d %02d:%02d:%02d\n",year,month,day,hour,minite,second);
     }
 
 }
@@ -434,14 +434,19 @@ void WFCTAEvent::rabbittime2lt()
 //initiate
 void WFCTAEvent::InitImage()
 {
+   RawImagePe.clear();
+   RawImageSiPM.clear();
+   RawImageX.clear();
+   RawImageY.clear();
    FullImagePe.clear();
+   FullImageSiPM.clear();
    FullImageX.clear();
    FullImageY.clear();
    fNpixfriends.clear();
    CleanImagePe.clear();
+   CleanImageSiPM.clear();
    CleanImageX.clear();
    CleanImageY.clear();
-   Npix = 0;
 }
 
 //change adc count to number of pe
@@ -460,51 +465,110 @@ void WFCTAEvent::AdcToPe()
 
       //pe = pe/factor[isipm];
       //pe = pe*(1 + deltag_20[isipm]*(correct_PreTemp[isipm]-T0));
-      FullImagePe.push_back(pe);
-      FullImageX.push_back(ImageX[isipm]);
-      FullImageY.push_back(ImageY[isipm]);
+      RawImagePe.push_back(pe);
+      RawImageSiPM.push_back(isipm);
+      RawImageX.push_back(ImageX[isipm]);
+      RawImageY.push_back(ImageY[isipm]);
    }
 
 }
-//clean image
-void WFCTAEvent::ImageClean(double cut)
-{
-/*
-    int cnt;
-    double x0,y0,x1,y1,distance;
-    double MAXDIST = 0.6;
-    vector<float>::iterator pe1_iter;
-    vector<double>::iterator x1_iter;
-    vector<double>::iterator y1_iter;
 
-    x_iter=FullX.begin();
-    y_iter=FullY.begin();
-    for(pe_iter=FullPe.begin();pe_iter!=FullPe.end();pe_iter++)
-    {
-        cnt = 0;
-        x0 = *x_iter;
-        y0 = *y_iter;
-        x_iter++;
-        y_iter++;
-        if(*pe_iter<=0)  {continue;}
-        else
-        {
-            x1_iter=FullX.begin();
-            y1_iter=FullY.begin();
-            for(pe1_iter=FullPe.begin();pe1_iter!=FullPe.end();pe1_iter++){
-                x1 = *x1_iter;
-                y1 = *y1_iter;
-                x1_iter++;
-                y1_iter++;
-                distance = sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1));
-                if(distance<=MAXDIST && *pe1_iter>0)  {cnt++;}
-            }
-            if(cnt>3){
-                CleanPe.push_back( *pe_iter );
-                CleanX.push_back( x0 );
-                CleanY.push_back( y0 );
+//clean image preliminary
+void WFCTAEvent::PrelimImageClean(double cut)
+{
+    for(int ii=0;ii<RawImagePe.size();ii++){
+	if(RawImagePe.at(ii)<cut){continue;}
+	FullImagePe.push_back(RawImagePe.at(ii));
+        FullImageSiPM.push_back(RawImageSiPM.at(ii));
+        FullImageX.push_back(RawImageX.at(ii));
+        FullImageY.push_back(RawImageY.at(ii));
+    }
+}
+
+//get neighbor trigger sipms of each sipm
+void WFCTAEvent::GetNeighborPixs()
+{
+    int cnt;
+    double distance;
+    double MAXDIST=0.6;
+    double x, y, x0, y0;
+    for(int ii=0;ii<FullImagePe.size();ii++){
+	cnt=0;
+        x=FullImageX.at(ii);
+        y=FullImageY.at(ii);
+        for(int jj=0;jj<FullImagePe.size();jj++){
+	    x0=FullImageX.at(jj);
+            y0=FullImageY.at(jj);
+            distance = sqrt((x0-x)*(x0-x)+(y0-y)*(y0-y));
+            if(distance<=MAXDIST) {   //In degree
+                cnt++;
             }
         }
+        fNpixfriends.push_back(cnt);
     }
-*/
 }
+
+//calculate hillas parameters
+int WFCTAEvent::CalcHillas()
+{
+    DNpix = 0;
+    DSize = 0;
+    DMeanX = 0;
+    DMeanY = 0;
+    Dslope = 0;
+    Dintercept = 0;
+    DLength = 0;
+    DWidth = 0;
+    double sx = 0;
+    double sy = 0;
+    double sxy = 0;
+    for(int ii=0;ii<FullImagePe.size();ii++){
+        if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
+	DNpix++;
+        DSize += FullImagePe.at(ii);
+	DMeanX += FullImagePe.at(ii) * FullImageX.at(ii);
+	DMeanY += FullImagePe.at(ii) * FullImageY.at(ii);
+	sx += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageX.at(ii);
+        sy += FullImagePe.at(ii) * FullImageY.at(ii) * FullImageY.at(ii);
+        sxy += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageY.at(ii);
+    }
+
+    if(DSize==0.) return 2;
+    DMeanX /= DSize;
+    DMeanY /= DSize;
+    sx /= DSize;
+    sy /= DSize;
+    sxy /= DSize;
+    double cx = sx - DMeanX*DMeanX;
+    double cy = sy - DMeanY*DMeanY;
+    double cxy = sxy - DMeanX*DMeanY;
+    double a = (cy-cx+sqrt((cy-cx)*(cy-cx)+4*cxy*cxy))/(2*cxy);
+    double b = DMeanY-a*DMeanX;
+    double ssx = (cx+2*a*cxy+a*a*cy)/(1+a*a);
+    double ssy = (a*a*cx-2*a*cxy+cy)/(1+a*a);
+
+    if(cx==0||cy==0) return 4;
+    double delta = atan(a);
+    Dslope = -a;
+    Dintercept = -b;
+    DLength = sqrt(ssx);
+    DWidth = sqrt(ssy);
+
+    return 0;
+}
+
+//clean image
+void WFCTAEvent::GetCleanImage()
+{
+    for(int ii=0;ii<FullImagePe.size();ii++){
+	if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
+	CleanImagePe.push_back(FullImagePe.at(ii));
+        CleanImageSiPM.push_back(FullImageSiPM.at(ii));
+        CleanImageX.push_back(FullImageX.at(ii));
+        CleanImageY.push_back(FullImageY.at(ii));
+    }
+}
+
+
+
+

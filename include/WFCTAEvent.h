@@ -43,7 +43,7 @@ public:
         vector<short> iSiPM;
 	vector<float> winsum;
 	vector<float> ADC_Cut;  //!
-	vector<float> eBaseH;  
+	vector<float> eBaseH;  //!
 	vector<float> eBaseL;  //!
 	vector<float> eAdcH;  //!
 	vector<float> eAdcL;  //!
@@ -77,29 +77,35 @@ public:
         WFCTALaserEvent laserevent;  //!
 
 public:
+	double mjd;  //!
         int year;  //!
         int month;  //!
         int day;  //!
         int hour;  //!
         int minite;  //!
         int second;  //!
+	int DNpix;  //!
+	double DSize;  //!
+	double DMeanX;  //!
+	double DMeanY;  //!
+	double Dslope;  //!
+	double Dintercept;  //!
+	double DLength;  //!
+	double DWidth;  //!
+        vector<double> RawImagePe;  //!
+        vector<int> RawImageSiPM;  //!
+        vector<double> RawImageX;  //!
+        vector<double> RawImageY;  //!
         vector<double> FullImagePe;  //!
+        vector<int> FullImageSiPM;  //!
         vector<double> FullImageX;  //!
 	vector<double> FullImageY;  //!
-	vector<double> CleanImagePe;  //!
+	vector<int> CleanImagePe;  //!
+        vector<double> CleanImageSiPM;  //!
 	vector<double> CleanImageX;  //!
 	vector<double> CleanImageY;  //!
 
-	vector<double>::iterator it_pe;  //!
-	vector<double>::iterator it_x;  //!
-	vector<double>::iterator it_y;  //!
-	vector<double>::iterator it_pe0;  //!
-	vector<double>::iterator it_x0;  //!
-	vector<double>::iterator it_y0;  //!
-
         vector<int> fNpixfriends;  //!
-	vector<int>::iterator it_npix;  //!
-	int Npix;  //!
 
 public:
         WFCTAEvent();
@@ -120,11 +126,15 @@ public:
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
         TObjArray* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);
 
+        void rabbittime2lt();
+        void InitImage();
 	void SetImage();
-	void rabbittime2lt();
-	void InitImage();
 	void AdcToPe();
-	void ImageClean(double cut);
+	void PrelimImageClean(double cut);
+	void GetNeighborPixs();
+        int CalcHillas();
+	void GetCleanImage();
+
 
    ClassDef(WFCTAEvent,3);
 };
