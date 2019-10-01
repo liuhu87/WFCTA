@@ -31,6 +31,7 @@ protected:
    static TBranch* bmcevent;
    static TBranch* bledevent;
    static TBranch* blaserevent;
+   static int jdebug;
 
 public:
         short iTel;
@@ -102,6 +103,7 @@ public:
         TH1F* GetShortDistribution(int itel=0,int type=3);
         int GetSign(bool IsLaser,bool IsMC);
         double GetApar(double CC,double phi,double zenith,double azimuth);
+        double GetAnz(double, double);
         bool CalPlane(double CC,double phi,double zenith,double azimuth,double &planephi,double &nz);
         bool CalPlane(double CC,double phi,double zenith,double azimuth,double xyzdir[3][3]);
         bool GetPlane(double &planephi,double &eplanephi,double &nz,double &enz,int itel=0,int type=3);
@@ -110,6 +112,7 @@ public:
         int GetTelDir(double &elevation,double &errel,double &azimuth,double &erraz);
         static void GetImageXYCoo(double zenith,double azimuth,double* lasercoo,double* laserdir,double PHI_in,double &xx,double &yy);
         void GetPHI(double zenith,double azimuth,double CC,double phi,double* ImageCoo,double &PHI_in);
+        static int GetRange(double zenith,double azimuth,double planephi,double dirin[3],double phiin,double CCin,double* ImageCooin,double PHIin,double &phi,double &CC,double &PHIout,double * ImageCooout,double* PHI,double* XX,double* YY);
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
         void DrawFit();
         TGraph* DrawImageLine(int itel=0);

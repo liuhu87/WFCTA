@@ -17,6 +17,7 @@ class Cloud {
    static double Cbinphi[Cntheta][Cnphi+1];
    TH2Poly* cloudmap;
    int time;
+   double temp;
    vector<TGraph*> graphlist;
 
    public:
@@ -31,6 +32,7 @@ class Cloud {
    Cloud() { Init(); }
    ~Cloud() { Clear(); }
    void ReadCloudMap(char* filename);
+   bool ReadTemp(char* filename=0);
    void AveTemp(double &avetemp,double &mintemp,TGraph* gr);
    void Draw(WFTelescopeArray* pct,char* opt=(char*)"colz");
 };
