@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <cmath>
 #include <iostream>
 #include "WFCTAEvent.h"
 #include "WFCamera.h"
@@ -426,6 +427,7 @@ void WFCTAEvent::rabbittime2lt()
         hour = int(fd * 24 + 8);
         minite = int((fd*24+8 - hour)*60);
         second = int(((fd*24+8-hour)*60-minite)*60);
+	hour = hour%24;
 	//printf("time:%04d %02d%02d %02d:%02d:%02d\n",year,month,day,hour,minite,second);
     }
 
@@ -455,6 +457,7 @@ void WFCTAEvent::AdcToPe()
    int isipm;
    double pe;
    double Ntotal = 360000;
+   double theta;
    for(int ii=0;ii<iSiPM.size();ii++){
       isipm = (int)iSiPM.at(ii);
       if(SatH.at(ii)==0){  pe = AdcH.at(ii)/9.98;}
@@ -465,6 +468,9 @@ void WFCTAEvent::AdcToPe()
 
       //pe = pe/factor[isipm];
       //pe = pe*(1 + deltag_20[isipm]*(correct_PreTemp[isipm]-T0));
+      theta = pow(cos(sqrt(ImageX[isipm]*ImageX[isipm]+ImageY[isipm]*ImageY[isipm])/57.3),4);
+	//printf("%d theta:%lf\n",isipm,theta);
+      pe = pe/theta;
       RawImagePe.push_back(pe);
       RawImageSiPM.push_back(isipm);
       RawImageX.push_back(ImageX[isipm]);

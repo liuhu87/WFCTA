@@ -101,7 +101,7 @@ public:
         vector<double> FullImageX;  //!
 	vector<double> FullImageY;  //!
 	vector<int> CleanImagePe;  //!
-        vector<double> CleanImageSiPM;  //!
+        vector<int> CleanImageSiPM;  //!
 	vector<double> CleanImageX;  //!
 	vector<double> CleanImageY;  //!
 
