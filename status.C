@@ -25,7 +25,7 @@ int main(int argc, char**argv)
   }
 
   FILE *fp;
-  uint8_t *buf;// = new uint8_t[BUF_LEN];
+  uint8_t *buf=NULL;// = new uint8_t[BUF_LEN];
   size_t size_of_read;
   fp = fopen(argv[1],"rb");
   bool statuspackloop;
@@ -134,8 +134,8 @@ int main(int argc, char**argv)
   	      status_pack_marker = wfctaDecode->StatusPackCheck(buf,int(size_of_read),packStart);
               packSize = wfctaDecode->PackSize();
 	      packStart = packSize;
-	      printf("packSize:%lld | status_pack_marker:%x\n",packSize,status_pack_marker);
-              //dumpPacket(buf,packSize,16);
+	      printf("packSize:%lld | sizeofread:%lld | status_pack_marker:%x\n",packSize,size_of_read,status_pack_marker);
+              //dumpPacket(buf,10,16);
 
               switch(status_pack_marker){
                 case 0x21:
@@ -167,6 +167,7 @@ int main(int argc, char**argv)
 	        case 0x9:
 		  iTel = ITEL;
 		  printf("itel:%d-----\n\n",iTel);
+		  //dumpPacket(buf,24,16);
 	  	  clb_initial_Time = wfctaDecode->GetclbInitialTime(buf,packSize);
 		  clb_initial_time = wfctaDecode->GetclbInitialtime(buf,packSize);
 		  fired_tube = wfctaDecode->GetFiredTube(buf,packSize);
@@ -224,7 +225,9 @@ int main(int argc, char**argv)
                     fpgaVersion[i] = -1000;
                   }
                   statuspackloop = false;
+		  printf("statuspackloop:%d itel:%d---\n\n",statuspackloop,iTel);
 		  break;
+		default: break;
 	      }
               //if(status_pack_marker>0&&status_pack_marker<10){
               //  wfctaDecode->DealFPGAPackage((int *)fpgaVersion);

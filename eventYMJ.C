@@ -26,12 +26,11 @@ int main(int argc, char**argv)
 
   FILE *fp;
   uint8_t *buf = NULL;// = new uint8_t[BUF_LEN];
-  int32_t slicelength;
   size_t size_of_read;
   short ITEL;
   int FEEDataHead;
 
-  int64_t packStart = 0;
+  int64_t packSize = 0;
   map<short, int>* sipm_position;
   map<short, int>::iterator sipm_position_iter;
 
@@ -48,43 +47,29 @@ int main(int argc, char**argv)
   wfctaEvent->EventInitial();
 
   fp = fopen(argv[1],"rb");
-  int nevent[20]={0};
+  int nevent=0;
   float adch;
   float adcl;
   while(true)
   {
-      if(buf!=NULL)
-        {delete buf;}
-      buf = new uint8_t[40];
-      size_of_read = fread((uint8_t *)buf,1,40,fp);
+      buf = new uint8_t[BUF_LEN];
+      size_of_read = fread((uint8_t *)buf,1,BUF_LEN,fp);
       if(size_of_read==0){break;}
       //dumpPacket(buf,24,16);
-      if(wfctaDecode->FEEDataFragment(buf))
-      {
-	FEEDataHead = wfctaDecode->feeDataHead();
-        slicelength = wfctaDecode->sliceLength(buf,FEEDataHead); 
-	ITEL = wfctaDecode->Telid(buf,FEEDataHead);
-        fseek(fp,-size_of_read+FEEDataHead,1);
-
-	delete buf;
-	buf = new uint8_t[slicelength];
-	size_of_read = fread((uint8_t *)buf,1,slicelength,fp);
-	//printf("slicelength:%lld\n",slicelength);
-	packStart = 0;
-	while(1)
+	if(wfctaDecode->bigPackCheck(buf,int(size_of_read),0))
 	{
 	  //dumpPacket(buf,24,16);
           //printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
-          if(wfctaDecode->bigPackCheck(buf,int(size_of_read),packStart))
-          {
 	    //dumpPacket(buf,24,16);
-	    wfctaEvent->iTel = ITEL;
 	    //printf("ITEL%d:\n",ITEL);
 	    //get info eventID and rabbit_time//
 	    //printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
+	    packSize = wfctaDecode->PackSize();
+
+	    wfctaEvent->iTel = 4;
 	    wfctaEvent->big_pack_lenth = wfctaDecode->bigpackLen();
-	    nevent[ITEL]++;
-	    wfctaEvent->iEvent=nevent[ITEL];
+	    nevent++;
+	    wfctaEvent->iEvent=nevent;
             wfctaEvent->eEvent=wfctaDecode->eventId(buf);
             wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
             wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
@@ -92,7 +77,7 @@ int main(int argc, char**argv)
             printf("iEvent:%d:\n\n",wfctaEvent->iEvent);
 
   	    //find sipms and their position in this pack//
-  	    wfctaDecode->Find_SiPMs(buf);//,0);
+  	    wfctaDecode->Find_SiPMs(buf);//,packSize);//,0);
 	    sipm_position = &(wfctaDecode->GetSiPM_Position());
 
 	    //get info of each sipm: q, base, peakposition...//
@@ -125,32 +110,18 @@ int main(int argc, char**argv)
               else         {    wfctaEvent->SatL.push_back(0);}
 	    }
 
-            ///just do some test to exam the reading program
-            //(wfctaEvent->mcevent).iuse=wfctaEvent->iEvent;
-            //(wfctaEvent->mcevent).RayTrace.push_back(wfctaEvent->iEvent*2);
-            //(wfctaEvent->mcevent).TelTrigger[0]=wfctaEvent->iEvent*3;
-            //(wfctaEvent->ledevent).Time=wfctaEvent->rabbitTime;
-            //(wfctaEvent->ledevent).Frequency=wfctaEvent->iEvent;
-            //(wfctaEvent->ledevent).DoorOpen=(wfctaEvent->iEvent%2);
-            //(wfctaEvent->laserevent).Time=wfctaEvent->rabbitTime;
-            //(wfctaEvent->laserevent).Frequency=wfctaEvent->iEvent;
-            //(wfctaEvent->laserevent).flux=wfctaEvent->iEvent*1.0;
 
             eventShow->Fill();
 	    wfctaEvent->EventInitial();
 
-	    packStart = wfctaDecode->PackSize();
-          }
-          else
-          {
-	      break;
-          }
+	    fseek(fp,-size_of_read+packSize,1);
         } 
-      }
-      else
-      {
-	  fseek(fp,-size_of_read+20,1);
-      }
+        else
+        {
+	  fseek(fp,-size_of_read+1,1);
+	  printf("Error in big pack\n");
+        }
+	delete buf;
   }
   fclose(fp);
 

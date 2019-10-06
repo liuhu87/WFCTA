@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <cmath>
 #include <iostream>
 #include "WFCTAEvent.h"
 #include "WFCamera.h"
@@ -26,41 +27,58 @@ int WFCTAEvent::jdebug=0;
 bool WFCTAEvent::DoDraw=false;
 WFCTAEvent::WFCTAEvent():TSelector()
 {
-   ievent.reserve(MAXPMT);
-   ADC_Cut.reserve(MAXPMT);
-   ImageBaseHigh.reserve(MAXPMT);
-   ImageBaseLow.reserve(MAXPMT);
-   ImageAdcHigh.reserve(MAXPMT);
-   ImageAdcLow.reserve(MAXPMT);
-   myImageBaseHigh.reserve(MAXPMT);
-   myImageBaseLow.reserve(MAXPMT);
-   myImageAdcHigh.reserve(MAXPMT);
-   myImageAdcLow.reserve(MAXPMT);
+   eevent.reserve(MAXPMT);
+   zipmod.reserve(MAXPMT);
    iSiPM.reserve(MAXPMT);
+   winsum.reserve(MAXPMT);
+   ADC_Cut.reserve(MAXPMT);
+   eBaseH.reserve(MAXPMT);
+   eBaseL.reserve(MAXPMT);
+   eAdcH.reserve(MAXPMT);
+   eAdcL.reserve(MAXPMT);
+   eSatH.reserve(MAXPMT);
+   eSatL.reserve(MAXPMT);
+   BaseH.reserve(MAXPMT);
+   BaseL.reserve(MAXPMT);
+   AdcH.reserve(MAXPMT);
+   AdcL.reserve(MAXPMT);
+   SatH.reserve(MAXPMT);
+   SatL.reserve(MAXPMT);
    Single_Threshold.reserve(MAXPMT);
    Record_Threshold.reserve(MAXPMT);
    peak.reserve(MAXPMT);
-   mypeak.reserve(MAXPMT);
-   peakamp.reserve(MAXPMT);
+   PeakPosH.reserve(MAXPMT);
+   PeakPosL.reserve(MAXPMT);
+   PeakAmH.reserve(MAXPMT);
+   PeakAmL.reserve(MAXPMT);
    gain_marker.reserve(MAXPMT);
    Over_Single_Marker.reserve(MAXPMT);
    Over_Record_Marker.reserve(MAXPMT);
 
    ADC_Cut.resize(MAXPMT);
-   ImageBaseHigh.resize(MAXPMT);
-   ImageBaseLow.resize(MAXPMT);
-   ImageAdcHigh.resize(MAXPMT);
-   ImageAdcLow.resize(MAXPMT);
-   myImageBaseHigh.resize(MAXPMT);
-   myImageBaseLow.resize(MAXPMT);
-   myImageAdcHigh.resize(MAXPMT);
-   myImageAdcLow.resize(MAXPMT);
+   eevent.resize(MAXPMT);
+   zipmod.resize(MAXPMT);
    iSiPM.resize(MAXPMT);
+   winsum.resize(MAXPMT);
+   eBaseH.resize(MAXPMT);
+   eBaseL.resize(MAXPMT);
+   eAdcH.resize(MAXPMT);
+   eAdcL.resize(MAXPMT);
+   eSatH.resize(MAXPMT);
+   eSatL.resize(MAXPMT);
+   BaseH.resize(MAXPMT);
+   BaseL.resize(MAXPMT);
+   AdcH.resize(MAXPMT);
+   AdcL.resize(MAXPMT);
+   SatH.resize(MAXPMT);
+   SatL.resize(MAXPMT);
    Single_Threshold.resize(MAXPMT);
    Record_Threshold.resize(MAXPMT);
    peak.resize(MAXPMT);
-   mypeak.resize(MAXPMT);
-   peakamp.resize(MAXPMT);
+   PeakPosH.resize(MAXPMT);
+   PeakPosL.resize(MAXPMT);
+   PeakAmH.resize(MAXPMT);
+   PeakAmL.resize(MAXPMT);
    gain_marker.resize(MAXPMT);
    Over_Single_Marker.resize(MAXPMT);
    Over_Record_Marker.resize(MAXPMT);
@@ -80,30 +98,39 @@ void WFCTAEvent::Init()
 {
    iTel=-1;
    iEvent=-1;
+   eEvent=-1;
    rabbitTime=0;
    rabbittime=0;
    big_pack_lenth=-1;
    n_fired=-1;
    n_Channel=-1;
    iSiPM.clear();
-   ievent.clear();
+   eevent.clear();
+   zipmod.clear();
    gain_marker.clear();
    peak.clear();
-   mypeak.clear();
-   peakamp.clear();
+   PeakPosH.clear();
+   PeakPosL.clear();
+   PeakAmH.clear();
+   PeakAmL.clear();
    Single_Threshold.clear();
    Record_Threshold.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();
+   winsum.clear();
    ADC_Cut.clear();
-   ImageBaseHigh.clear();
-   ImageBaseLow.clear();
-   ImageAdcHigh.clear();
-   ImageAdcLow.clear();
-   myImageBaseHigh.clear();
-   myImageBaseLow.clear();
-   myImageAdcHigh.clear();
-   myImageAdcLow.clear();
+   eBaseH.clear();
+   eBaseL.clear();
+   eAdcH.clear();
+   eAdcL.clear();
+   eSatH.clear();
+   eSatL.clear();
+   BaseH.clear();
+   BaseL.clear();
+   AdcH.clear();
+   AdcL.clear();
+   SatH.clear();
+   SatL.clear();
 
    for(int j=0;j<28;j++){
      Npoint[j]=j;
@@ -125,30 +152,39 @@ void WFCTAEvent::EventInitial()
 {
    iTel=-1;
    iEvent=-1;
+   eEvent=-1;
    rabbitTime=0;
    rabbittime=0;
    big_pack_lenth=-1;
    n_fired=-1;
    n_Channel=-1;
    iSiPM.clear();
-   ievent.clear();
+   zipmod.clear();
+   eevent.clear();
    gain_marker.clear();
    peak.clear();
-   mypeak.clear();
-   peakamp.clear();
+   PeakPosH.clear();
+   PeakPosL.clear();
+   PeakAmH.clear();
+   PeakAmL.clear();
    Single_Threshold.clear();
    Record_Threshold.clear();
    Over_Single_Marker.clear();
    Over_Record_Marker.clear();
+   winsum.clear();
    ADC_Cut.clear();
-   ImageBaseHigh.clear();
-   ImageBaseLow.clear();
-   ImageAdcHigh.clear();
-   ImageAdcLow.clear();
-   myImageBaseHigh.clear();
-   myImageBaseLow.clear();
-   myImageAdcHigh.clear();
-   myImageAdcLow.clear();
+   eBaseH.clear();
+   eBaseL.clear();
+   eAdcH.clear();
+   eAdcL.clear();
+   eSatH.clear();
+   eSatL.clear();
+   BaseH.clear();
+   BaseL.clear();
+   AdcH.clear();
+   AdcL.clear();
+   SatH.clear();
+   SatL.clear();
 
    for(int j=0;j<28;j++){
      for(int i=0;i<1024;i++){
@@ -256,10 +292,10 @@ void WFCTAEvent::CalculateDataVar(int itel){
          if(maxcount<1) continue;
 
          iSiPM.push_back(ii);
-         ImageAdcHigh.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
-         ImageAdcLow.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
-         myImageAdcHigh.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
-         myImageAdcLow.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
+         eAdcH.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
+         eAdcL.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
+         AdcH.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
+         AdcL.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
 
          //mypeak.push_back((mcevent.ArrivalTime[itel][peaktime]-itmin));
          mypeak.push_back(int(avetime)-itmin);
@@ -281,7 +317,7 @@ int WFCTAEvent::GetMaxADCBin(int itel){
    int res=-1;
    double maxadc=-1;
    for(int ii=0;ii<iSiPM.size();ii++){
-      double yy=ImageAdcHigh.at(ii);
+      double yy=AdcH.at(ii);
       if(yy<=0) continue;
       if(yy>maxadc){
          maxadc=yy;
@@ -340,10 +376,10 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex){
    for(int ii=start;ii<=end;ii++){
       if((!IsIndex)&&(iSiPM.at(ii)!=isipm)) continue;
       if(type==0&&ii<ADC_Cut.size()) content=ADC_Cut.at(ii);
-      if(type==1&&ii<ImageAdcHigh.size()) content=ImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==2&&ii<ImageAdcLow.size()) content=ImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3&&ii<myImageAdcHigh.size()) content=myImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4&&ii<myImageAdcLow.size()) content=myImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==1&&ii<eAdcH.size()) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==2&&ii<eAdcL.size()) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==3&&ii<eAdcH.size()) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==4&&ii<eAdcL.size()) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==5&&ii<mypeak.size()) content=mypeak.at(ii)+1;
    }
    return content;
@@ -1623,10 +1659,10 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
       if(!CleanImage(iSiPM.at(ii),0,3)) continue;
       double content=0;
       if(type==0) content=ADC_Cut.at(ii)>threshold?1.:0.;
-      if(type==1) content=ImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==2) content=ImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3) content=myImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4) content=myImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==1) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==3) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==4) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==5) content=mypeak.at(ii)+1;
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
    }
@@ -1698,10 +1734,10 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
    for(int ii=0;ii<iSiPM.size();ii++){
       double content=0;
       if(type==0&&ii<ADC_Cut.size()) content=ADC_Cut.at(ii)>threshold?1.:0.;
-      if(type==1) content=ImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==2) content=ImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3) content=myImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4) content=myImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==1) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==3) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==4) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
    }
    if(DoDraw) image->Draw(opt);
@@ -1724,10 +1760,10 @@ TGraph2D* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int ViewO
       ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS/PI*180;
       double content=0;
       if(type==0&&ii<ADC_Cut.size()) content=ADC_Cut.at(ii)>threshold?1.:0.;
-      if(type==1) content=ImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==2) content=ImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3) content=myImageAdcHigh.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4) content=myImageAdcLow.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==1) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==3) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==4) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==5) content=mypeak.at(ii)+1;
       array->SetPoint(array->GetN(),ImageX,ImageY,content);
 
@@ -1790,3 +1826,205 @@ TGraph2D* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int ViewO
    return array;
 }
 
+/******************************************
+ * read root file and do iamge processing *
+ * ****************************************/
+//set x and y, unit in degree
+void WFCTAEvent::SetImage()
+{
+    int PixI,PixJ;
+    for(int k=0;k<1024;k++)
+    {
+        PixI = (k) / PIX;
+        PixJ = (k) % PIX;
+        if(PixI%2==0)  {ImageX[k] = PixJ+0.5-PIX/2.0;}
+        if(PixI%2==1)  {ImageX[k] = PixJ+1-PIX/2.0;}
+        ImageY[k] = (PIX/2.0-PixI) - 1/2.0;
+
+        ImageX[k] = ImageX[k]*16/32.;
+        ImageY[k] = ImageY[k]*16/32.;
+
+        ImageX[k] -= 0.31;
+        ImageY[k] -= 0.28;
+    }
+
+}
+
+//change rabbit time to local time
+void WFCTAEvent::rabbittime2lt()
+{
+    double MJD19700101 = 40587;
+    double TAI2UTC = 37;
+    mjd = MJD19700101 + (rabbitTime + rabbittime*20/1000000000. - TAI2UTC)/86400;
+
+    int j;
+    double fd, d;
+    long jd, n4, nd10;
+    /* Check if date is acceptable */
+    if ( ( mjd <= -2395520.0 ) || ( mjd >= 1e9 ) ) {
+        j = -1;
+    } else {
+        j = 0;
+    /* Separate day and fraction */
+        fd = (mjd)>0.0?mjd-floor(mjd):mjd+floor(-mjd);
+        if ( fd < 0.0 ) fd += 1.0;
+        d = mjd - fd;
+        d = d<0.0?ceil(d):floor(d);
+    /* Express day in Gregorian calendar */
+        jd = (long)d + 2400001;
+        n4 = 4L*(jd+((6L*((4L*jd-17918L)/146097L))/4L+1L)/2L-37L);
+        nd10 = 10L*(((n4-237L)%1461L)/4L)+5L;
+        year = (int) (n4/1461L-4712L);
+        month = (int) (((nd10/306L+2L)%12L)+1L);
+        day = (int) ((nd10%306L)/10L+1L);
+        j = 0;
+        hour = int(fd * 24 + 8);
+        minite = int((fd*24+8 - hour)*60);
+        second = int(((fd*24+8-hour)*60-minite)*60);
+	hour = hour%24;
+	//printf("time:%04d %02d%02d %02d:%02d:%02d\n",year,month,day,hour,minite,second);
+    }
+
+}
+
+//initiate
+void WFCTAEvent::InitImage()
+{
+   RawImagePe.clear();
+   RawImageSiPM.clear();
+   RawImageX.clear();
+   RawImageY.clear();
+   FullImagePe.clear();
+   FullImageSiPM.clear();
+   FullImageX.clear();
+   FullImageY.clear();
+   fNpixfriends.clear();
+   CleanImagePe.clear();
+   CleanImageSiPM.clear();
+   CleanImageX.clear();
+   CleanImageY.clear();
+}
+
+//change adc count to number of pe
+void WFCTAEvent::AdcToPe()
+{
+   int isipm;
+   double pe;
+   double Ntotal = 360000;
+   double theta;
+   for(int ii=0;ii<iSiPM.size();ii++){
+      isipm = (int)iSiPM.at(ii);
+      if(SatH.at(ii)==0){  pe = AdcH.at(ii)/9.98;}
+      else              {  pe = (AdcL.at(ii)*22)/9.98;}
+      if(pe<0)          {  pe = 0;}
+      else if(pe>Ntotal){  pe = Ntotal;}
+      else              {  pe = -Ntotal*log(1-pe/Ntotal);}
+
+      //pe = pe/factor[isipm];
+      //pe = pe*(1 + deltag_20[isipm]*(correct_PreTemp[isipm]-T0));
+      theta = pow(cos(sqrt(ImageX[isipm]*ImageX[isipm]+ImageY[isipm]*ImageY[isipm])/57.3),4);
+	//printf("%d theta:%lf\n",isipm,theta);
+      pe = pe/theta;
+      RawImagePe.push_back(pe);
+      RawImageSiPM.push_back(isipm);
+      RawImageX.push_back(ImageX[isipm]);
+      RawImageY.push_back(ImageY[isipm]);
+   }
+
+}
+
+//clean image preliminary
+void WFCTAEvent::PrelimImageClean(double cut)
+{
+    for(int ii=0;ii<RawImagePe.size();ii++){
+	if(RawImagePe.at(ii)<cut){continue;}
+	FullImagePe.push_back(RawImagePe.at(ii));
+        FullImageSiPM.push_back(RawImageSiPM.at(ii));
+        FullImageX.push_back(RawImageX.at(ii));
+        FullImageY.push_back(RawImageY.at(ii));
+    }
+}
+
+//get neighbor trigger sipms of each sipm
+void WFCTAEvent::GetNeighborPixs()
+{
+    int cnt;
+    double distance;
+    double MAXDIST=0.6;
+    double x, y, x0, y0;
+    for(int ii=0;ii<FullImagePe.size();ii++){
+	cnt=0;
+        x=FullImageX.at(ii);
+        y=FullImageY.at(ii);
+        for(int jj=0;jj<FullImagePe.size();jj++){
+	    x0=FullImageX.at(jj);
+            y0=FullImageY.at(jj);
+            distance = sqrt((x0-x)*(x0-x)+(y0-y)*(y0-y));
+            if(distance<=MAXDIST) {   //In degree
+                cnt++;
+            }
+        }
+        fNpixfriends.push_back(cnt);
+    }
+}
+
+//calculate hillas parameters
+int WFCTAEvent::CalcHillas()
+{
+    DNpix = 0;
+    DSize = 0;
+    DMeanX = 0;
+    DMeanY = 0;
+    Dslope = 0;
+    Dintercept = 0;
+    DLength = 0;
+    DWidth = 0;
+    double sx = 0;
+    double sy = 0;
+    double sxy = 0;
+    for(int ii=0;ii<FullImagePe.size();ii++){
+        if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
+	DNpix++;
+        DSize += FullImagePe.at(ii);
+	DMeanX += FullImagePe.at(ii) * FullImageX.at(ii);
+	DMeanY += FullImagePe.at(ii) * FullImageY.at(ii);
+	sx += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageX.at(ii);
+        sy += FullImagePe.at(ii) * FullImageY.at(ii) * FullImageY.at(ii);
+        sxy += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageY.at(ii);
+    }
+
+    if(DSize==0.) return 2;
+    DMeanX /= DSize;
+    DMeanY /= DSize;
+    sx /= DSize;
+    sy /= DSize;
+    sxy /= DSize;
+    double cx = sx - DMeanX*DMeanX;
+    double cy = sy - DMeanY*DMeanY;
+    double cxy = sxy - DMeanX*DMeanY;
+    double a = (cy-cx+sqrt((cy-cx)*(cy-cx)+4*cxy*cxy))/(2*cxy);
+    double b = DMeanY-a*DMeanX;
+    double ssx = (cx+2*a*cxy+a*a*cy)/(1+a*a);
+    double ssy = (a*a*cx-2*a*cxy+cy)/(1+a*a);
+
+    if(cx==0||cy==0) return 4;
+    double delta = atan(a);
+    Dslope = -a;
+    Dintercept = -b;
+    DLength = sqrt(ssx);
+    DWidth = sqrt(ssy);
+
+    return 0;
+}
+
+//clean image
+void WFCTAEvent::GetCleanImage()
+{
+    for(int ii=0;ii<FullImagePe.size();ii++){
+	if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
+	CleanImagePe.push_back(FullImagePe.at(ii));
+        CleanImageSiPM.push_back(FullImageSiPM.at(ii));
+        CleanImageX.push_back(FullImageX.at(ii));
+        CleanImageY.push_back(FullImageY.at(ii));
+    }
+}
