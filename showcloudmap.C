@@ -17,7 +17,7 @@ int main(int argc,char** argv){
 
     WFTelescopeArray::jdebug=0;
     WFTelescopeArray::DoSim=true;
-    WFTelescopeArray::GetHead(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/default.inp"));
+    WFTelescopeArray::GetHead(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/default.inp"));
 
     Cloud::SetBins();
     Cloud showcloud;

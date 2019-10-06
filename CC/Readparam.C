@@ -45,6 +45,7 @@ void WReadConfig::readparam(char * filename)
   CT_Position = new float *[MAX_NUMBER_OF_CTS];
   for (i = 0; i < MAX_NUMBER_OF_CTS ; i++){
      CT_Position[i] = new float[5];
+     CT_Position[i][3]=-1;
   }  
 
   if ( filename != NULL )

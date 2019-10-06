@@ -31,9 +31,11 @@ protected:
    static TBranch* bmcevent;
    static TBranch* bledevent;
    static TBranch* blaserevent;
-   static int jdebug;
 
 public:
+   static int jdebug;
+   static bool DoDraw;
+
         short iTel;
 	long iEvent;
 	long rabbitTime;
@@ -103,18 +105,27 @@ public:
         TH1F* GetShortDistribution(int itel=0,int type=3);
         int GetSign(bool IsLaser,bool IsMC);
         double GetApar(double CC,double phi,double zenith,double azimuth);
-        double GetAnz(double, double);
-        bool CalPlane(double CC,double phi,double zenith,double azimuth,double &planephi,double &nz);
+        static double GetApar(double &Anz,double zenith,double azimuth,double planephi,double nz);
+        bool CalPlane(double CC,double phi,double zenith,double azimuth,double &planephi,double &nz,int &signnz);
         bool CalPlane(double CC,double phi,double zenith,double azimuth,double xyzdir[3][3]);
         bool GetPlane(double &planephi,double &eplanephi,double &nz,double &enz,int itel=0,int type=3);
         bool GetPlane(double xyzdir[3][3],double exyzdir[3][3],int itel=0,int type=3);
         int CalTelDir(double CC,double phi,double* lasercoo,double* laserdir,double &elevation,double &azimuth);
         int GetTelDir(double &elevation,double &errel,double &azimuth,double &erraz);
-        static void GetImageXYCoo(double zenith,double azimuth,double* lasercoo,double* laserdir,double PHI_in,double &xx,double &yy);
+
+        static void Getnz(double incoo[3],double indir[2],double &planephi,double &nz,double &nz1,double &nz2);
+        static void GetCCphi(double zenith,double azimuth,double planephi,double nz,double &CC,double &phi);
+        static void GetCCphi(double zenith,double azimuth,double incoo[3],double indir[2],double &CC,double &phi);
+        static bool GetImageXYCoo(double zenith,double azimuth,double planephi,double nz1,double nz2,double PHI_in,double &xx,double &yy);
+        static bool GetImageXYCoo(double zenith,double azimuth,double* incoo,double* indir,double PHI_in,double &xx,double &yy);
+        static void GetPHI(double zenith,double azimuth,double planephi,double nz1,double nz2,double* ImageCoo,double &PHI_in);
+        static void GetPHI(double zenith,double azimuth,double incoo[3],double indir[2],double* ImageCoo,double &PHI_in);
         void GetPHI(double zenith,double azimuth,double CC,double phi,double* ImageCoo,double &PHI_in);
-        static int GetRange(double zenith,double azimuth,double planephi,double dirin[3],double phiin,double CCin,double* ImageCooin,double PHIin,double &phi,double &CC,double &PHIout,double * ImageCooout,double* PHI,double* XX,double* YY);
+        static int GetRange(double zenith,double azimuth,double planephi,double dirin[3],double phiin,double CCin,double* PHI,double* XX,double* YY);
+
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
         void DrawFit();
+        static TGraph* DrawImageLine(double zenith,double azimuth,double incoo[3],double indir[2]);
         TGraph* DrawImageLine(int itel=0);
         TGraph* DrawCorePos(double* corepos,int itel=0,int type=3);
         TGraph* DrawCoreReg(double* corepos,int itel=0,int type=3);

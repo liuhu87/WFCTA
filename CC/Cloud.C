@@ -181,6 +181,10 @@ void Cloud::ReadCloudMap(char* filename){
    if(!cloudmap) Reset();
    else cloudmap->TH2::Reset();
    ifstream fin(filename,std::ios::in);
+   if(!fin.is_open()){
+      printf("Cloud::ReadCloudMap: open file %s failed\n",filename);
+      return;
+   }
    double x0;
    int index;
    double ti,xi;
@@ -209,7 +213,7 @@ bool Cloud::ReadTemp(char* filename){
       int month=CommonTools::TimeFlag(time1,2);
       int day=CommonTools::TimeFlag(time1,3);
       filename=Form("/scratchfs/ybj/lix/laser-dat/Temp-humi/%02d/temp/12345_cloud_temp_%04d%02d%02d.txt",month,year,month,day);
-      //printf("ReadTemp: time=%d filename=%s\n",time,filename);
+      printf("ReadTemp: time=%d filename=%s\n",time,filename);
    }
    ifstream fin(filename,std::ios::in);
    if(!fin.is_open()) {temp=0; return res;}
@@ -241,9 +245,9 @@ TGraph* Cloud::TelView(WFTelescopeArray* pct,int iTel){
          double yy=gr->GetY()[ii];
          double zz=sqrt(1-xx*xx-yy*yy);
          double theta=TMath::ACos(zz)/PI*180.;
-	 double phi=(xx==0)?(yy>=0?PI/2.:-PI/2.):TMath::ATan(yy/xx);
-         if(xx<0) phi+=PI;
-         if(phi<0) phi+=2*PI;
+         double rr=sqrt(xx*xx+yy*yy);
+         double phi=acos(-yy/rr);
+         if(xx<0) phi=2*PI-phi;
          gr2->SetPoint(ii,theta*cos(phi),theta*sin(phi));
       }
       delete gr;
@@ -292,7 +296,7 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
       printf("Cloud::Draw: Draw Telescope %d\n",itel);
       gr->SetLineColor(1);
       gr->SetLineWidth(2);
-      if(itel==0) AveTemp(tempave,tempmin,gr);
+      AveTemp(tempave,tempmin,gr);
       graphlist.push_back(gr);
    }
    if(drawcircle>0){
