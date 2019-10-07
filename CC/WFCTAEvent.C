@@ -378,8 +378,8 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex){
       if(type==0&&ii<ADC_Cut.size()) content=ADC_Cut.at(ii);
       if(type==1&&ii<eAdcH.size()) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
       if(type==2&&ii<eAdcL.size()) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3&&ii<eAdcH.size()) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4&&ii<eAdcL.size()) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==3&&ii<AdcH.size()) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==4&&ii<AdcL.size()) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==5&&ii<mypeak.size()) content=mypeak.at(ii)+1;
    }
    return content;
@@ -391,10 +391,10 @@ bool WFCTAEvent::CleanImage(int isipm,int itel,int type,bool IsIndex){
    if(IsIndex&&(isipm<0||isipm>=size)) return false;
    if((!IsIndex)&&(isipm<0||isipm>=NSIPM)) return false;
    bool res=false;
-   //double trig0=(type==1||type==3)?(25*WFCTAMCEvent::fAmpHig):(25*WFCTAMCEvent::fAmpLow);
-   //double trig1=(type==1||type==3)?(45*WFCTAMCEvent::fAmpHig):(45*WFCTAMCEvent::fAmpLow);
-   double trig0=(type==1||type==3)?(15*WFCTAMCEvent::fAmpHig):(15*WFCTAMCEvent::fAmpLow);
-   double trig1=(type==1||type==3)?(3*WFCTAMCEvent::fAmpHig):(3*WFCTAMCEvent::fAmpLow);
+   double trig0=(type==1||type==3)?(25*WFCTAMCEvent::fAmpHig):(25*WFCTAMCEvent::fAmpLow);
+   double trig1=(type==1||type==3)?(45*WFCTAMCEvent::fAmpHig):(45*WFCTAMCEvent::fAmpLow);
+   //double trig0=(type==1||type==3)?(15*WFCTAMCEvent::fAmpHig):(15*WFCTAMCEvent::fAmpLow);
+   //double trig1=(type==1||type==3)?(25*WFCTAMCEvent::fAmpHig):(25*WFCTAMCEvent::fAmpLow);
 
    int start=IsIndex?isipm:0;
    int end=IsIndex?isipm:(size-1);
@@ -1648,13 +1648,15 @@ void WFCTAEvent::DrawFit(){
 TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
    TH2Poly* image=new TH2Poly();
    image->SetName("DrawPlot");
-   image->SetTitle(";X;Y");
+   image->SetTitle(Form("iTel=%d iEvent=%d time=%ld+%lf;X [degree];Y [degree]",iTel,iEvent,rabbitTime,rabbittime*20*1.0e-9));
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
       ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
       ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
       image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
+      //printf("WFCTAEvent::Draw: SiPM=%d ImageX=%lf ImageY=%lf\n",ii,ImageX,ImageY);
    }
+   int ncontent=0;
    for(int ii=0;ii<iSiPM.size();ii++){
       if(!CleanImage(iSiPM.at(ii),0,3)) continue;
       double content=0;
@@ -1665,6 +1667,12 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
       if(type==4) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==5) content=mypeak.at(ii)+1;
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
+      //printf("WFCTAEvent::Draw: SiPM=%d content=%lf\n",iSiPM.at(ii),AdcH.at(ii));
+      ncontent++;
+   }
+   if(ncontent<5){
+      delete image;
+      return 0;
    }
    image->Draw(opt);
    DrawFit();
@@ -1736,8 +1744,8 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
       if(type==0&&ii<ADC_Cut.size()) content=ADC_Cut.at(ii)>threshold?1.:0.;
       if(type==1) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
       if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==3) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==4) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
    }
    if(DoDraw) image->Draw(opt);
@@ -1762,8 +1770,8 @@ TGraph2D* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int ViewO
       if(type==0&&ii<ADC_Cut.size()) content=ADC_Cut.at(ii)>threshold?1.:0.;
       if(type==1) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
       if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(type==3) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+      if(type==4) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==5) content=mypeak.at(ii)+1;
       array->SetPoint(array->GetN(),ImageX,ImageY,content);
 
