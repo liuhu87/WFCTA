@@ -1665,7 +1665,7 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
       if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==3) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
       if(type==4) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==5) content=mypeak.at(ii)+1;
+      if(type==5) content=PeakPosH.at(ii)+1;
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
       //printf("WFCTAEvent::Draw: SiPM=%d content=%lf\n",iSiPM.at(ii),AdcH.at(ii));
       ncontent++;
