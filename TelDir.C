@@ -102,7 +102,7 @@ int main(int argc, char**argv)
          if(res<=0) {printf("GetTelDir failed\n"); continue;}
 //continue;
 
-         printf("Input: TelZ=%lf TelA=%lf Corephi=%lf laserdir={%lf,%lf},  measured: telel={%lf,%lf} telaz={%lf,%lf} planephi={%lf,%lf} CC={%lf,%lf} phi={%lf,%lf}\n",pt->TelZ_/PI*180,pt->TelA_/PI*180,laserphi0,laserdir[ndir][0],laserdir[ndir][1],telel,etelel,telaz,etelaz,planephi,eplanephi,CCphi[ndir][0]/PI*180,sqrt(eCCphi[ndir][0])/PI*180,CCphi[ndir][1]/PI*180,sqrt(eCCphi[ndir][2])/PI*180);
+         printf("Input: evt=%d TelZ=%lf TelA=%lf Corephi=%lf laserdir={%lf,%lf},  measured: telel={%lf,%lf} telaz={%lf,%lf} planephi={%lf,%lf} CC={%lf,%lf} phi={%lf,%lf}\n",ientry,pt->TelZ_/PI*180,pt->TelA_/PI*180,laserphi0,laserdir[ndir][0],laserdir[ndir][1],telel,etelel,telaz,etelaz,planephi,eplanephi,CCphi[ndir][0]/PI*180,sqrt(eCCphi[ndir][0])/PI*180,CCphi[ndir][1]/PI*180,sqrt(eCCphi[ndir][2])/PI*180);
 
          gr1->SetPoint(ndir,laserphi0,telel);
          gr1->SetPointError(ndir,0,etelel);

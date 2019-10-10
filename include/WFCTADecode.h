@@ -38,24 +38,29 @@ public:
     double Rabbittime(uint8_t *begin);
 
     uint64_t eventId_in_channel(uint8_t *begin, short isipm);
-    uint8_t zipMode(uint8_t *begin, short isipm);
-    //uint8_t GetPeak(uint8_t *begin, short isipm);
-    //bool Getgain_marker(uint8_t *begin, short isipm);
-    uint8_t Getwavepeak(uint8_t *begin, short isipm);
-    int32_t GetpeakAmp(uint8_t *begin, short isipm);
-    //uint16_t GetSingle_Thresh(uint8_t *begin, short isipm);
-    //uint16_t GetRecord_Thresh(uint8_t *begin, short isipm);
+    int16_t zipMode(uint8_t *begin, short isipm);
     bool GetOver_Single_Mark(uint8_t *begin, short isipm);
     bool GetOver_Record_Mark(uint8_t *begin, short isipm);
+    //uint8_t GetPeak(uint8_t *begin, short isipm);
+    //bool Getgain_marker(uint8_t *begin, short isipm);
+    uint8_t GetPeakPosH(uint8_t *begin, short isipm);
+    uint8_t GetPeakPosL(uint8_t *begin, short isipm);
+    int32_t GetPeakAmH(uint8_t *begin, short isipm);
+    int32_t GetPeakAmL(uint8_t *begin, short isipm);
+    //uint16_t GetSingle_Thresh(uint8_t *begin, short isipm);
+    //uint16_t GetRecord_Thresh(uint8_t *begin, short isipm);
     //float GetADC_Cut(uint8_t *begin, short isipm);
     //float AdcHigh(uint8_t *begin, short isipm);
     //float AdcLow(uint8_t *begin, short isipm);
-    float BaseHigh(uint8_t *begin, short isipm);
+    //float BaseHigh(uint8_t *begin, short isipm);
     //float BaseLow(uint8_t *begin, short isipm);
+    float Getwinsum(uint8_t *begin, short isipm);
     float GetwaveImageBaseHigh(uint8_t *begin, short isipm);
     float GetwaveImageBaseLow(uint8_t *begin, short isipm);
     float GetwaveImageAdcHigh(uint8_t *begin, short isipm);
     float GetwaveImageAdcLow(uint8_t *begin, short isipm);
+    bool eSaturationHigh(uint8_t *begin, short isipm);
+    bool eSaturationLow(uint8_t *begin, short isipm);
     void GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pulsel);
     
 
@@ -78,8 +83,10 @@ public:
 
 private:
 
+    void wavepeak(uint8_t *begin, short isipm);
     void waveform(uint8_t *begin, short isipm);
     void Calc_Q_Base(uint8_t *begin, short isipm);
+    void Stauration(uint8_t *begin, short isipm);
 
     //uint8_t *m_buffer;
     //size_t m_size;
@@ -95,7 +102,7 @@ private:
     //char m_peak;
     float m_adc_high;
     float m_adc_low;
-    float m_base_high;
+    //float m_base_high;
     float m_base_low;
 
     float m_Basehigh;
@@ -103,12 +110,19 @@ private:
     float m_Adchigh;
     float m_Adclow;
 
+    bool eSatH;
+    bool eSatL;
+
     int32_t big_pack_len;
-    int32_t peakAmp;
-    uint8_t m_wavepeak;
+    int32_t peakAmpH;
+    int32_t peakAmpL;
+    uint8_t m_wavepeakH;
+    uint8_t m_wavepeakL;
 
     int pulsehigh[28];
     int pulselow[28];
+    int saturationH[28];
+    int saturationL[28];
 
   ClassDef(WFCTADecode,1);
 };

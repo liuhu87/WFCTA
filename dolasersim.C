@@ -72,9 +72,9 @@ int main(int argc, char**argv)
    double time=0;
    for(int ii=0;ii<nevent;ii++){
       printf("ievent=%d Time=%d time=%lf\n",ii,Time,time);
-      double angle=-90.+180./nevent*ii;
-      pl->lasercoo[0]=1.0e5*cos(angle/180.*PI);
-      pl->lasercoo[1]=1.0e5*sin(angle/180.*PI);
+      //double angle=-90.+180./nevent*ii;
+      //pl->lasercoo[0]=1.0e5*cos(angle/180.*PI);
+      //pl->lasercoo[1]=1.0e5*sin(angle/180.*PI);
       //pl->laserdir[0]=lasertheta+(ii/10)*3.;
       //pl->laserdir[1]=laserphi+(ii%10)*1.;
       long int ngentel=pl->EventGen(Time,time,true);

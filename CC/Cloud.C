@@ -117,10 +117,12 @@ int Cloud::FindBinIndex(double xx,double yy){
 void Cloud::Init(){
    cloudmap=0;
    time=0;
+   temp=0;
    graphlist.clear();
 }
 void Cloud::Reset(){
    time=0;
+   temp=0;
    if(cloudmap){
       delete cloudmap;
    }
@@ -179,6 +181,10 @@ void Cloud::ReadCloudMap(char* filename){
    if(!cloudmap) Reset();
    else cloudmap->TH2::Reset();
    ifstream fin(filename,std::ios::in);
+   if(!fin.is_open()){
+      printf("Cloud::ReadCloudMap: open file %s failed\n",filename);
+      return;
+   }
    double x0;
    int index;
    double ti,xi;
@@ -193,6 +199,40 @@ void Cloud::ReadCloudMap(char* filename){
    time=CommonTools::Convert(ti);
    fin.close();
 }
+bool Cloud::ReadTemp(char* filename){
+   bool res=false;
+   if(!filename){
+      if(time<100) return false;
+      int time1;
+      int hour=CommonTools::TimeFlag(time,4);
+      int min=CommonTools::TimeFlag(time,5);
+      bool gt2005=(hour>=20&&min>5);
+      if(gt2005) time1=time+(24*3600*2);
+      else time1=time+(24*3600);
+      int year=CommonTools::TimeFlag(time1,1)+2000;
+      int month=CommonTools::TimeFlag(time1,2);
+      int day=CommonTools::TimeFlag(time1,3);
+      filename=Form("/scratchfs/ybj/lix/laser-dat/Temp-humi/%02d/temp/12345_cloud_temp_%04d%02d%02d.txt",month,year,month,day);
+      printf("ReadTemp: time=%d filename=%s\n",time,filename);
+   }
+   ifstream fin(filename,std::ios::in);
+   if(!fin.is_open()) {temp=0; return res;}
+   double ti,tempi,hi;
+   int index;
+   while(!fin.eof()){
+      fin>>ti>>index>>tempi>>index>>hi>>index;
+      int time1=CommonTools::Convert(ti*100);
+      //printf("time=%d time1=%d temp=%lf hi=%lf\n",time,time1,tempi,hi);
+      if(abs(time-time1)<100){
+         temp=tempi;
+         res=true;
+         break;
+      }
+   }
+   if(!res) temp=0;
+   fin.close();
+   return res;
+}
 TGraph* Cloud::TelView(WFTelescopeArray* pct,int iTel){
    if(!pct) return 0;
    else{
@@ -205,9 +245,9 @@ TGraph* Cloud::TelView(WFTelescopeArray* pct,int iTel){
          double yy=gr->GetY()[ii];
          double zz=sqrt(1-xx*xx-yy*yy);
          double theta=TMath::ACos(zz)/PI*180.;
-	 double phi=(xx==0)?(yy>=0?PI/2.:-PI/2.):TMath::ATan(yy/xx);
-         if(xx<0) phi+=PI;
-         if(phi<0) phi+=2*PI;
+         double rr=sqrt(xx*xx+yy*yy);
+         double phi=acos(-yy/rr);
+         if(xx<0) phi=2*PI-phi;
          gr2->SetPoint(ii,theta*cos(phi),theta*sin(phi));
       }
       delete gr;
@@ -256,7 +296,7 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
       printf("Cloud::Draw: Draw Telescope %d\n",itel);
       gr->SetLineColor(1);
       gr->SetLineWidth(2);
-      if(itel==0) AveTemp(tempave,tempmin,gr);
+      AveTemp(tempave,tempmin,gr);
       graphlist.push_back(gr);
    }
    if(drawcircle>0){
