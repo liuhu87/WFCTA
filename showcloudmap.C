@@ -67,7 +67,7 @@ int main(int argc,char** argv){
     showcloud.ReadCloudMap(argv[1]);
 
     //new TBrowser;
-    TCanvas* cc=new TCanvas("canvas","",1000,1000);
+    TCanvas* cc=new TCanvas("canvas","",1000,800);
     cc->SetBorderSize(0.4);
 
     TFile* fout=0;
@@ -75,6 +75,7 @@ int main(int argc,char** argv){
 
     showcloud.Draw(WFTelescopeArray::GetHead());
     gPad->SetRightMargin(0.1);
+    gPad->SetFixedAspectRatio();
     //showcloud.Draw(0);
     //if(gPad) gPad->Update();
     //if(gPad) gPad->WaitPrimitive();
