@@ -173,6 +173,7 @@ public:
         static int GetRange(double zenith,double azimuth,double planephi,double dirin[3],double phiin,double CCin,double* PHI,double* XX,double* YY);
 
 	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
+        TGraph* DrawPulse(int iSiPM,const char* opt="apl",bool IsHigh=true,bool DoClean=true);
         void DrawFit();
         static TGraph* DrawImageLine(double zenith,double azimuth,double incoo[3],double indir[2]);
         TGraph* DrawImageLine(int itel=0);

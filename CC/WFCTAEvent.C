@@ -84,6 +84,7 @@ WFCTAEvent::WFCTAEvent():TSelector()
    Over_Record_Marker.resize(MAXPMT);
 
    Init();
+   WCamera::SetSiPMMAP();
 }
 
 WFCTAEvent::~WFCTAEvent()
@@ -1665,19 +1666,56 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
       if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==3) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
       if(type==4) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==5) content=PeakPosH.at(ii)+1;
+      if(type==5) content=PeakPosH.at(ii)+0.01;
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
       //printf("WFCTAEvent::Draw: SiPM=%d content=%lf\n",iSiPM.at(ii),AdcH.at(ii));
       ncontent++;
    }
-   if(ncontent<5){
-      delete image;
-      return 0;
+   if(type==6){
+      for(int ii=0;ii<NSIPM;ii++){
+         double content=((ii%2)==1)?ii:0;
+         image->SetBinContent(ii+1,content>0?content:0);
+      }
+   }
+   else{
+      if(ncontent<5){
+         delete image;
+         return 0;
+      }
    }
    image->Draw(opt);
    DrawFit();
    DrawImageLine(0);
    return image;
+}
+TGraph* WFCTAEvent::DrawPulse(int isipm,const char* opt,bool IsHigh,bool DoClean){
+   if(isipm<0||isipm>=NSIPM) return 0;
+   if(DoClean){
+      int ncontent=0;
+      for(int ii=0;ii<iSiPM.size();ii++){
+         if(!CleanImage(iSiPM.at(ii),0,3)) continue;
+         ncontent++;
+      }
+      if(ncontent<5) return 0;
+   }
+   TGraph* gr=new TGraph();
+   for(int ii=0;ii<28;ii++){
+      double xx=Npoint[ii];
+      double yy=IsHigh?pulsehigh[isipm][ii]:pulselow[isipm][ii];
+      if(yy>0) gr->SetPoint(gr->GetN(),xx,yy);
+   }
+   if(gr->GetN()<3){
+      delete gr;
+      return 0;
+   }
+   gr->SetTitle(Form("iTel=%d iEvent=%d iSiPM=%d time=%ld+%lf;Time Window Index;Amplitude [ADC]",iTel,iEvent,isipm,rabbitTime,rabbittime*20*1.0e-9));
+   gr->SetMarkerStyle(20);
+   gr->SetMarkerColor(4);
+   gr->SetMarkerSize(1.3);
+   gr->SetLineColor(4);
+   gr->SetLineWidth(2);
+   if(DoDraw) gr->Draw(opt);
+   return gr;
 }
 void WFCTAEvent::slaDtp2s(double xi, double eta, double raz, double decz, double &ra, double &dec ){
   double sdecz, cdecz, denom;

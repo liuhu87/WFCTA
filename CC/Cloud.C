@@ -4,6 +4,7 @@
 #include "TMath.h"
 #include <fstream>
 #include "WFTelescope.h"
+#include "TText.h"
 int Cloud::drawcircle=9;
 double Cloud::Cbintheta[Cntheta+1];
 int Cloud::Cnbinphi[Cntheta];
@@ -288,16 +289,32 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    if(!cloudmap) return;
    cloudmap->Draw(opt);
    printf("Cloud::Draw: Draw CloudMap\n");
-   double tempave=0,tempmin=0;
+   double tempave[NCTMax],tempmin[NCTMax];
+   for(int ii=0;ii<NCTMax;ii++){
+      tempave[ii]=0;
+      tempmin[ii]=0;
+   }
    for(int itel=0;itel<WFTelescopeArray::CTNumber&&pct;itel++){
+      WFTelescope* pt=pct->pct[itel];
+      if(!pt) continue;
       TGraph* gr=TelView(pct,itel);
       if(!gr) continue;
       gr->Draw("l");
       printf("Cloud::Draw: Draw Telescope %d\n",itel);
       gr->SetLineColor(1);
       gr->SetLineWidth(2);
-      AveTemp(tempave,tempmin,gr);
+      AveTemp(tempave[itel],tempmin[itel],gr);
       graphlist.push_back(gr);
+
+      int telindex=pt->TelIndex_;
+      double telzen=pt->TelZ_;
+      double telazi=pt->TelA_;
+      double xx=telzen/PI*180.*cos(telazi);
+      double yy=telzen/PI*180.*sin(telazi);
+      TText* text=new TText(-yy,xx,Form("%d",telindex));
+      text->SetTextFont(12);
+      text->SetTextSize(0.05);
+      text->Draw("same");
    }
    if(drawcircle>0){
       for(int ii=0;ii<=drawcircle;ii++){
@@ -322,6 +339,24 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    day=CommonTools::TimeFlag(time,3);
    hour=CommonTools::TimeFlag(time,4);
    min=CommonTools::TimeFlag(time,5);
-   cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Average Temp=%.2f,Minimum Temp=%.2f,in the field of view)",year,month,day,hour,min,tempave,tempmin));
+   if(WFTelescopeArray::CTNumber==0) cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image",year,month,day,hour,min));
+   else if(WFTelescopeArray::CTNumber==1){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Average Temp=%.2f(No.%d),Minimum Temp=%.2f(No.%d))",year,month,day,hour,min,tempave[0],pct->pct[0]->TelIndex_,tempmin[0],pct->pct[0]->TelIndex_));
+   }
+   else if(WFTelescopeArray::CTNumber==2){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Average Temp={%.2f(No.%d),%.2f(No.%d)},Minimum Temp={%.2f(No.%d),%.2f(No.%d)})",year,month,day,hour,min,tempave[0],pct->pct[0]->TelIndex_,tempave[1],pct->pct[1]->TelIndex_,tempmin[0],pct->pct[0]->TelIndex_,tempmin[1],pct->pct[1]->TelIndex_));
+   }
+   else if(WFTelescopeArray::CTNumber==3){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Average Temp={%.2f(No.%d),%.2f(No.%d),%.2f(No.%d)},Minimum Temp={%.2f(No.%d),%.2f(No.%d),%.2f(No.%d)})",year,month,day,hour,min,tempave[0],pct->pct[0]->TelIndex_,tempave[1],pct->pct[1]->TelIndex_,tempave[2],pct->pct[2]->TelIndex_,tempmin[0],pct->pct[0]->TelIndex_,tempmin[1],pct->pct[1]->TelIndex_,tempmin[2],pct->pct[2]->TelIndex_));
+   }
+   else if(WFTelescopeArray::CTNumber==4){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Average Temp={%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d)},Minimum Temp={%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d)})",year,month,day,hour,min,tempave[0],pct->pct[0]->TelIndex_,tempave[1],pct->pct[1]->TelIndex_,tempave[2],pct->pct[2]->TelIndex_,tempave[3],pct->pct[3]->TelIndex_,tempmin[0],pct->pct[0]->TelIndex_,tempmin[1],pct->pct[1]->TelIndex_,tempmin[2],pct->pct[2]->TelIndex_,tempmin[3],pct->pct[3]->TelIndex_));
+   }
+   else if(WFTelescopeArray::CTNumber==5){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Average Temp={%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d)},Minimum Temp={%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d)})",year,month,day,hour,min,tempave[0],pct->pct[0]->TelIndex_,tempave[1],pct->pct[1]->TelIndex_,tempave[2],pct->pct[2]->TelIndex_,tempave[3],pct->pct[3]->TelIndex_,tempave[4],pct->pct[4]->TelIndex_,tempmin[0],pct->pct[0]->TelIndex_,tempmin[1],pct->pct[1]->TelIndex_,tempmin[2],pct->pct[2]->TelIndex_,tempmin[3],pct->pct[3]->TelIndex_,tempmin[4],pct->pct[4]->TelIndex_));
+   }
+   else if(WFTelescopeArray::CTNumber>=6){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Average Temp={%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d)},Minimum Temp={%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d),%.2f(No.%d)})",year,month,day,hour,min,tempave[0],pct->pct[0]->TelIndex_,tempave[1],pct->pct[1]->TelIndex_,tempave[2],pct->pct[2]->TelIndex_,tempave[3],pct->pct[3]->TelIndex_,tempave[4],pct->pct[4]->TelIndex_,tempave[5],pct->pct[5]->TelIndex_,tempmin[0],pct->pct[0]->TelIndex_,tempmin[1],pct->pct[1]->TelIndex_,tempmin[2],pct->pct[2]->TelIndex_,tempmin[3],pct->pct[3]->TelIndex_,tempmin[4],pct->pct[4]->TelIndex_,tempmin[5],pct->pct[5]->TelIndex_));
+   }
 }
 
