@@ -1,4 +1,5 @@
 #ifndef __FluxModel__
+
 #define __FluxModel__
 #include "TH1.h"
 #define NMaxFlux 92
@@ -24,7 +25,7 @@ class FluxModel{
    int nflux[NMaxFluxModel];
    TH1D* fluxes[NMaxFluxModel][NMaxFlux];
    int Zflux[NMaxFluxModel][NMaxFlux];
-   int Mflux[NMaxFluxModel][NMaxFlux];
+   double Mflux[NMaxFluxModel][NMaxFlux];
    ///generated MC counts
    int nMCCount;
    ///generated MC energy distribution;
