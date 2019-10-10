@@ -145,8 +145,37 @@ int FluxModel::SetFlux(int model,int Z){
 
    return nn-res;
 }
+int FluxModel::SetAllFlux(int model){
+   int res=0;
+   for(int imodel=1;imodel<=6;imodel++){
+      if(model>=1&&(imodel!=model)) continue;
+      for(int iz=0;iz<NMaxFlux;iz++){
+         res+=SetFlux(imodel,iz+1);
+      }
+   }
+   return res;
+}
 
-TH1D* FluxModel::Draw(int model,int Z,double index){
+TH1D* FluxModel::GetSum(int model,int Zmin,int Zmax){
+   if(model<0||model>=NMaxFluxModel) return 0;
+   int index=-1;
+   for(int iz=0;iz<NMaxFlux;iz++){
+      if(fluxes[model][iz]&&(Zflux[model][iz]>=Zmin&&Zflux[model][iz]<=Zmax)){
+         index=iz; break;
+      }
+   }
+   if(index<0) return 0;
+   TH1D* hist=(TH1D*)fluxes[model][index]->Clone(Form("model%d_sum_%d_%d",model,Zmin,Zmax));
+   hist->Reset();
+   for(int iz=0;iz<NMaxFlux;iz++){
+      if(fluxes[model][iz]&&(Zflux[model][iz]>=Zmin&&Zflux[model][iz]<=Zmax)){
+         hist->Add(fluxes[model][iz]);
+      }
+   }
+   return hist;
+}
+
+TH1D* FluxModel::Draw(int model,int Z,const char* opt,double index){
    if(model<0||model>=NMaxFluxModel) return 0;
    for(int iz=1;iz<=nflux[model];iz++){
       if(Z>=0&&(iz!=Z)) continue;
@@ -154,11 +183,46 @@ TH1D* FluxModel::Draw(int model,int Z,double index){
       if(index!=0){
          hh=(TH1D*)fluxes[model][iz-1]->Clone(Form("%s_index%lf",fluxes[model][iz-1]->GetName(),index));
          for(int ibin=1;ibin<hh->GetNbinsX();ibin++) hh->SetBinContent(ibin,hh->GetBinContent(ibin)*pow(10,hh->GetXaxis()->GetBinCenter(ibin)*index));
+         hh->GetYaxis()->SetTitle(Form("Flux*E^{%.1lf} [m^2 sr s GeV/n^{%.1lf}]",index,index-1));
       }
-      if(Z>=0) hh->Draw();
+      if(Z>=0) hh->Draw(opt);
       if(Z>=0) return hh;
    }
    return 0;
 }
 
+///Draw Flux of the Sum from Zmin to Zmax
+TH1D* FluxModel::DrawSum(int model,int Zmin,int Zmax,const char* opt,double index){
+   TH1D* hist=GetSum(model,Zmin,Zmax);
+   if(!hist) return 0;
+   TH1D* hh=hist;
+   if(index!=0){
+      for(int ibin=1;ibin<hh->GetNbinsX();ibin++) hh->SetBinContent(ibin,hh->GetBinContent(ibin)*pow(10,hh->GetXaxis()->GetBinCenter(ibin)*index));
+      hh->GetYaxis()->SetTitle(Form("Flux*E^{%.1lf} [m^2 sr s GeV/n^{%.1lf}]",index,index-1));
+   }
+   hh->Draw();
+   return hh;
+}
 
+int FluxModel::Draw(int model,int nz,int* Zlist,double index){
+   if(model<0||model>=NMaxFluxModel) return 0;
+   int nplot=0;
+   for(int iz=0;iz<nz;iz++){
+      int index=-1;
+      for(int ii=0;ii<nflux[model];ii++){
+         if(Zlist[iz]==Zflux[model][ii]) {index=ii; break;}
+      }
+      if(index<0) continue;
+      TH1D* hh=Draw(model,Zlist[iz],nplot==0?"hist":"hist same",index);
+      if(hh) nplot++;
+   }
+   return nplot;
+}
+int FluxModel::Draw(int model,int Zmin,int Zmax,double index){
+   int nz=Zmax-Zmin+1;
+   int Zlist[100];
+   for(int iz=0;iz<nz;iz++){
+      Zlist[iz]=Zmin+iz;
+   }
+   return Draw(model,nz,Zlist,index);
+}

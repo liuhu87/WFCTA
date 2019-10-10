@@ -42,12 +42,17 @@ class FluxModel{
    ~FluxModel() { Clear(); }
    int LoadFluxFromFile(int model,char* filename,int Z);
    int SetFlux(int model,int Z);
+   int SetAllFlux(int model);
+   TH1D* GetSum(int model,int Zmin,int Zmax);
    int LoadMCCount(char* filename,int Z);
    void SetMCNorm(int Z,double norm);
    double GetWeight(int Z,double E);
 
    ///Drawing
-   TH1D* Draw(int model,int Z,double index);
+   TH1D* Draw(int model,int Z,const char* opt="",double index=0);
+   TH1D* DrawSum(int model,int Zmin,int Zmax,const char* opt="",double index=0);
+   int Draw(int model,int nz,int* Zlist,double index=0);
+   int Draw(int model,int Zmin,int Zmax,double index=0);
 };
 
 #endif
