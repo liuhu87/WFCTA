@@ -3,3 +3,5 @@
 *.so
 dictionary.C
 dictionary.h
+*.root
+*.out

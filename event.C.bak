@@ -43,6 +43,7 @@ int main(int argc, char**argv)
 	/*********************************************************************/
 
 	WFCTADecode *wfctaDecode = new WFCTADecode();
+
 	//Events Initial//
 	wfctaEvent->EventInitial();
 
@@ -52,6 +53,8 @@ int main(int argc, char**argv)
 	float adcl;
 	while(true)
 	{
+		if(buf!=NULL)
+		{delete buf;}
 		buf = new uint8_t[40];
 		size_of_read = fread((uint8_t *)buf,1,40,fp);
 		if(size_of_read==0){break;}
@@ -63,7 +66,7 @@ int main(int argc, char**argv)
 			ITEL = wfctaDecode->Telid(buf,FEEDataHead);
 			fseek(fp,-size_of_read+FEEDataHead,1);
 
-			delete[] buf;
+			delete buf;
 			buf = new uint8_t[slicelength];
 			size_of_read = fread((uint8_t *)buf,1,slicelength,fp);
 			//printf("slicelength:%lld\n",slicelength);
@@ -102,6 +105,7 @@ int main(int argc, char**argv)
 						wfctaEvent->Over_Single_Marker.push_back( wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first) );
 						wfctaEvent->Over_Record_Marker.push_back( wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first) );
 						wfctaEvent->winsum.push_back( wfctaDecode->Getwinsum(buf,sipm_position_iter->first) );
+						//printf("%d %d:\n",wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first),sipm_position_iter->first);
 						wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)(wfctaEvent->pulsehigh), (int *)(wfctaEvent->pulselow));
 						wfctaEvent->PeakPosH.push_back( wfctaDecode->GetPeakPosH(buf,sipm_position_iter->first) );
 						wfctaEvent->PeakPosL.push_back( wfctaDecode->GetPeakPosL(buf,sipm_position_iter->first) );
@@ -120,6 +124,18 @@ int main(int argc, char**argv)
 						if(adcl>6000){    wfctaEvent->SatL.push_back(1);}
 						else         {    wfctaEvent->SatL.push_back(0);}
 					}
+
+					///just do some test to exam the reading program
+					//(wfctaEvent->mcevent).iuse=wfctaEvent->iEvent;
+					//(wfctaEvent->mcevent).RayTrace.push_back(wfctaEvent->iEvent*2);
+					//(wfctaEvent->mcevent).TelTrigger[0]=wfctaEvent->iEvent*3;
+					//(wfctaEvent->ledevent).Time=wfctaEvent->rabbitTime;
+					//(wfctaEvent->ledevent).Frequency=wfctaEvent->iEvent;
+					//(wfctaEvent->ledevent).DoorOpen=(wfctaEvent->iEvent%2);
+					//(wfctaEvent->laserevent).Time=wfctaEvent->rabbitTime;
+					//(wfctaEvent->laserevent).Frequency=wfctaEvent->iEvent;
+					//(wfctaEvent->laserevent).flux=wfctaEvent->iEvent*1.0;
+
 					eventShow->Fill();
 					wfctaEvent->EventInitial();
 
@@ -130,11 +146,9 @@ int main(int argc, char**argv)
 					break;
 				}
 			} 
-			delete[] buf;
 		}
 		else
 		{
-			delete[] buf;
 			fseek(fp,-size_of_read+20,1);
 		}
 	}

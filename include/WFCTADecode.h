@@ -74,12 +74,21 @@ public:
     void GetClbTemp(uint8_t *begin, int packsize, float *ClbTemp);//Deal85pack
     void GetClbTime(uint8_t *begin, int packsize, long *ClbTime);//Deal85pack
 
+	int GetF9Mode(uint8_t *begin, int packsize);
+	int GetPattern(uint8_t *begin, int packsize);
+	int GetF9Version(uint8_t *begin, int packsize);
+	int GetF9PlusVersion(uint8_t *begin, int packsize);
     uint64_t GetclbInitialTime(uint8_t *begin, int packsize);
     double GetclbInitialtime(uint8_t *begin, int packsize);
     int GetFiredTube(uint8_t *begin, int packsize);
     uint64_t GetStatusReadbackTime(uint8_t *begin, int packsize);
-    //uint64_t GetStatusReadbacktime(uint8_t *begin, int packsize);
     double GetStatusReadbacktime(uint8_t *begin, int packsize);
+
+	int GetDBNumber(uint8_t *begin, int packsize);
+	int GetClbNumber(uint8_t *begin, int packsize);
+	int GetF18Version(uint8_t *begin, int packsize);
+	int GetDBVersion(uint8_t *begin, int packsize);
+	int GetClbVersion(uint8_t *begin, int packsize);
 
 private:
 

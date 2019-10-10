@@ -427,7 +427,8 @@ void WFCTAEvent::rabbittime2lt()
         hour = int(fd * 24 + 8);
         minite = int((fd*24+8 - hour)*60);
         second = int(((fd*24+8-hour)*60-minite)*60);
-	hour = hour%24;
+		day += hour/24;
+		hour = hour%24;
 	//printf("time:%04d %02d%02d %02d:%02d:%02d\n",year,month,day,hour,minite,second);
     }
 
@@ -436,19 +437,19 @@ void WFCTAEvent::rabbittime2lt()
 //initiate
 void WFCTAEvent::InitImage()
 {
-   RawImagePe.clear();
-   RawImageSiPM.clear();
-   RawImageX.clear();
-   RawImageY.clear();
-   FullImagePe.clear();
-   FullImageSiPM.clear();
-   FullImageX.clear();
-   FullImageY.clear();
-   fNpixfriends.clear();
-   CleanImagePe.clear();
-   CleanImageSiPM.clear();
-   CleanImageX.clear();
-   CleanImageY.clear();
+	RawImagePe.clear();
+	RawImageSiPM.clear();
+	RawImageX.clear();
+	RawImageY.clear();
+	FullImagePe.clear();
+	FullImageSiPM.clear();
+	FullImageX.clear();
+	FullImageY.clear();
+	fNpixfriends.clear();
+	CleanImagePe.clear();
+	CleanImageSiPM.clear();
+	CleanImageX.clear();
+	CleanImageY.clear();
 }
 
 //change adc count to number of pe
@@ -469,7 +470,7 @@ void WFCTAEvent::AdcToPe()
       //pe = pe/factor[isipm];
       //pe = pe*(1 + deltag_20[isipm]*(correct_PreTemp[isipm]-T0));
       theta = pow(cos(sqrt(ImageX[isipm]*ImageX[isipm]+ImageY[isipm]*ImageY[isipm])/57.3),4);
-	//printf("%d theta:%lf\n",isipm,theta);
+	  //printf("%d theta:%lf\n",isipm,theta);
       pe = pe/theta;
       RawImagePe.push_back(pe);
       RawImageSiPM.push_back(isipm);
@@ -528,16 +529,16 @@ int WFCTAEvent::CalcHillas()
     double sx = 0;
     double sy = 0;
     double sxy = 0;
-    for(int ii=0;ii<FullImagePe.size();ii++){
-        if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
-	DNpix++;
-        DSize += FullImagePe.at(ii);
-	DMeanX += FullImagePe.at(ii) * FullImageX.at(ii);
-	DMeanY += FullImagePe.at(ii) * FullImageY.at(ii);
-	sx += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageX.at(ii);
-        sy += FullImagePe.at(ii) * FullImageY.at(ii) * FullImageY.at(ii);
-        sxy += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageY.at(ii);
-    }
+	for(int ii=0;ii<FullImagePe.size();ii++){
+		if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
+		DNpix++;
+		DSize += FullImagePe.at(ii);
+		DMeanX += FullImagePe.at(ii) * FullImageX.at(ii);
+		DMeanY += FullImagePe.at(ii) * FullImageY.at(ii);
+		sx += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageX.at(ii);
+		sy += FullImagePe.at(ii) * FullImageY.at(ii) * FullImageY.at(ii);
+		sxy += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageY.at(ii);
+	}
 
     if(DSize==0.) return 2;
     DMeanX /= DSize;
@@ -566,13 +567,13 @@ int WFCTAEvent::CalcHillas()
 //clean image
 void WFCTAEvent::GetCleanImage()
 {
-    for(int ii=0;ii<FullImagePe.size();ii++){
-	if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
-	CleanImagePe.push_back(FullImagePe.at(ii));
-        CleanImageSiPM.push_back(FullImageSiPM.at(ii));
-        CleanImageX.push_back(FullImageX.at(ii));
-        CleanImageY.push_back(FullImageY.at(ii));
-    }
+	for(int ii=0;ii<FullImagePe.size();ii++){
+		if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
+		CleanImagePe.push_back(FullImagePe.at(ii));
+		CleanImageSiPM.push_back(FullImageSiPM.at(ii));
+		CleanImageX.push_back(FullImageX.at(ii));
+		CleanImageY.push_back(FullImageY.at(ii));
+	}
 }
 
 

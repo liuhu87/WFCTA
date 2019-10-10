@@ -62,13 +62,13 @@ uint8_t WFCTADecode::StatusPackCheck(uint8_t *begin, int bufsize, int64_t packSt
         if( *(begin+readPos+0)==0x12 && *(begin+readPos+1)==0x34 && *(begin+readPos+62)==0xab && *(begin+readPos+63)==0xcd ){
             packSize = readPos+64;
             status_pack_mark = *(begin+readPos+2);//FPGA 1-9 PACK
-	    if(status_pack_mark==0){status_pack_mark = 9;}
+			if(status_pack_mark==0){status_pack_mark = 9;}
             return status_pack_mark;
         }
 
         if( *(begin+readPos+0)==0x12 && *(begin+readPos+1)==0x34 && *(begin+readPos+70)==0xab && *(begin+readPos+71)==0xcd){
             packSize = readPos+72;
-	    status_pack_mark = *(begin+readPos+3);
+			status_pack_mark = *(begin+readPos+3);
             return status_pack_mark;
         }
 
@@ -447,6 +447,74 @@ double WFCTADecode::GetclbInitialtime(uint8_t *begin, int packsize)
                                           ((uint64_t)begin[packsize-20]<<8)|
                                           ((uint64_t)begin[packsize-19]<<0) );
     return m_clb_initial_time;
+}
+
+/*********************************
+ * **get mode info in F1-F8 pack**
+ * *******************************/
+int WFCTADecode::GetF18Version(uint8_t *begin, int packsize)
+{
+	int m_f18version = (int)( (int32_t)begin[packsize-3]);
+	printf("m_f18version:%0x\n",m_f18version);
+	return m_f18version;
+}
+
+int WFCTADecode::GetDBVersion(uint8_t *begin, int packsize)
+{
+	int m_dbversion = (int)( (int32_t)begin[packsize-3]);
+	printf("m_dbversion:%0x\n",m_dbversion);
+	return m_dbversion;
+}
+int WFCTADecode::GetDBNumber(uint8_t *begin, int packsize)
+{
+	int db = (int)( (int8_t)(begin[packsize-70]>>4)&0xf);
+	int fpga = (int)( (int8_t)(begin[packsize-70])&0xf);
+	int m_dbnumber = db*10 + fpga;
+	printf("m_dbnumber:%d\n",m_dbnumber);
+	return m_dbnumber;
+}
+
+int WFCTADecode::GetClbVersion(uint8_t *begin, int packsize)
+{
+	int m_clbversion = (int)( ((int32_t)begin[packsize-6]<<8) | (int32_t)begin[packsize-5]);
+	printf("m_clbversion:%0x\n",m_clbversion);
+	return m_clbversion;
+}
+int WFCTADecode::GetClbNumber(uint8_t *begin, int packsize)
+{
+	int db = (int)( (int8_t)(begin[packsize-72]>>4)&0xf);
+	int fpga = (int)( (int8_t)(begin[packsize-72])&0xf);
+	int m_clbnumber = db*10 + fpga;
+	printf("m_clbnumber:%d\n",m_clbnumber);
+	return m_clbnumber;
+}
+
+/******************************
+ * **get mode info in F9 pack**
+ * ****************************/
+int WFCTADecode::GetF9Mode(uint8_t *begin, int packsize)
+{
+	int m_f9_mode = (int)( (int32_t)begin[packsize-60]);
+	printf("m_f9_mode:%0x\n",m_f9_mode);
+	return m_f9_mode;
+}
+int WFCTADecode::GetPattern(uint8_t *begin, int packsize)
+{
+	int m_pattern = (int)( (int32_t)begin[packsize-59]);
+	printf("m_pattern:%0x\n",m_pattern);
+	return m_pattern;
+}
+int WFCTADecode::GetF9Version(uint8_t *begin, int packsize)
+{
+	int m_f9version = (int)( (int32_t)begin[packsize-3]);
+	printf("m_f9version:%0x\n",m_f9version);
+	return m_f9version;
+}
+int WFCTADecode::GetF9PlusVersion(uint8_t *begin, int packsize)
+{
+	int m_f9plusversion = (int)( (int32_t)begin[packsize-16]);
+	printf("m_f9pversion:%0x\n",m_f9plusversion);
+	return m_f9plusversion;
 }
 
 /**********************************
