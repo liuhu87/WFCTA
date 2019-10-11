@@ -8,6 +8,7 @@
 #include "TStyle.h"
 #include "TROOT.h"
 #include "TColor.h"
+#include "TPaveText.h"
 
 TStyle* myStyle = 0;
 Int_t MyPalette7[100];
@@ -16,24 +17,25 @@ extern void define_palettes();
 int main(int argc,char** argv){
     //gSystem->Load("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/lib/lib.so");
 
-    define_mystyle();
+    //define_mystyle();
 
     define_palettes();
 
-    gROOT->SetStyle("mystyle");
+    //gROOT->SetStyle("mystyle");
 
-    gROOT->ForceStyle(kTRUE);
+    //gROOT->ForceStyle(kTRUE);
 
     gStyle->SetPalette(100,MyPalette7);
 
-    gStyle->SetNumberContours(20);
+    gStyle->SetNumberContours(50);
 
     gStyle->SetOptStat(0);
-    gStyle->SetFrameBorderSize(0.5);
+    //gStyle->SetFrameBorderSize(0.5);
     //gStyle->SetTitleAlign(33);
     //gStyle->SetTitleX(0.8);
     //gStyle->SetTitleY(0.99);
-    //gStyle->SetTitleFontSize(0.05);
+    //gStyle->SetTitleFont(52,"t");
+    //gStyle->SetTitleSize(0.2,"t");
 
     if(argc<2){
        printf("   Usage %s <in_name> <out_name>\n",argv[0]);
@@ -67,15 +69,15 @@ int main(int argc,char** argv){
     showcloud.ReadCloudMap(argv[1]);
 
     //new TBrowser;
-    TCanvas* cc=new TCanvas("canvas","",1000,800);
+    TCanvas* cc=new TCanvas("canvas","",10,10,1000,1000);
     cc->SetBorderSize(0.4);
 
     TFile* fout=0;
     if(OutType=="root") fout=TFile::Open(out_name,"RECREATE");
 
     showcloud.Draw(WFTelescopeArray::GetHead());
-    gPad->SetRightMargin(0.1);
-    gPad->SetFixedAspectRatio();
+    //gPad->SetRightMargin(0.1);
+    //gPad->SetFixedAspectRatio();
     //showcloud.Draw(0);
     //if(gPad) gPad->Update();
     //if(gPad) gPad->WaitPrimitive();

@@ -244,7 +244,7 @@ TGraph* WFTelescopeArray::TelView(int iTel){
          //printf("itel=%d dirin={%lf,%lf,%lf} dirout={%lf,%lf,%lf}\n",iTel,m1,n1,l1,m1new,n1new,l1new);
          z0new=WFTelescope::ZDOOR;
          double margin=100.;
-         int ntest=50;
+         int ntest=20;
          for(int itest=0;itest<ntest*ntest;itest++){
             int ix=itest/ntest;
             int iy=itest%ntest;
