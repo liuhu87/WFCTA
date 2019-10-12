@@ -96,7 +96,14 @@ int main(int argc, char**argv)
 					wfctaEvent->n_Channel = 0;
 					for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){
 						wfctaEvent->n_Channel++;
-						wfctaEvent->iSiPM.push_back( sipm_position_iter->first );
+						if(ITEL==5)
+						{
+							wfctaEvent->iSiPM.push_back( 1023 - (sipm_position_iter->first) );
+						}
+						else
+						{
+							wfctaEvent->iSiPM.push_back( sipm_position_iter->first );
+						}
 						wfctaEvent->eevent.push_back( wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first) );
 						wfctaEvent->zipmod.push_back( wfctaDecode->zipMode(buf,sipm_position_iter->first) );
 						wfctaEvent->Over_Single_Marker.push_back( wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first) );

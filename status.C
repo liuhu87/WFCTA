@@ -93,6 +93,17 @@ int main(int argc, char**argv)
 
 	int dbnumber;
 	int clbnumber;
+	short single_thresh5[1024]={0};
+	short record_thresh5[1024]={0};
+	long single_count5[1024]={0};
+	long single_time5[1024]={0};
+	float DbTemp5[1024]={0};
+	float HV5[1024]={0};
+	float PreTemp5[1024]={0};
+	float BigResistence5[1024]={0};
+	float SmallResistence5[1024]={0};
+	long ClbTime5[1024]={0};
+	float ClbTemp5[1024]={0};
 	WFCTADecode *wfctaDecode = new WFCTADecode();
 	f9mode = -1000;
 	f9pattern = -1000;
@@ -200,6 +211,35 @@ int main(int argc, char**argv)
 								fired_tube = wfctaDecode->GetFiredTube(buf,packSize);
 								status_readback_Time = wfctaDecode->GetStatusReadbackTime(buf,packSize);
 								status_readback_time = wfctaDecode->GetStatusReadbacktime(buf,packSize);
+								if(iTel==5)
+								{
+									for(int i=0;i<1024;i++){
+										single_thresh5[i] = single_thresh[1023-i];
+										record_thresh5[i] = record_thresh[1023-i];
+										single_count5[i] = single_count[1023-i];
+										single_time5[i] = single_time[1023-i];
+										DbTemp5[i] = DbTemp[1023-i];
+										HV5[i] = HV[1023-i];
+										PreTemp5[i] = PreTemp[1023-i];
+										BigResistence5[i] = BigResistence[1023-i];
+										SmallResistence5[i] = SmallResistence[1023-i];
+										ClbTime5[i] = ClbTime[1023-i];
+										ClbTemp5[i] = ClbTemp[1023-i];
+									}
+									for(int i=0;i<1024;i++){
+										single_thresh[i] = single_thresh5[i];
+										record_thresh[i] = record_thresh5[i];
+										single_count[i] = single_count5[i];
+										single_time[i] = single_time5[i];
+										DbTemp[i] = DbTemp5[i];
+										HV[i] = HV5[i];
+										PreTemp[i] = PreTemp5[i];
+										BigResistence[i] = BigResistence5[i];
+										SmallResistence[i] = SmallResistence5[i];
+										ClbTime[i] = ClbTime5[i];
+										ClbTemp[i] = ClbTemp5[i];
+									}
+								}
 
 								Status->Fill();
 								//iTel = -1;
@@ -237,6 +277,35 @@ int main(int argc, char**argv)
 								break;
 							case 100:
 								iTel = ITEL;
+								if(iTel==5)
+								{
+									for(int i=0;i<1024;i++){
+										single_thresh5[i] = single_thresh[1023-i];
+										record_thresh5[i] = record_thresh[1023-i];
+										single_count5[i] = single_count[1023-i];
+										single_time5[i] = single_time[1023-i];
+										DbTemp5[i] = DbTemp[1023-i];
+										HV5[i] = HV[1023-i];
+										PreTemp5[i] = PreTemp[1023-i];
+										BigResistence5[i] = BigResistence[1023-i];
+										SmallResistence5[i] = SmallResistence[1023-i];
+										ClbTime5[i] = ClbTime[1023-i];
+										ClbTemp5[i] = ClbTemp[1023-i];
+									}
+									for(int i=0;i<1024;i++){
+										single_thresh[i] = single_thresh5[i];
+										record_thresh[i] = record_thresh5[i];
+										single_count[i] = single_count5[i];
+										single_time[i] = single_time5[i];
+										DbTemp[i] = DbTemp5[i];
+										HV[i] = HV5[i];
+										PreTemp[i] = PreTemp5[i];
+										BigResistence[i] = BigResistence5[i];
+										SmallResistence[i] = SmallResistence5[i];
+										ClbTime[i] = ClbTime5[i];
+										ClbTemp[i] = ClbTemp5[i];
+									}
+								}
 								Status->Fill();
 								f9mode = -1000;
 								f9pattern = -1000;

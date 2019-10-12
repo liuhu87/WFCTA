@@ -66,7 +66,7 @@ class WFCTAEvent : public TSelector
 		vector<bool> Over_Single_Marker;
 		vector<bool> Over_Record_Marker;
 
-		int Npoint[28]; //! 
+		int Npoint[28];  //!
 		int pulsehigh[1024][28]; //!
 		int pulselow[1024][28];  //!
 		double ImageX[1024];  //!
