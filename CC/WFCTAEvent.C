@@ -14,6 +14,7 @@ using namespace std;
 
 ClassImp(WFCTAEvent);
 
+const int WFCTAEvent::cleanPix=3;
 WFCTAEvent* WFCTAEvent::_Head=0;
 TTree* WFCTAEvent::_Tree=0;
 const char* WFCTAEvent::_Name="WFCTAEvent";
@@ -484,8 +485,8 @@ void WFCTAEvent::AdcToPe()
 void WFCTAEvent::PrelimImageClean(double cut)
 {
     for(int ii=0;ii<RawImagePe.size();ii++){
-	if(RawImagePe.at(ii)<cut){continue;}
-	FullImagePe.push_back(RawImagePe.at(ii));
+		if(RawImagePe.at(ii)<cut){continue;}
+		FullImagePe.push_back(RawImagePe.at(ii));
         FullImageSiPM.push_back(RawImageSiPM.at(ii));
         FullImageX.push_back(RawImageX.at(ii));
         FullImageY.push_back(RawImageY.at(ii));
@@ -530,7 +531,14 @@ int WFCTAEvent::CalcHillas()
     double sy = 0;
     double sxy = 0;
 	for(int ii=0;ii<FullImagePe.size();ii++){
-		if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
+		if(FullImageSiPM.at(ii)==0||FullImageSiPM.at(ii)==1023)
+		{
+			if(fNpixfriends.at(ii)<=2){continue;}
+		}
+		else
+		{
+			if(fNpixfriends.at(ii)<=cleanPix){continue;}//use this to clean image
+		}
 		DNpix++;
 		DSize += FullImagePe.at(ii);
 		DMeanX += FullImagePe.at(ii) * FullImageX.at(ii);
@@ -568,7 +576,14 @@ int WFCTAEvent::CalcHillas()
 void WFCTAEvent::GetCleanImage()
 {
 	for(int ii=0;ii<FullImagePe.size();ii++){
-		if(fNpixfriends.at(ii)<=3){continue;}//use this to clean image
+		if(FullImageSiPM.at(ii)==0||FullImageSiPM.at(ii)==1023)
+		{
+			if(fNpixfriends.at(ii)<=2){continue;}
+		}
+		else
+		{
+			if(fNpixfriends.at(ii)<=cleanPix){continue;}//use this to clean image
+		}
 		CleanImagePe.push_back(FullImagePe.at(ii));
 		CleanImageSiPM.push_back(FullImageSiPM.at(ii));
 		CleanImageX.push_back(FullImageX.at(ii));

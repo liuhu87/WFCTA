@@ -112,7 +112,7 @@ private:
     float m_adc_high;
     float m_adc_low;
     //float m_base_high;
-    float m_base_low;
+    //float m_base_low;
 
     float m_Basehigh;
     float m_Baselow;

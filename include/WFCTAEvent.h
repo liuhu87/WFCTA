@@ -20,6 +20,7 @@ const int MAXPMT=1024;
 class WFCTAEvent : public TSelector
 {
 	protected:
+		static const int cleanPix;
 		static WFCTAEvent* _Head;
 		static TTree* _Tree;
 		static const char * _Name;

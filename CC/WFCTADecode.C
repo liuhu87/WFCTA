@@ -779,7 +779,7 @@ bool WFCTADecode::GetOver_Record_Mark(uint8_t *begin, short isipm)
     //printf("m_over_record_mark:%d\n",m_over_record_mark);
     if(m_over_record_mark==0x0e)
     {
-	m_Over_Record_Mark=1;
+		m_Over_Record_Mark=1;
     }
     //bool m_Over_Record_Mark = begin[m_sipm_position_iter->second+3]&0xe;
     return m_Over_Record_Mark;
@@ -921,7 +921,7 @@ void WFCTADecode::Calc_Q_Base(uint8_t *begin, short isipm)
     if(m_wavepeakH<3)
     {
         for(int i=6;i<28;i++)  { m_Basehigh += pulsehigh[i];}
-	for(int i=0;i<6;i++)   { m_Adchigh += pulsehigh[i]; }
+		for(int i=0;i<6;i++)   { m_Adchigh += pulsehigh[i]; }
     }
     else if(m_wavepeakH>23)
     {
@@ -972,7 +972,7 @@ void WFCTADecode::waveform(uint8_t *begin, short isipm)
     for(int i=0; i<14; i++)
     {   
         pulsehigh[i] = ((int)(begin[waveStart1+i*4]&0x7f)<<8)|((int)begin[waveStart1+i*4+1]);
-	saturationH[i] = ((int)((begin[waveStart1+i*4]>>7)&0x01));
+		saturationH[i] = ((int)((begin[waveStart1+i*4]>>7)&0x01));
         pulselow[i]  = ((int)(begin[waveStart1+i*4+2]&0x7f)<<8)|((int)begin[waveStart1+i*4+3]);
         saturationL[i] = ((int)((begin[waveStart1+i*4+2]>>7)&0x01));
     }   
