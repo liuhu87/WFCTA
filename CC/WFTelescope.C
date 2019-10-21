@@ -51,7 +51,8 @@ void WFTelescopeArray::ReadFromFile(char* filename){
   float nsb;                  //night sky background 
 
   /*The telescope arrays settings*/
-  float *CT_Index, *CT_X, *CT_Y, *CT_Z, *CT_Azi, *CT_Zen;
+  int *CT_Index;
+  float *CT_X, *CT_Y, *CT_Z, *CT_Azi, *CT_Zen;
   float *timefirst, *timelast,*timemean, *ncphoton;
   /*cos directions of the pointing of telescopes */
   float *CT_m, *CT_n, *CT_l;
@@ -86,7 +87,7 @@ void WFTelescopeArray::ReadFromFile(char* filename){
 
   CTNumber =readconfig-> GetCTNumber();
 
-  CT_Index = new float[CTNumber];
+  CT_Index = new int[CTNumber];
   CT_X = new float[CTNumber];
   CT_Y = new float[CTNumber];
   CT_Z = new float[CTNumber];
@@ -103,7 +104,7 @@ void WFTelescopeArray::ReadFromFile(char* filename){
 
   int nict=0;
   for (int ict = 1; ict <=NCTMax; ict++){
-     if(nict>=CTNumber) continue;
+     if(nict>=CTNumber) break;
      if(readconfig->GetCTPosition(ict,3)<0) continue;
      CT_Index[nict] = ict;
      CT_X[nict] =  readconfig->GetCTPosition(ict,0);
@@ -111,9 +112,11 @@ void WFTelescopeArray::ReadFromFile(char* filename){
      CT_Z[nict] =  readconfig->GetCTPosition(ict,2);
      CT_Zen[nict] =  readconfig->GetCTPosition(ict,3) * TMath::DegToRad();
      CT_Azi[nict] =  readconfig->GetCTPosition(ict,4) * TMath::DegToRad();
-     CT_m[nict] = sin(CT_Zen[ict]) * cos(CT_Azi[ict]);
-     CT_n[nict] = sin(CT_Zen[ict]) * sin(CT_Azi[ict]);
-     CT_l[nict] = cos(CT_Zen[ict]);
+     CT_m[nict] = sin(CT_Zen[nict]) * cos(CT_Azi[nict]);
+     CT_n[nict] = sin(CT_Zen[nict]) * sin(CT_Azi[nict]);
+     CT_l[nict] = cos(CT_Zen[nict]);
+     //printf("Read: itel=%d iTel=%d pos={%f,%f,%f} dir={%f,%f}\n",nict,ict,readconfig->GetCTPosition(ict,0),readconfig->GetCTPosition(ict,1),readconfig->GetCTPosition(ict,2),readconfig->GetCTPosition(ict,3),readconfig->GetCTPosition(ict,4));
+     //printf("Read: itel=%d iTel=%d pos={%f,%f,%f} dir={%f,%f}\n",nict,CT_Index[nict],CT_X[nict],CT_Y[nict],CT_Z[nict],CT_Zen[nict]/PI*180,CT_Azi[nict]/PI*180);
      nict++;
   }
   //*The total intensty of nsb in the trigger window equlas Fadc_bins X Fabs_length X nsb *//
@@ -135,6 +138,7 @@ void WFTelescopeArray::ReadFromFile(char* filename){
      GetMirror(ict)->SetMirrorPointError(MirrorPointErrorFlag,MirrorPointError);
      //GetCamera(ict)->SetCTNumber(CTNumber);
      //GetCamera(ict)->Init();
+     //printf("Adding new telescope: itel=%d iTel=%d pos={%lf,%lf,%lf} dir={%lf,%lf}\n",ict,CT_Index[ict],CT_X[ict],CT_Y[ict],CT_Z[ict],CT_Zen[ict]/PI*180,CT_Azi[ict]/PI*180);
   }
 
   delete []CT_Index;
@@ -372,7 +376,7 @@ void WFTelescope::SetPointing(double zenith,double azimuth)
 {
     TelZ_ = zenith;
     TelA_ = azimuth;
-    printf("WFTelescope::SetPointing: TelZ %f TelA %f\n", TelZ_, TelA_);
+    //printf("WFTelescope::SetPointing: TelZ %f TelA %f\n", TelZ_, TelA_);
 }
 void WFTelescope::SetEulerMatrix(double theta,double phi)
 {

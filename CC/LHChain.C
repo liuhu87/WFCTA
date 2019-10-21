@@ -96,11 +96,11 @@ WFCTAEvent* LHChain::GetEventFast(UInt_t run, Int_t ev, bool runinfilename, unsi
  unsigned int frun=0;//_EVENT?_EVENT->Run():0;
  if(entry>=0){
         GetEvent(entry);
-        //if(_EVENT && _EVENT->Run()==run && _EVENT->Event()==static_cast<unsigned long long>(ev)){
-        //     if(frun!=run)_EVENT->UpdateSetup(run);
-        //     return _EVENT;
-        //}
-        if(_EVENT && _EVENT->iEvent==static_cast<unsigned long long>(ev)) return _EVENT;
+        if(_EVENT && _EVENT->rabbitTime==run && _EVENT->iEvent==static_cast<unsigned long long>(ev)){
+             //if(frun!=run)_EVENT->UpdateSetup(run);
+             return _EVENT;
+        }
+        //if(_EVENT && _EVENT->iEvent==static_cast<unsigned long long>(ev)) return _EVENT;
     }
 
    return NULL;
@@ -110,7 +110,7 @@ WFCTAEvent* LHChain::GetEvent(UInt_t run, Int_t ev, Bool_t kDontRewind){
   if (!kDontRewind) Rewind();//Go to start of chain
   // Get events in turn
   while  (GetEvent() &&
-          !(_EVENT->iEvent==static_cast<unsigned long long>(ev)) ){
+          !(_EVENT->rabbitTime==run && _EVENT->iEvent==static_cast<unsigned long long>(ev)) ){
     if (_ENTRY==(GetEntries()-1)) {
       static bool kRewindAlreadyDid=false;
       if (!kRewindAlreadyDid) {

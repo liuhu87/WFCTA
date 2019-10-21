@@ -18,7 +18,7 @@ class WFCTAMCEvent
    //vector<float> Dirgen[3];
    //vector<float> Wavegen;
    Float_t TubeSignal[NCTMax][NSIPM]; //!
-   Float_t eTubeSignal[NCTMax][NSIPM]; //!
+   Float_t eTubeSignal[NCTMax][NSIPM];
 
    int NArrival[NCTMax]; //!
    double ArrivalTimeMin[NCTMax]; //!

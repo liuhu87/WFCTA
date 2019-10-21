@@ -25,6 +25,9 @@ TBranch* WFCTAEvent::bledevent=0;
 TBranch* WFCTAEvent::blaserevent=0;
 int WFCTAEvent::jdebug=0;
 bool WFCTAEvent::DoDraw=false;
+double WFCTAEvent::adccuttrigger=350.;
+double WFCTAEvent::npetrigger=45.;
+int WFCTAEvent::nfiretrigger=3;
 WFCTAEvent::WFCTAEvent():TSelector()
 {
    eevent.reserve(MAXPMT);
@@ -93,10 +96,23 @@ WFCTAEvent::~WFCTAEvent()
    if(gDraw) delete gDraw;
    if(gDrawErr) delete gDrawErr;
    if(minimizer) delete minimizer;
+   if(tlist){
+      int size=tlist->Capacity();
+      for(int ii=0;ii<size;ii++){
+         delete tlist->At(ii);
+      }
+      for(int ii=0;ii<size;ii++){
+         tlist->RemoveLast();
+      }
+      delete tlist;
+   }
+   graphlist.clear();
 }
 
 void WFCTAEvent::Init()
 {
+   tlist=new TList();
+
    iTel=-1;
    iEvent=-1;
    eEvent=-1;
@@ -151,6 +167,18 @@ void WFCTAEvent::Init()
 }
 void WFCTAEvent::EventInitial()
 {
+   int size=tlist->Capacity();
+   for(int ii=0;ii<size;ii++){
+      delete tlist->At(ii);
+   }
+   for(int ii=0;ii<size;ii++){
+      tlist->RemoveLast();
+   }
+   for(int ii=0;ii<graphlist.size();ii++){
+      delete (graphlist.at(ii));
+   }
+   graphlist.clear();
+
    iTel=-1;
    iEvent=-1;
    eEvent=-1;
@@ -298,9 +326,11 @@ void WFCTAEvent::CalculateDataVar(int itel){
          AdcH.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
          AdcL.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
 
-         //mypeak.push_back((mcevent.ArrivalTime[itel][peaktime]-itmin));
-         mypeak.push_back(int(avetime)-itmin);
-         peakamp.push_back(maxcount);
+         //PeakPosH.push_back((mcevent.ArrivalTime[itel][peaktime]-itmin));
+         PeakPosH.push_back(int(avetime)-itmin);
+         PeakPosL.push_back(int(avetime)-itmin);
+         PeakAmH.push_back(maxcount);
+         PeakAmL.push_back(maxcount);
 
          //printf("WFCTAEvent::CalculateDataVar: iTel=%d PMT=%4d Signal=%5.0lf time={%5ld,%5ld,%5ld,%5ld} peakamp=%4.0lf tminmax={%ld,%ld} Overflow=%d\n",itel,ii,mcevent.TubeSignal[itel][ii],(mcevent.ArrivalTime[itel][peaktime]-itmin),(long int)(avetime)-itmin,(mintime-itmin),(maxtime-itmin),maxcount,itmin,itmax,mcevent.OverFlow[itel]);
          for(int jj=0;jj<MaxTimeBin;jj++){
@@ -369,6 +399,7 @@ int WFCTAEvent::GetMinTimeBin(int itel){
 }
 
 double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex){
+   itel=0;
    double content=0;
    int size=iSiPM.size();
    int start=IsIndex?isipm:0;
@@ -381,53 +412,90 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex){
       if(type==2&&ii<eAdcL.size()) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==3&&ii<AdcH.size()) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
       if(type==4&&ii<AdcL.size()) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==5&&ii<mypeak.size()) content=mypeak.at(ii)+1;
+      if(type==5&&ii<PeakPosH.size()) content=PeakPosH.at(ii)+0.01;
+      if(type==6&&ii<PeakPosL.size()) content=PeakPosL.at(ii)+0.01;
+      if(type==7&&ii<PeakAmH.size()) content=PeakAmH.at(ii)+0.01;
+      if(type==8&&ii<PeakAmL.size()) content=PeakAmL.at(ii)+0.01;
+      if(type==9&&ii<SatH.size()) content=SatH.at(ii)?1.:-1.;
+      if(type==10&&ii<SatL.size()) content=SatL.at(ii)?1.:-1.;
    }
    return content;
 }
-bool WFCTAEvent::CleanImage(int isipm,int itel,int type,bool IsIndex){
-   if(type<0) type=3;
+double WFCTAEvent::GetContentError(int isipm,int itel,int type,bool IsIndex){
+   itel=0;
+   bool ismc=CheckMC();
+   double econtent=10.;
+   int size=iSiPM.size();
+   int start=IsIndex?isipm:0;
+   int end=IsIndex?isipm:(size-1);
+   if(IsIndex&&(isipm<0||isipm>=size)) return econtent;
+   for(int ii=start;ii<=end;ii++){
+      if((!IsIndex)&&(iSiPM.at(ii)!=isipm)) continue;
+      if(ismc) econtent=mcevent.eTubeSignal[itel][iSiPM.at(ii)];
+      if(type==5&&ii<PeakPosH.size()) econtent=1;
+      if(type==6&&ii<PeakPosL.size()) econtent=1;
+      if(type==9&&ii<SatH.size()) econtent=0;
+      if(type==10&&ii<SatL.size()) econtent=0;
+   }
+   return econtent;
+}
+bool WFCTAEvent::CleanImage(int isipm,int itel,bool IsIndex){
+   itel=0;
    if(itel<0||itel>=WFTelescopeArray::CTNumber) return false;
    int size=iSiPM.size();
    if(IsIndex&&(isipm<0||isipm>=size)) return false;
    if((!IsIndex)&&(isipm<0||isipm>=NSIPM)) return false;
    bool res=false;
-   double trig0=(type==1||type==3)?(25*WFCTAMCEvent::fAmpHig):(25*WFCTAMCEvent::fAmpLow);
-   double trig1=(type==1||type==3)?(45*WFCTAMCEvent::fAmpHig):(45*WFCTAMCEvent::fAmpLow);
-   //double trig0=(type==1||type==3)?(15*WFCTAMCEvent::fAmpHig):(15*WFCTAMCEvent::fAmpLow);
-   //double trig1=(type==1||type==3)?(25*WFCTAMCEvent::fAmpHig):(25*WFCTAMCEvent::fAmpLow);
+   double trig0=adccuttrigger;
+   double trig1=npetrigger;
 
    int start=IsIndex?isipm:0;
    int end=IsIndex?isipm:(size-1);
    for(int ii=start;ii<=end;ii++){
       int isipm0=iSiPM.at(ii);
       if((!IsIndex)&&(isipm0!=isipm)) continue;
-      double content0=GetContent(ii,itel,0,true);
-      double content=GetContent(ii,itel,type,true);
-      if(ADC_Cut.size()>ii) {if(content0<trig0) continue;}
-      else{if(content<trig1) continue;}
+      bool sat0=(GetContent(IsIndex?ii:isipm0,itel,9,IsIndex)>0.5);
+      double content0=GetContent(IsIndex?ii:isipm0,itel,0,IsIndex);
+      double content=sat0?GetContent(IsIndex?ii:isipm0,itel,4,IsIndex):GetContent(IsIndex?ii:isipm0,itel,3,IsIndex);
+      //if(ADC_Cut.size()>ii) {if(content0<trig0) continue;}
+      //else{if(content<trig1) continue;}
+      if(content<trig1) continue;
       double ImageXi=0,ImageYi=0;
       ImageXi=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
       ImageYi=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
+      if(iTel==5&&rabbitTime<1570680000) {ImageXi*=-1; ImageYi*=-1;}
       int nneigh=0;
       for(int jj=0;jj<size;jj++){
          if(jj==ii) continue;
          double ImageXj=0,ImageYj=0;
          ImageXj=WCamera::GetSiPMX(jj)/WFTelescope::FOCUS/PI*180;
          ImageYj=WCamera::GetSiPMY(jj)/WFTelescope::FOCUS/PI*180;
+         if(iTel==5&&rabbitTime<1570680000) {ImageXj*=-1; ImageYj*=-1;}
          double dist=sqrt(pow(ImageXi-ImageXj,2)+pow(ImageYi-ImageYj,2));
          if(dist>0.6) continue;
+         bool sat1=(GetContent(jj,itel,9,true)>0.5);
          double contentj0=GetContent(jj,itel,0,true);
-         double contentj=GetContent(jj,itel,type,true);
-         if(ADC_Cut.size()>jj) {if(contentj0<trig0) continue;}
-         else{if(contentj<trig1) continue;}
+         double contentj=sat1?GetContent(jj,itel,4,true):GetContent(jj,itel,3,true);
+         //if(ADC_Cut.size()>jj) {if(contentj0<trig0) continue;}
+         //else{if(contentj<trig1) continue;}
+         if(contentj<trig1) continue;
          nneigh++;
       }
-      if(nneigh<2) continue;
+      if(nneigh<nfiretrigger) continue;
       res=true;
    }
    return res;
 }
+bool WFCTAEvent::PassClean(int itel,int nthreshold){
+   int size=iSiPM.size();
+   int ncontent=0;
+   for(int ii=0;ii<size;ii++){
+      if(CleanImage(ii,itel,true)) ncontent++;
+   }
+   if(ncontent<nthreshold) return false;
+   else return true;
+}
+
 double WFCTAEvent::Interface(const double* par){
    int size=iSiPM.size();
    double chi2=0;
@@ -435,9 +503,10 @@ double WFCTAEvent::Interface(const double* par){
    double sum=0;
    for(int ii=0;ii<size;ii++){
       int isipm=iSiPM.at(ii);
-      if(!CleanImage(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true)) continue;
+      if(!CleanImage(ii,(int)(par[0]+0.5),true)) continue;
       double ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS;///PI*180;
       double ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS;///PI*180;
+      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       double content=GetContent(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true);
       double err=0.25/180.*PI;
       chi2+=pow((ImageX*sin(par[3])-ImageY*cos(par[3])+par[2])/err,2)*content;
@@ -457,6 +526,7 @@ double WFCTAEvent::Interface(const double* par){
    return chi2;
 }
 bool WFCTAEvent::DoFit(int itel,int type,bool force){
+   itel=0;
    if(itel<0||itel>=WFTelescopeArray::CTNumber) return false;
    if(minimizer&&(!force)) return true;
    int size=iSiPM.size();
@@ -464,11 +534,12 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
    double mx,my,sx,sy,sxy,nn;
    for(int ii=0;ii<size;ii++){
       int isipm0=iSiPM.at(ii);
-      if(!CleanImage(ii,itel,type,true)) continue;
+      if(!CleanImage(ii,itel,true)) continue;
       double content=GetContent(ii,itel,type,true);
       double ImageX,ImageY;
       ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS;///PI*180;
       ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS;///PI*180;
+      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
 
       mx += ImageX*content;
       my += ImageY*content;
@@ -534,6 +605,7 @@ bool WFCTAEvent::GetCrossCoor(double x,double y,double &x0,double &y0){
    return true;
 }
 TH1F* WFCTAEvent::GetLongDistribution(int itel,int type){
+   itel=0;
    if(itel<0||itel>=WFTelescopeArray::CTNumber) return 0;
    if(!minimizer) return 0;
    double CC=minimizer->X()[2]/PI*180.;
@@ -547,10 +619,11 @@ TH1F* WFCTAEvent::GetLongDistribution(int itel,int type){
    int size=iSiPM.size();
    for(int ii=0;ii<size;ii++){
       int isipm0=iSiPM.at(ii);
-      if(!CleanImage(ii,itel,type,true)) continue;
+      if(!CleanImage(ii,itel,true)) continue;
       double ImageX,ImageY;
       ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS/PI*180;
       ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS/PI*180;
+      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       double dist=fabs(sin(phi)*ImageX-cos(phi)*ImageY+CC);
       if(dist>margin) continue;
       double x0,y0,xx,yy;
@@ -563,8 +636,9 @@ TH1F* WFCTAEvent::GetLongDistribution(int itel,int type){
       else sign=(xx>x0)?1:(-1);
       int ibin=hh->GetXaxis()->FindBin(length*sign);
       hh->SetBinContent(ibin,hh->GetBinContent(ibin)+GetContent(ii,itel,type,true));
+      hh->SetBinError(ibin,sqrt(pow(hh->GetBinError(ibin),2)+pow(GetContentError(ii,itel,type,true),2)));
       nfill[ibin-1]+=1;
-printf("ii=%d ibin=%d length=%lf xy={%lf,%lf,%lf,%lf,%lf,%lf} sign=%d\n",ii,ibin,length,x0,y0,ImageX,ImageY,xx,yy,sign);
+      //printf("ii=%d ibin=%d length=%lf xy={%lf,%lf,%lf,%lf,%lf,%lf} sign=%d\n",ii,ibin,length,x0,y0,ImageX,ImageY,xx,yy,sign);
    }
    if(type==5){
       for(int ibin=1;ibin<=nbin;ibin++) {if(nfill[ibin-1]>0) hh->SetBinContent(ibin,hh->GetBinContent(ibin)/nfill[ibin-1]);}
@@ -576,6 +650,7 @@ printf("ii=%d ibin=%d length=%lf xy={%lf,%lf,%lf,%lf,%lf,%lf} sign=%d\n",ii,ibin
    return hh;
 }
 TH1F* WFCTAEvent::GetShortDistribution(int itel,int type){
+   itel=0;
    if(itel<0||itel>=WFTelescopeArray::CTNumber) return 0;
    if(!minimizer) return 0;
    double CC=minimizer->X()[2]/PI*180.;
@@ -588,10 +663,11 @@ TH1F* WFCTAEvent::GetShortDistribution(int itel,int type){
    int size=iSiPM.size();
    for(int ii=0;ii<size;ii++){
       int isipm0=iSiPM.at(ii);
-      if(!CleanImage(ii,itel,type,true)) continue;
+      if(!CleanImage(ii,itel,true)) continue;
       double ImageX,ImageY;
       ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS/PI*180;
       ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS/PI*180;
+      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       double dist=fabs(sin(phi)*ImageX-cos(phi)*ImageY+CC);
       double xx,yy;
       bool res=GetCrossCoor(ImageX,ImageY,xx,yy);
@@ -601,6 +677,7 @@ TH1F* WFCTAEvent::GetShortDistribution(int itel,int type){
       else sign=(ImageY>yy)?1:(-1);
       int ibin=hh->GetXaxis()->FindBin(dist*sign);
       hh->SetBinContent(ibin,hh->GetBinContent(ibin)+GetContent(ii,itel,type,true));
+      hh->SetBinError(ibin,sqrt(pow(hh->GetBinError(ibin),2)+pow(GetContentError(ii,itel,type,true),2)));
       nfill[ibin-1]+=1;
    }
    if(type==5){
@@ -635,10 +712,11 @@ int WFCTAEvent::GetSign(bool IsLaser,bool IsMC){
    int nn=0;
    for(int ii=0;ii<size;ii++){
       int isipm=iSiPM.at(ii);
-      if(!CleanImage(ii,itel,3,true)) continue;
+      if(!CleanImage(ii,itel,true)) continue;
       double ImageX,ImageY;
       ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS/PI*180;
       ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS/PI*180;
+      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       double x0,y0,xx,yy;
       bool res1=GetCrossCoor(0.,0.,x0,y0);
       bool res2=GetCrossCoor(ImageX,ImageY,xx,yy);
@@ -1113,16 +1191,25 @@ int WFCTAEvent::GetTelDir(double &elevation,double &errel,double &azimuth,double
 }
 
 void WFCTAEvent::Getnz(double incoo[3],double indir[2],double &planephi,double &nz,double &nz1,double &nz2){
-   double dist=sqrt(incoo[0]*incoo[0]+incoo[1]*incoo[1]);
+   double xdir[3]={incoo[0]-0,incoo[1]-0,incoo[2]-0};
+   double intheta=indir[0];
+   double inphi=indir[1];
+   if(incoo[2]!=0){
+      double dz=-incoo[2]/cos(intheta);
+      xdir[0]+=(sin(intheta)*cos(inphi))*dz;
+      xdir[1]+=(sin(intheta)*sin(inphi))*dz;
+      xdir[2]=0;
+   }
+   double dist=sqrt(xdir[0]*xdir[0]+xdir[1]*xdir[1]);
    if(dist<=0) planephi=0;
    else{
-      planephi=acos(incoo[0]/dist);
+      planephi=acos(xdir[0]/dist);
       if(incoo[1]<0) planephi=2*PI-planephi;
    }
    double nz00=sin(indir[0])*sin(indir[1]-planephi);
    nz=nz00/cos(indir[0]);
    nz1=nz00/sqrt(cos(indir[0])*cos(indir[0])+nz00*nz00);
-   nz2=1./sqrt(cos(indir[0])*cos(indir[0])+nz00*nz00);
+   nz2=cos(indir[0])/sqrt(cos(indir[0])*cos(indir[0])+nz00*nz00);
 }
 void WFCTAEvent::GetCCphi(double zenith,double azimuth,double planephi,double nz,double &CC,double &phi){
    double theta=PI/2-zenith;
@@ -1156,17 +1243,18 @@ bool WFCTAEvent::GetImageXYCoo(double zenith,double azimuth,double* incoo,double
    double phi0=azimuth;
    double planephi,nz,nz1,nz2;
    Getnz(incoo,indir,planephi,nz,nz1,nz2);
+   //printf("zenith=%lf azi=%lf PHI=%lf indir={%lf,%lf} planephi=%lf nz=%lf\n",zenith,azimuth,PHI_in,indir[0]/PI*180,indir[1]/PI*180,planephi/PI*180,nz);
    return GetImageXYCoo(zenith,azimuth,planephi,nz1,nz2,PHI_in,xx,yy);
 
    //double theta=PI/2-zenith;
    //double phi0=azimuth;
-   //double dist=sqrt(pow(lasercoo[0],2)+pow(lasercoo[1],2));
+   //double dist=sqrt(pow(incoo[0],2)+pow(incoo[1],2));
    //double zdir[3];
-   //zdir[0]=lasercoo[1]/dist*cos(laserdir[0]);
-   //zdir[1]=-lasercoo[0]/dist*cos(laserdir[0]);
-   //zdir[2]=sin(laserdir[0])*(lasercoo[0]/dist*sin(laserdir[1])-lasercoo[1]/dist*cos(laserdir[1]));
-   //double planephi=acos(lasercoo[0]/dist);
-   //if(lasercoo[1]<0) planephi=2*PI-planephi;
+   //zdir[0]=incoo[1]/dist*cos(indir[0]);
+   //zdir[1]=-incoo[0]/dist*cos(indir[0]);
+   //zdir[2]=sin(indir[0])*(incoo[0]/dist*sin(indir[1])-incoo[1]/dist*cos(indir[1]));
+   //double planephi=acos(incoo[0]/dist);
+   //if(incoo[1]<0) planephi=2*PI-planephi;
    //double m2n2=sqrt(zdir[0]*zdir[0]+zdir[1]*zdir[1]);
    //double x1=cos(phi0-planephi)*cos(PHI_in)*m2n2+sin(phi0-planephi)*zdir[2]*sin(PHI_in);
    //double y1=-sin(phi0-planephi)*cos(PHI_in)*m2n2+cos(phi0-planephi)*zdir[2]*sin(PHI_in);
@@ -1538,6 +1626,7 @@ TGraph* WFCTAEvent::DrawCorePos(double* corepos,int itel,int type){
    gr->SetLineColor(4);
    gr->SetLineWidth(3);
    gr->SetTitle(";X [cm];Y [cm]");
+   graphlist.push_back(gr);
    if(DoDraw) gr->Draw("l");
    return gr;
 }
@@ -1558,6 +1647,7 @@ TGraph* WFCTAEvent::DrawCoreReg(double* corepos,int itel,int type){
    gr->SetFillStyle(3001);
    gr->SetFillColor(4);
    gr->SetTitle(";X [cm];Y [cm]");
+   graphlist.push_back(gr);
    if(DoDraw) gr->Draw("F");
    return gr;
 }
@@ -1573,21 +1663,27 @@ TGraph* WFCTAEvent::DrawImageLine(double zenith,double azimuth,double incoo[3],d
    }
    double PHI_max=acos( (xdir[0]*sin(intheta)*cos(inphi)+xdir[1]*sin(intheta)*sin(inphi))/sqrt(pow(xdir[0],2)+pow(xdir[1],2)+pow(xdir[2],2)) );
 
+   double CC,phi;
+   GetCCphi(zenith,azimuth,incoo,indir,CC,phi);
+   printf("CC=%lf phi=%lf\n",CC/PI*180,phi/PI*180);
+
    int np=100;
    TGraph* gr=new TGraph();
    for(int ii=0;ii<np;ii++){
       double PHI=0.+(PHI_max-0.)/np*ii;
       double xx,yy;
-      bool res=GetImageXYCoo(zenith,azimuth,xdir,indir,PHI,xx,yy);
+      bool res=GetImageXYCoo(zenith,azimuth,incoo,indir,PHI,xx,yy);
       if(!res) continue;
       gr->SetPoint(gr->GetN(),xx,yy);
    }
    gr->SetLineColor(1);
    gr->SetLineWidth(4);
    gr->Draw("l");
+   //graphlist.push_back(gr);
    return gr;
 }
 TGraph* WFCTAEvent::DrawImageLine(int itel){
+   itel=0;
    WFTelescopeArray* pct=WFTelescopeArray::GetHead();
    if(!pct) return 0;
    WFTelescope* pt=pct->pct[itel];
@@ -1646,32 +1742,27 @@ void WFCTAEvent::DrawFit(){
    if(DoDraw) gDraw->Draw("l");
    printf("WFCTAEvent::DrawFit: phi={%lf,%lf} cc={%lf,%lf}\n",phi/PI*180,sqrt(Cov[2])/PI*180,CC/PI*180,eCC/PI*180);
 }
-TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
+TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold){
    TH2Poly* image=new TH2Poly();
    image->SetName("DrawPlot");
-   image->SetTitle(Form("iTel=%d iEvent=%d time=%ld+%lf;X [degree];Y [degree]",iTel,iEvent,rabbitTime,rabbittime*20*1.0e-9));
+   image->SetTitle(Form("iTel=%d iEvent=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d);X [degree];Y [degree]",iTel,iEvent,rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6)));
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
       ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
       ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
+      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
       //printf("WFCTAEvent::Draw: SiPM=%d ImageX=%lf ImageY=%lf\n",ii,ImageX,ImageY);
    }
    int ncontent=0;
    for(int ii=0;ii<iSiPM.size();ii++){
-      if(!CleanImage(iSiPM.at(ii),0,3)) continue;
-      double content=0;
-      if(type==0) content=ADC_Cut.at(ii)>threshold?1.:0.;
-      if(type==1) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==5) content=PeakPosH.at(ii)+0.01;
+      if(DoClean) {if(!CleanImage(ii,iTel,true)) continue;}
+      double content=GetContent(ii,iTel,type,true);
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
       //printf("WFCTAEvent::Draw: SiPM=%d content=%lf\n",iSiPM.at(ii),AdcH.at(ii));
       ncontent++;
    }
-   if(type==6){
+   if(type==-1){
       for(int ii=0;ii<NSIPM;ii++){
          double content=((ii%2)==1)?ii:0;
          image->SetBinContent(ii+1,content>0?content:0);
@@ -1685,19 +1776,14 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,double threshold){
    }
    image->Draw(opt);
    DrawFit();
-   DrawImageLine(0);
+   //TGraph* gr=DrawImageLine(0);
+   //graphlist.push_back(gr);
+   tlist->Add(image);
    return image;
 }
 TGraph* WFCTAEvent::DrawPulse(int isipm,const char* opt,bool IsHigh,bool DoClean){
    if(isipm<0||isipm>=NSIPM) return 0;
-   if(DoClean){
-      int ncontent=0;
-      for(int ii=0;ii<iSiPM.size();ii++){
-         if(!CleanImage(iSiPM.at(ii),0,3)) continue;
-         ncontent++;
-      }
-      if(ncontent<5) return 0;
-   }
+   if(DoClean&&(!PassClean(iTel))) return 0;
    TGraph* gr=new TGraph();
    for(int ii=0;ii<28;ii++){
       double xx=Npoint[ii];
@@ -1714,6 +1800,7 @@ TGraph* WFCTAEvent::DrawPulse(int isipm,const char* opt,bool IsHigh,bool DoClean
    gr->SetMarkerSize(1.3);
    gr->SetLineColor(4);
    gr->SetLineWidth(2);
+   graphlist.push_back(gr);
    if(DoDraw) gr->Draw(opt);
    return gr;
 }
@@ -1728,10 +1815,12 @@ void WFCTAEvent::slaDtp2s(double xi, double eta, double raz, double decz, double
   //if(ra<0) ra=ra+2*PI;
   //printf("xi=%lf eta=%lf raz=%lf decz=%lf ra=%lf dec=%lf\n",xi/PI*180,eta/PI*180,raz/PI*180,decz/PI*180,ra/PI*180,dec/PI*180);
 }
-TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
+TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,bool DoClean,double threshold){
    WFTelescopeArray* pct=WFTelescopeArray::GetHead();
    if(!pct) return 0;
-   WFTelescope* pt=pct->pct[0];
+   int itel=pct->GetTelescope(iTel);
+   if(itel<0) return 0;
+   WFTelescope* pt=pct->pct[itel];
    if(!pt) return 0;
    double raz=pt->TelA_;
    double decz=PI/2-pt->TelZ_;
@@ -1742,8 +1831,9 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
    double yrange[2]={1.0e5,-1.0e5};
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
-      ImageX=WCamera::GetSiPMX(iSiPM.at(ii))/WFTelescope::FOCUS/PI*180;
-      ImageY=WCamera::GetSiPMY(iSiPM.at(ii))/WFTelescope::FOCUS/PI*180;
+      ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
+      ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
+      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
 
       double theta0[5],phi0[5];
       for(int i2=0;i2<4;i2++){
@@ -1778,17 +1868,84 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,double threshold){
       image->AddBin(5,phi0,theta0);
    }
    for(int ii=0;ii<iSiPM.size();ii++){
-      double content=0;
-      if(type==0&&ii<ADC_Cut.size()) content=ADC_Cut.at(ii)>threshold?1.:0.;
-      if(type==1) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+      if(DoClean) {if(!CleanImage(ii,iTel,true)) continue;}
+      double content=GetContent(ii,iTel,type,true);
+      if(type==0&&ii<ADC_Cut.size()) content=content>adccuttrigger?1.:0.;
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
    }
    if(DoDraw) image->Draw(opt);
    image->GetXaxis()->SetRangeUser(xrange[0]-2.,xrange[1]+2.);
    image->GetYaxis()->SetRangeUser(yrange[0]-2.,yrange[1]+2.);
+   tlist->Add(image);
+   return image;
+}
+
+TH2Poly* WFCTAEvent::DrawCloudFormat(int type,const char* opt,bool DoClean,double threshold){
+   WFTelescopeArray* pct=WFTelescopeArray::GetHead();
+   if(!pct) return 0;
+   int itel=pct->GetTelescope(iTel);
+   if(itel<0) return 0;
+   WFTelescope* pt=pct->pct[itel];
+   if(!pt) return 0;
+   double raz=pt->TelA_;
+   double decz=PI/2-pt->TelZ_;
+   TH2Poly* image=new TH2Poly();
+   image->SetName("DrawCloudFormatPlot");
+   image->SetTitle(Form("iTel=%d iEvent=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d);West<-->East [degree];South<-->North [degree]",iTel,iEvent,rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6)));
+   double xrange[2]={1.0e5,-1.0e5};
+   double yrange[2]={1.0e5,-1.0e5};
+   for(int ii=0;ii<NSIPM;ii++){
+      double ImageX,ImageY;
+      ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
+      ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
+      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+
+      double x0[5],y0[5];
+      for(int i2=0;i2<4;i2++){
+         double xx,yy;
+         if(i2==0){
+            xx=ImageX-0.25;
+            yy=ImageY-0.25;
+         }
+         else if(i2==1){
+            xx=ImageX-0.25;
+            yy=ImageY+0.25;
+         }
+         else if(i2==2){
+            xx=ImageX+0.25;
+            yy=ImageY+0.25;
+         }
+         else if(i2==3){
+            xx=ImageX+0.25;
+            yy=ImageY-0.25;
+         }
+         double theta0,phi0;
+         slaDtp2s(-xx/180*PI,yy/180*PI,raz,decz,phi0,theta0);
+         theta0=PI/2-theta0;
+         x0[i2]=-theta0/PI*180*sin(phi0);
+         y0[i2]=theta0/PI*180*cos(phi0);
+         //printf("iSiPM=%d xx=%.1lf yy=%.1lf theta=%.1lf phi=%.1lf xy={%.1lf,%.1lf}\n",ii,xx,yy,theta0,phi0,x0[i2],y0[i2]);
+         if(x0[i2]<xrange[0]) xrange[0]=x0[i2];
+         if(x0[i2]>xrange[1]) xrange[1]=x0[i2];
+         if(y0[i2]<yrange[0]) yrange[0]=y0[i2];
+         if(y0[i2]>yrange[1]) yrange[1]=y0[i2];
+      }
+      x0[4]=x0[0];
+      y0[4]=y0[0];
+      image->AddBin(5,x0,y0);
+   }
+   for(int ii=0;ii<iSiPM.size();ii++){
+      if(DoClean) {if(!CleanImage(ii,iTel,true)) continue;}
+      double content=GetContent(ii,iTel,type,true);
+      if(type==0&&ii<ADC_Cut.size()) content=content>adccuttrigger?1.:0.;
+      image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
+   }
+   if(DoDraw) image->Draw(opt);
+   image->GetXaxis()->SetRangeUser(xrange[0]-2.,xrange[1]+2.);
+   image->GetYaxis()->SetRangeUser(yrange[0]-2.,yrange[1]+2.);
+   //image->GetXaxis()->SetRangeUser(-90.,90.);
+   //image->GetYaxis()->SetRangeUser(-90.,90.);
+   tlist->Add(image);
    return image;
 }
 
@@ -1800,17 +1957,13 @@ TGraph2D* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int ViewO
    int size=iSiPM.size();
    for(int ii=0;ii<size;ii++){
       int isipm=iSiPM.at(ii);
-      if(!CleanImage(isipm,0,3)) continue;
+      if(!CleanImage(ii,iTel,true)) continue;
       double ImageX,ImageY;
       ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS/PI*180;
       ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS/PI*180;
-      double content=0;
-      if(type==0&&ii<ADC_Cut.size()) content=ADC_Cut.at(ii)>threshold?1.:0.;
-      if(type==1) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==2) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==5) content=mypeak.at(ii)+1;
+      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+      double content=GetContent(ii,iTel,type,true);
+      if(type==0&&ii<ADC_Cut.size()) content=content>adccuttrigger?1.:0.;
       array->SetPoint(array->GetN(),ImageX,ImageY,content);
 
       if(ImageX<rmin[0]) rmin[0]=ImageX;
@@ -1868,8 +2021,24 @@ TGraph2D* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int ViewO
    else if(ViewOpt==3) view->Top();
    cc->SetView(view);
 
+   tlist->Add(cc);
+   graphlist.push_back((TGraph*)array);
    if(DoDraw) array->Draw(opt);
    return array;
+}
+
+bool WFCTAEvent::IsLed(int nfire_threshold){
+   int nfire=0;
+   int size=iSiPM.size();
+   for(int ii=0;ii<size;ii++){
+      if(!CleanImage(ii,iTel,true)) continue;
+      nfire++;
+   }
+   //printf("event=%d nfire=%d\n",iEvent,nfire);
+   return nfire>=nfire_threshold;
+}
+bool WFCTAEvent::IsLaser(){
+   return false;
 }
 
 /******************************************

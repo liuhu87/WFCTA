@@ -103,6 +103,7 @@ void WReadConfig::readparam(char * filename)
          CT_Position[k][2] = z;
          CT_Position[k][3] = zen;
          CT_Position[k][4] = azi;
+         //printf("%s  %d %f %f %f %f %f\n",token,k,x,y,z,zen,azi);
          break;
      case mirror_size:
          sscanf(line, "%s %f %f", token,&x,&y);

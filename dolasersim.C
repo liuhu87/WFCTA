@@ -37,13 +37,15 @@ int main(int argc, char**argv)
 
    WFTelescopeArray::jdebug=0;
    WFTelescopeArray::DoSim=true;
-   WFTelescopeArray::GetHead(Form("%s/default.inp",getenv("WFCTADataDir")));
+   //WFTelescopeArray::GetHead(Form("%s/default.inp",getenv("WFCTADataDir")));
+   WFTelescopeArray::GetHead(Form("default.inp"));
    WFTelescope* pt=0;
    if(WFTelescopeArray::GetHead()){
       pt=WFTelescopeArray::GetHead()->pct[0];
    }
    if(!pt) return 0;
-   Atmosphere::SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
+   //Atmosphere::SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
+   Atmosphere::SetParameters(Form("default.inp"));
    Atmosphere::scale=1.0e2;
    Laser::scale=1.0e-8;
    //Laser::Doigen=9632;
@@ -61,12 +63,13 @@ int main(int argc, char**argv)
    if(!pl->pwfc) pl->pwfc=new WFCTAEvent();
    WFCTAEvent* pevt=(pl->pwfc);
    printf("WFCTAEvent: %p\n",pevt);
-   pl->SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
+   //pl->SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
+   pl->SetParameters(Form("default.inp"));
+   double lasercoo0[3]={pl->lasercoo[0],pl->lasercoo[1],pl->lasercoo[2]};
+   double laserdir0[2]={pl->laserdir[0],pl->laserdir[1]};
    pevt->CreateBranch(tree,1);
 
    int nlaserdir=10;
-   double lasertheta=pl->laserdir[0];
-   double laserphi=pl->laserdir[1];
 
    int Time=1;
    double time=0;
@@ -75,8 +78,8 @@ int main(int argc, char**argv)
       //double angle=-90.+180./nevent*ii;
       //pl->lasercoo[0]=1.0e5*cos(angle/180.*PI);
       //pl->lasercoo[1]=1.0e5*sin(angle/180.*PI);
-      //pl->laserdir[0]=lasertheta+(ii/10)*3.;
-      //pl->laserdir[1]=laserphi+(ii%10)*1.;
+      //pl->laserdir[0]=laserdir0[0]-5.+10./nlaserdir*(ii/nevent);
+      //pl->laserdir[1]=laserdir0[1]-5.+10./nlaserdir*(ii%nevent);
       long int ngentel=pl->EventGen(Time,time,true);
       if(Laser::DoPlot) pl->Draw("al",0,"./");
       //fill the event

@@ -35,6 +35,12 @@ protected:
 public:
    static int jdebug;
    static bool DoDraw;
+   static double adccuttrigger;
+   static double npetrigger;
+   static int nfiretrigger;
+
+        TList* tlist; //!
+        vector<TGraph*> graphlist; //!
 
         short iTel;
 	long iEvent;
@@ -65,11 +71,7 @@ public:
 	vector<short> Single_Threshold;  //!
 	vector<short> Record_Threshold;  //!
 
-	vector<int> peak;  //!
-	vector<int> mypeak;
-	vector<int> peakamp;
-
-	//vector<char> peak;  //!
+	vector<char> peak;  //!
 	vector<char> PeakPosH;
         vector<char> PeakPosL;
 	vector<int> PeakAmH;
@@ -146,7 +148,9 @@ public:
         int GetMaxTimeBin(int itel=0);
         int GetMinTimeBin(int itel=0);
         double GetContent(int isipm,int itel=0,int type=3,bool IsIndex=false);
-        bool CleanImage(int isipm,int itel=0,int type=3,bool IsIndex=false);
+        double GetContentError(int isipm,int itel=0,int type=3,bool IsIndex=false);
+        bool CleanImage(int isipm,int itel=0,bool IsIndex=false);
+        bool PassClean(int itel=0,int nthreshold=5);
         double Interface(const double* par);
         bool DoFit(int itel=0,int type=3,bool force=false);
         bool GetCrossCoor(double x, double y, double &x0, double &y0);
@@ -172,7 +176,7 @@ public:
         void GetPHI(double zenith,double azimuth,double CC,double phi,double* ImageCoo,double &PHI_in);
         static int GetRange(double zenith,double azimuth,double planephi,double dirin[3],double phiin,double CCin,double* PHI,double* XX,double* YY);
 
-	TH2Poly* Draw(int type=0,const char* opt="scat colz",double threshold=500.);
+	TH2Poly* Draw(int type=0,const char* opt="scat colz",bool DoClean=true,double threshold=500.);
         TGraph* DrawPulse(int iSiPM,const char* opt="apl",bool IsHigh=true,bool DoClean=true);
         void DrawFit();
         static TGraph* DrawImageLine(double zenith,double azimuth,double incoo[3],double indir[2]);
@@ -180,8 +184,12 @@ public:
         TGraph* DrawCorePos(double* corepos,int itel=0,int type=3);
         TGraph* DrawCoreReg(double* corepos,int itel=0,int type=3);
         static void slaDtp2s ( double xi, double eta, double raz, double decz, double &ra, double &dec );
-	TH2Poly* DrawGlobal(int type=0,const char* opt="scat colz",double threshold=500.);
+	TH2Poly* DrawGlobal(int type=0,const char* opt="colz",bool DoClean=true,double threshold=500.);
+        TH2Poly* DrawCloudFormat(int type=0,const char* opt="colz",bool DoClean=true,double threshold=500.);
         TGraph2D* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);
+
+        bool IsLed(int nfire_threshold=1000);
+        bool IsLaser();
 
         void rabbittime2lt();
         void InitImage();

@@ -89,7 +89,7 @@ double WFMirror::MirrorPointErrorFlag;
 double WFMirror::MirrorGeometry;
 double WFMirror::length=300.;
 double WFMirror::length_D=150.;
-double WFMirror::CURVATURE=5740;//5800.;
+double WFMirror::CURVATURE=5800.;
 double WFMirror::REFLECTIVITY=0.83;
 void WFMirror::Init(){
    mirrorx=-10000;
@@ -174,7 +174,7 @@ void WFMirror::SetMirrorPointError(int flag,double error)
    }
 
    else{
-      printf("The Pointing Errors of the each mirror are not simulated\n");
+      //printf("The Pointing Errors of the each mirror are not simulated\n");
       spherecenterx = 0;
       spherecentery = 0;
       spherecenterz = CURVATURE;
