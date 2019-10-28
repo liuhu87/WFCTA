@@ -87,9 +87,9 @@ class WFCTAEvent : public TSelector
 		double ImageX[1024];  //!
 		double ImageY[1024];  //!
 
-		WFCTAMCEvent mcevent;
+		WFCTAMCEvent mcevent; //!
 		WFCTALedEvent ledevent;  //!
-		WFCTALaserEvent laserevent;
+		WFCTALaserEvent laserevent; //!
 
                 /// for the fitting of the image
                 TGraph* gDraw; //!

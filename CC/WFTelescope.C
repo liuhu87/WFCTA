@@ -331,7 +331,7 @@ double WFTelescope::Hdoor=2379;
 double WFTelescope::TRANSPARENCY=0.87;
 double WFTelescope::CLUSTER_X = 894.25;
 double WFTelescope::CLUSTER_Y = 769.08;
-double WFTelescope::FOCUS = 2870;
+double WFTelescope::FOCUS = 2870; //2870
 double WFTelescope::ZCLUSTER0 = 2870;
 double WFTelescope::ZCLUSTER1 =(2870+230);
 TGraph2D *WFTelescope::Transmissivity=0;
@@ -666,6 +666,7 @@ bool WFTelescope::RayTraceMirror1(double x0, double y0, double z0, double m1, do
     double ZMIRROR=WFMirror::CURVATURE - sqrt(WFMirror::CURVATURE*WFMirror::CURVATURE-D_DOOR*D_DOOR/4.);
     Sphere(ZMIRROR,WFMirror::CURVATURE,x0,y0,z0,m1,n1,l1,&xmirror0,&ymirror0,&zmirror0);
     if(WFTelescopeArray::jdebug>3) printf("WFTelescope::RayTraceMirror1: On Mirror, Zmirr,R={%.f,%.f} OtCoo={%.3f,%.3f,%.3f},MirrorXYSize={%.3f,%.3f}\n",ZMIRROR,WFMirror::CURVATURE,xmirror0,ymirror0,zmirror0,D_DOOR/2,Hdoor/2);
+return true;
 
     if(fabs(xmirror0)>D_DOOR/2.||fabs(ymirror0)>Hdoor/2.) return false; //shelded by the container's wall
     else return true;
@@ -695,11 +696,26 @@ bool WFTelescope::RayTraceMirror2(double xmirror0,double ymirror0,double zmirror
     pmirr->WhichMirror(xmirror0, ymirror0, zmirror0, &deltax, &deltay, &deltaz, &ii, &mm);
     if(WFTelescopeArray::jdebug>3) printf("WFTelescope::RayTraceMirror2: MirrorFrame: deltaxyz={%.3f,%.3f,%.3f} im={%d,%d}\n",deltax,deltay,deltaz,ii,mm);
 
-    if(deltax==-10000) return false;  ///< out of mirror area
+    //if(deltax==-10000) return false;  ///< out of mirror area
 
     double xmirror = WFTelescopeArray::prandom->Gaus(xmirror0,WFMirror::MirrorSpot);
     double ymirror = WFTelescopeArray::prandom->Gaus(ymirror0,WFMirror::MirrorSpot);
     double zmirror = zmirror0;
+    //if(deltax==-10000){
+       double x,y,z;
+       x=0-xmirror;
+       y=0-ymirror;
+       z=WFMirror::CURVATURE-zmirror;
+       double norm=sqrt(x*x+y*y+z*z);
+       x/=norm;
+       y/=norm;
+       z/=norm;
+       double costheta = m1*x+n1*y+l1*z;
+       m2 = (m1-2.*costheta*x);
+       n2 = (n1-2.*costheta*y);
+       l2 = (l1-2.*costheta*z);
+       return true;
+    //}
     pmirr->pmirr[ii][mm]->GetReflected(m1,n1,l1,xmirror,ymirror,zmirror,&m2,&n2,&l2);
     if(WFTelescopeArray::jdebug>3) printf("WFTelescope::RayTraceMirror2: Reflection: RefCoo={%.3f,%.3f,%.3f} InDir={%.3f,%.3f,%.3f} OtDir={%.3f,%.3f,%.3f}\n",xmirror,ymirror,zmirror,m1,n1,l1,m2,n2,l2);
 

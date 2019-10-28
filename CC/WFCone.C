@@ -14,7 +14,7 @@ using namespace std;
 //using boost::property_tree::ptree;
 
 //.............................................................................
-double SquareCone::D_ConeOut=25.4;
+double SquareCone::D_ConeOut=25.8;
 double SquareCone::D_ConeIn=24.4;
 double SquareCone::CONE_HEIGHT=25.27;
 double SquareCone::CONE_ENTRANCE_CIRCLE=12.2;

@@ -51,6 +51,7 @@ class Laser {
       static int jdebug;
       static int Doigen;
       static bool DoPlot;
+      static bool Doextin;
       static float IniRange[4][2];
       static TRandom3* prandom;
       static double TelSimDist;
@@ -69,6 +70,15 @@ class Laser {
       static double LaserCooErr;
       static double LaserZenErr;
       static double LaserAziErr;
+
+      ///calculate the probability
+      static double lengthmin;
+      static double lengthmax;
+      static double lengthmin2;
+      static double lengthmax2;
+      static TH1D* hdenu;
+      static TH1D* hprob[NCTMax][1024];
+      static TH1D* hleng[NCTMax][1024];
 
       ///position of the laser generator
       double lasercoo[3];	//in cm
@@ -93,10 +103,16 @@ class Laser {
       int Telindex;
       double coor_out[3];
       double dir_out[3];
+      double interpoint;
       vector<double> votim;
       vector<int> votel;
       vector<double> vocoo[3];
       vector<double> vodir[3];
+
+      ///interaction point
+      vector<double> volength;
+      vector<double> volength2;
+      vector<int> vosipm;
 
       WFCTAEvent* pwfc; //!
       TObjArray* plot; //!
@@ -129,6 +145,7 @@ class Laser {
       static int GetLineWidth(int type,double weight);
       static int GetLineColor(int type,double weight);
       TCanvas* Draw(const char* option="al",int ViewOpt=0,const char* savedir=0);
+      int GetProb(long int ngen=1000000000);
 };
 
 #endif

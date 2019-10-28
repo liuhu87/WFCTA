@@ -1751,7 +1751,7 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold
       double ImageX,ImageY;
       ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
       ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
-      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+      //if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
       //printf("WFCTAEvent::Draw: SiPM=%d ImageX=%lf ImageY=%lf\n",ii,ImageX,ImageY);
    }
