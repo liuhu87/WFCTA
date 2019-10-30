@@ -105,15 +105,18 @@ int main(int argc, char**argv)
 	printf("TimeMin:%lld\n\n",rb_TimeMin);
 	map<long, long> time_position;
 	map<long, long>::iterator time_position_iter;
+	map<long, long>::iterator next_time_position_iter;
 	for(int ii=0;ii<rb_Time->size();ii++){
 		time_position.insert( pair<long,long>( long((rb_Time->at(ii)-rb_TimeMin)*1000000000+rb_time->at(ii)*20), pack_pos->at(ii) ) );
 	}
 
 	float adch;
 	float adcl;
+	long deltaTime;
 	int nevent[20]={0};
-	slicelength = 2000000;
 	fp = fopen(argv[1],"rb");
+	next_time_position_iter=time_position.begin();
+	next_time_position_iter++;
 	for(time_position_iter=time_position.begin(); time_position_iter!=time_position.end(); time_position_iter++)
 	{
 		fseek(fp,time_position_iter->second,0);
@@ -121,55 +124,71 @@ int main(int argc, char**argv)
 		fread((uint8_t *)buf,1,slicelength,fp);
 
 		//dumpPacket(buf,48,16);
-		wfctaDecode->bigPackCheck(buf,int(slicelength),0);
-		//dumpPacket(buf,36,16);
-		wfctaEvent->iTel = ITEL;
-		//get info eventID and rabbit_time//
-		//printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
-		wfctaEvent->big_pack_lenth = wfctaDecode->bigpackLen();
-		nevent[ITEL]++;
-		wfctaEvent->iEvent=nevent[ITEL];
-		wfctaEvent->eEvent=wfctaDecode->eventId(buf);
-		wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
-		wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
-		wfctaEvent->n_fired = wfctaDecode->nFired(buf);
-		printf("iEvent:%d:\n\n",wfctaEvent->iEvent);
-
-		//find sipms and their position in this pack//
-		wfctaDecode->Find_SiPMs(buf);//,0);
-		sipm_position = &(wfctaDecode->GetSiPM_Position());
-		//get info of each sipm: q, base, peakposition...//
-		wfctaEvent->n_Channel = 0;
-		for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){
-			wfctaEvent->n_Channel++;
-			if(ITEL==5){	wfctaEvent->iSiPM.push_back( 1023 - (sipm_position_iter->first) );}
-			else	   {	wfctaEvent->iSiPM.push_back( sipm_position_iter->first );}
-			wfctaEvent->eevent.push_back( wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first) );
-			wfctaEvent->zipmod.push_back( wfctaDecode->zipMode(buf,sipm_position_iter->first) );
-			wfctaEvent->Over_Single_Marker.push_back( wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first) );
-			wfctaEvent->Over_Record_Marker.push_back( wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first) );
-			wfctaEvent->winsum.push_back( wfctaDecode->Getwinsum(buf,sipm_position_iter->first) );
-			wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)(wfctaEvent->pulsehigh), (int *)(wfctaEvent->pulselow));
-			wfctaEvent->PeakPosH.push_back( wfctaDecode->GetPeakPosH(buf,sipm_position_iter->first) );
-			wfctaEvent->PeakPosL.push_back( wfctaDecode->GetPeakPosL(buf,sipm_position_iter->first) );
-			wfctaEvent->PeakAmH.push_back( wfctaDecode->GetPeakAmH(buf,sipm_position_iter->first) );
-			wfctaEvent->PeakAmL.push_back( wfctaDecode->GetPeakAmL(buf,sipm_position_iter->first) );
-			wfctaEvent->BaseH.push_back( wfctaDecode->GetwaveImageBaseHigh(buf,sipm_position_iter->first) );
-			wfctaEvent->BaseL.push_back( wfctaDecode->GetwaveImageBaseLow(buf,sipm_position_iter->first) );
-			adch = wfctaDecode->GetwaveImageAdcHigh(buf,sipm_position_iter->first);
-			adcl = wfctaDecode->GetwaveImageAdcLow(buf,sipm_position_iter->first);
-			wfctaEvent->AdcH.push_back( adch );
-			wfctaEvent->AdcL.push_back( adcl );
-			wfctaEvent->eSatH.push_back( wfctaDecode->eSaturationHigh(buf,sipm_position_iter->first) );
-			wfctaEvent->eSatL.push_back( wfctaDecode->eSaturationLow(buf,sipm_position_iter->first) );
-			if(adch>6000){	wfctaEvent->SatH.push_back(1);}
-			else         {	wfctaEvent->SatH.push_back(0);}
-			if(adcl>6000){    wfctaEvent->SatL.push_back(1);}
-			else         {    wfctaEvent->SatL.push_back(0);}
+		if(wfctaDecode->bigPackCheck(buf,int(slicelength),0))
+		{
+			//dumpPacket(buf,36,16);
+			wfctaEvent->iTel = ITEL;
+			//get info eventID and rabbit_time//
+			wfctaEvent->big_pack_lenth = wfctaDecode->bigpackLen();
+			nevent[ITEL]++;
+			wfctaEvent->iEvent=nevent[ITEL];
+			wfctaEvent->eEvent=wfctaDecode->eventId(buf);
+			wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
+			wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
+			wfctaEvent->n_fired = wfctaDecode->nFired(buf);
+			//find sipms and their position in this pack//
+			wfctaDecode->Find_SiPMs(buf);//,0);
+			sipm_position = &(wfctaDecode->GetSiPM_Position());
+			//get info of each sipm: q, base, peakposition...//
+			wfctaEvent->n_Channel = 0;
+			for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){
+				wfctaEvent->n_Channel++;
+				if(ITEL==5){	wfctaEvent->iSiPM.push_back( 1023 - (sipm_position_iter->first) );}
+				else	   {	wfctaEvent->iSiPM.push_back( sipm_position_iter->first );}
+				wfctaEvent->eevent.push_back( wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first) );
+				wfctaEvent->zipmod.push_back( wfctaDecode->zipMode(buf,sipm_position_iter->first) );
+				wfctaEvent->Over_Single_Marker.push_back( wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first) );
+				wfctaEvent->Over_Record_Marker.push_back( wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first) );
+				wfctaEvent->winsum.push_back( wfctaDecode->Getwinsum(buf,sipm_position_iter->first) );
+				wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)(wfctaEvent->pulsehigh), (int *)(wfctaEvent->pulselow));
+				wfctaEvent->PeakPosH.push_back( wfctaDecode->GetPeakPosH(buf,sipm_position_iter->first) );
+				wfctaEvent->PeakPosL.push_back( wfctaDecode->GetPeakPosL(buf,sipm_position_iter->first) );
+				wfctaEvent->PeakAmH.push_back( wfctaDecode->GetPeakAmH(buf,sipm_position_iter->first) );
+				wfctaEvent->PeakAmL.push_back( wfctaDecode->GetPeakAmL(buf,sipm_position_iter->first) );
+				wfctaEvent->BaseH.push_back( wfctaDecode->GetwaveImageBaseHigh(buf,sipm_position_iter->first) );
+				wfctaEvent->BaseL.push_back( wfctaDecode->GetwaveImageBaseLow(buf,sipm_position_iter->first) );
+				adch = wfctaDecode->GetwaveImageAdcHigh(buf,sipm_position_iter->first);
+				adcl = wfctaDecode->GetwaveImageAdcLow(buf,sipm_position_iter->first);
+				wfctaEvent->AdcH.push_back( adch );
+				wfctaEvent->AdcL.push_back( adcl );
+				wfctaEvent->eSatH.push_back( wfctaDecode->eSaturationHigh(buf,sipm_position_iter->first) );
+				wfctaEvent->eSatL.push_back( wfctaDecode->eSaturationLow(buf,sipm_position_iter->first) );
+				if(adch>6000){	wfctaEvent->SatH.push_back(1);}
+				else         {	wfctaEvent->SatH.push_back(0);}
+				if(adcl>6000){    wfctaEvent->SatL.push_back(1);}
+				else         {    wfctaEvent->SatL.push_back(0);}
+			}
 		}
-		eventShow->Fill();
+
+		deltaTime = next_time_position_iter->first - time_position_iter->first;
+		printf("Time:%lld    Time:%lld    deltaTime:%lld\n\n",next_time_position_iter->first,time_position_iter->first,deltaTime);
+
+		if(deltaTime==1600)
+		{
+			//put info in buffer
+		}
+		else
+		{
+			//merge event
+			eventShow->Fill();
+		}
 		wfctaEvent->EventInitial();
+
 		delete[] buf;
+		if(next_time_position_iter!=time_position.end())
+		{
+			next_time_position_iter++;
+		}
 	} 
 	fclose(fp);
 	/******************************************************************************/
