@@ -49,27 +49,21 @@ int main(int argc, char**argv)
 	wfctaEvent->EventInitial();
 
 	fp = fopen(argv[1],"rb");
-	int nevent[20]={0};
 	vector<long>* rb_Time = new vector<long>();
 	vector<double>* rb_time = new vector<double>();
-	vector<long>* sort_time = new vector<long>();
+	//vector<long>* sort_time = new vector<long>();
 	vector<long>* pack_pos = new vector<long>();
 	vector<long>* pack_len = new vector<long>();
-	vector<long>* iEVT = new vector<long>();
-	vector<long>* eEVT = new vector<long>();
 	rb_Time->clear();
 	rb_time->clear();
-	sort_time->clear();
+	//sort_time->clear();
 	pack_pos->clear();
 	pack_len->clear();
-	iEVT->clear();
-	eEVT->clear();
 	while(true)
 	{
 		buf = new uint8_t[40];
 		size_of_read = fread((uint8_t *)buf,1,40,fp);
 		if(size_of_read==0){break;}
-		//dumpPacket(buf,24,16);
 		if(wfctaDecode->FEEDataFragment(buf))
 		{
 			FEEDataHead = wfctaDecode->feeDataHead();
@@ -77,36 +71,19 @@ int main(int argc, char**argv)
 			ITEL = wfctaDecode->Telid(buf,FEEDataHead);
 			fseek(fp,-size_of_read+FEEDataHead,1);
 			FEEPos = ftell(fp);
-
 			delete[] buf;
 			buf = new uint8_t[slicelength];
 			size_of_read = fread((uint8_t *)buf,1,slicelength,fp);
-			//printf("slicelength:%lld\n",slicelength);
 			packStart = 0;
 			while(1)
 			{
 				if(wfctaDecode->bigPackCheck(buf,int(size_of_read),packStart))
 				{
-					wfctaEvent->iTel = ITEL;
-					//get info eventID and rabbit_time//
-					wfctaEvent->big_pack_lenth = wfctaDecode->bigpackLen();
-					nevent[ITEL]++;
-					wfctaEvent->iEvent=nevent[ITEL];
-					wfctaEvent->eEvent=wfctaDecode->eventId(buf);
-					wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
-					wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
-					//printf("iEvent:%d Time:%lld time:%lf\n\n",wfctaEvent->iEvent,wfctaEvent->rabbitTime,wfctaEvent->rabbittime);
-
-					rb_Time->push_back( wfctaEvent->rabbitTime);
-					rb_time->push_back( wfctaEvent->rabbittime);
+					//get info rabbit_time and position in file//
+					rb_Time->push_back( wfctaDecode->RabbitTime(buf) );
+					rb_time->push_back( wfctaDecode->Rabbittime(buf) );
 					pack_pos->push_back( FEEPos + packStart );
-					pack_len->push_back( wfctaEvent->big_pack_lenth );
-					iEVT->push_back( nevent[ITEL] );
-					eEVT->push_back( wfctaDecode->eventId(buf) );
-
-					//eventShow->Fill();
-					wfctaEvent->EventInitial();
-
+					pack_len->push_back( wfctaDecode->bigpackLen() );
 					packStart = wfctaDecode->PackSize();
 				}
 				else
@@ -126,21 +103,19 @@ int main(int argc, char**argv)
 
 	long rb_TimeMin = *min_element(rb_Time->begin(),rb_Time->end());
 	printf("TimeMin:%lld\n\n",rb_TimeMin);
-	for(int ii=0;ii<rb_Time->size();ii++){
-		sort_time->push_back( long((rb_Time->at(ii)-rb_TimeMin)*1000000000+rb_time->at(ii)) );
-	}
-	map<long, long> time_position;// = nullptr;
+	map<long, long> time_position;
 	map<long, long>::iterator time_position_iter;
-	for(int ii=0;ii<sort_time->size();ii++){
-		time_position.insert(pair<long,long>(sort_time->at(ii),pack_pos->at(ii)));
+	for(int ii=0;ii<rb_Time->size();ii++){
+		time_position.insert( pair<long,long>( long((rb_Time->at(ii)-rb_TimeMin)*1000000000+rb_time->at(ii)), pack_pos->at(ii) ) );
 	}
 
 	float adch;
 	float adcl;
+	int nevent[20]={0};
 	fp = fopen(argv[1],"rb");
 	for(time_position_iter=time_position.begin(); time_position_iter!=time_position.end(); time_position_iter++)
 	{
-		printf("Time:%lld pos:%lld\n\n",time_position_iter->first,time_position_iter->second);
+		//printf("Time:%lld pos:%lld\n\n",time_position_iter->first,time_position_iter->second);
 		fseek(fp,time_position_iter->second,0);
 		buf = new uint8_t[slicelength];
 		fread((uint8_t *)buf,1,slicelength,fp);
@@ -149,9 +124,8 @@ int main(int argc, char**argv)
 		//printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
 		if(wfctaDecode->bigPackCheck(buf,int(slicelength),0))
 		{
-			//dumpPacket(buf,24,16);
+			//dumpPacket(buf,36,16);
 			wfctaEvent->iTel = ITEL;
-			//printf("ITEL%d:\n",ITEL);
 			//get info eventID and rabbit_time//
 			//printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
 			wfctaEvent->big_pack_lenth = wfctaDecode->bigpackLen();
