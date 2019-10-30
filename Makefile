@@ -39,6 +39,7 @@ SOURCES  += $(SRCDIR)/StatusDB.C
 SOURCES  += $(SRCDIR)/ReadTrack.C
 SOURCES  += $(SRCDIR)/ShowerPlot.C
 SOURCES  += event.C
+SOURCES  += eventSort.C
 SOURCES  += eventYMJ.C
 SOURCES  += status.C
 SOURCES  += read.C
@@ -72,9 +73,12 @@ CXXFLAGS := -O3 -fPIC
 LDFLAGS  := `root-config --libs`
 # -lRGL -lEve -lGeom -lMinuit -lTMVA -lXMLIO -lMLP -lTreePlayer -lXrdClient -lGpad -lNet -lHist -lHistPainter -lGraf -lMatrix -lRooFit
 
-all:event.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe $(LIBDIR)/lib.so
+all:event.exe eventSort.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe $(LIBDIR)/lib.so
 
 event.exe: $(OBJDIR)/event.o $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+eventSort.exe: $(OBJDIR)/eventSort.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 eventYMJ.exe: $(OBJDIR)/eventYMJ.o $(OBJS)
@@ -100,6 +104,10 @@ $(LIBDIR)/lib.so: $(OBJS)
 	$(LD) -shared -o $@ $^ $(LDFLAGS)
 
 $(OBJDIR)/event.o: event.C
+	mkdir -p $(OBJDIR)
+	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
+
+$(OBJDIR)/eventSort.o: eventSort.C
 	mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 
