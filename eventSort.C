@@ -125,13 +125,12 @@ int main(int argc, char**argv)
 		//dumpPacket(buf,36,16);
 		wfctaEvent->iTel = ITEL;
 		//get info eventID and rabbit_time//
-		//printf("packStart:%lld | size_of_read:%d\n",packStart,size_of_read);
-		wfctaEvent->big_pack_lenth = wfctaDecode->bigpackLen();
 		nevent[ITEL]++;
 		wfctaEvent->iEvent=nevent[ITEL];
 		wfctaEvent->eEvent=wfctaDecode->eventId(buf);
 		wfctaEvent->rabbitTime=wfctaDecode->RabbitTime(buf);
 		wfctaEvent->rabbittime=wfctaDecode->Rabbittime(buf);
+		wfctaEvent->big_pack_lenth = wfctaDecode->bigpackLen();
 		wfctaEvent->n_fired = wfctaDecode->nFired(buf);
 		printf("iEvent:%d:\n\n",wfctaEvent->iEvent);
 
