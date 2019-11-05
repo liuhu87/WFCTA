@@ -31,6 +31,7 @@ class WFCTAEvent : public TSelector
 
 	public:
 		short iTel;
+		short merge_size;
 		long iEvent;
 		long eEvent;
 		long rabbitTime;

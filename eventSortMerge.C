@@ -136,8 +136,6 @@ int main(int argc, char**argv)
 		merge_ev.rabbittime=wfctaDecode->Rabbittime(buf);
 		merge_ev.big_pack_lenth = wfctaDecode->bigpackLen();
 		merge_ev.n_fired = wfctaDecode->nFired(buf);
-		//get info eventID and rabbit_time//
-			//wfctaEvent->n_fired = wfctaDecode->nFired(buf);
 		//find sipms and their position in this pack//
 		wfctaDecode->Find_SiPMs(buf);//,0);
 		sipm_position = &(wfctaDecode->GetSiPM_Position());
@@ -152,6 +150,7 @@ int main(int argc, char**argv)
 			merge_ev.Over_Record_Marker[ISIPM] = wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first);
 			merge_ev.winsum[ISIPM] = wfctaDecode->Getwinsum(buf,sipm_position_iter->first);
 			wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)(merge_ev.pulsehigh), (int *)(merge_ev.pulselow));
+			wfctaDecode->GeteSaturation(buf,sipm_position_iter->first,(int *)(merge_ev.saturationH), (int *)(merge_ev.saturationL));
 		}
 
 		merge_evs.push_back(merge_ev);
@@ -161,6 +160,7 @@ int main(int argc, char**argv)
 		if(deltaTime!=1600)
 		{
 			wfctaEvent->iTel = ITEL;
+			wfctaEvent->merge_size = merge_evs.size();
 			nevent[ITEL]++;
 			wfctaEvent->iEvent=nevent[ITEL];
 			wfctaEvent->eEvent=WFCTAMerge::GeteEvent(merge_evs);
@@ -177,10 +177,24 @@ int main(int argc, char**argv)
 				wfctaEvent->Over_Single_Marker.push_back( WFCTAMerge::OvSigMarker_Merge(isipm,merge_evs) );
 				wfctaEvent->Over_Record_Marker.push_back( WFCTAMerge::OvRecMarker_Merge(isipm,merge_evs) );
 				wfctaEvent->winsum.push_back( WFCTAMerge::WimSum_Merge(isipm,merge_evs) );
-				//WFCTAMerge::WaveForm_Merge(isipm,merge_evs);
+				wfctaEvent->eSatH.push_back( WFCTAMerge::eSatH_Merge(isipm,merge_evs) );
+				wfctaEvent->eSatL.push_back( WFCTAMerge::eSatL_Merge(isipm,merge_evs) );
+				wfctaEvent->PeakPosH.push_back( WFCTAMerge::GetPeakPosH(isipm,merge_evs) );
+				wfctaEvent->PeakPosL.push_back( WFCTAMerge::GetPeakPosL(isipm,merge_evs) );
+				wfctaEvent->PeakAmH.push_back( WFCTAMerge::GetPeakAmpH(isipm,merge_evs) );
+				wfctaEvent->PeakAmL.push_back( WFCTAMerge::GetPeakAmpL(isipm,merge_evs) );
+				wfctaEvent->BaseH.push_back( WFCTAMerge::GetBaseH(isipm,merge_evs) );
+				wfctaEvent->BaseL.push_back( WFCTAMerge::GetBaseL(isipm,merge_evs) );
+				adch = WFCTAMerge::GetAdcH(isipm,merge_evs);
+				adcl = WFCTAMerge::GetAdcL(isipm,merge_evs);
+				wfctaEvent->AdcH.push_back( adch );
+				wfctaEvent->AdcL.push_back( adcl );
+				if(adch>6000){  wfctaEvent->SatH.push_back(1);}
+				else         {  wfctaEvent->SatH.push_back(0);}
+				if(adcl>6000){    wfctaEvent->SatL.push_back(1);}
+				else         {    wfctaEvent->SatL.push_back(0);}
 				if(isipm==1){
-				WFCTAMerge::WaveForm_Merge(isipm,merge_evs);
-				printf("winsum_merge:%f\n",WFCTAMerge::WimSum_Merge(isipm,merge_evs));
+					printf("winsum_merge:%f\n",WFCTAMerge::WimSum_Merge(isipm,merge_evs));
 				}
 			}
 			printf("merge event:%d\n\n",merge_evs.size());

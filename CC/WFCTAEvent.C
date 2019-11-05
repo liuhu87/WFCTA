@@ -91,6 +91,7 @@ WFCTAEvent::~WFCTAEvent()
 void WFCTAEvent::Init()
 {
 	iTel=-1;
+	merge_size=-1;
 	iEvent=-1;
 	eEvent=-1;
 	rabbitTime=0;
@@ -141,6 +142,7 @@ void WFCTAEvent::Init()
 void WFCTAEvent::EventInitial()
 {
 	iTel=-1;
+	merge_size=-1;
 	iEvent=-1;
 	eEvent=-1;
 	rabbitTime=0;

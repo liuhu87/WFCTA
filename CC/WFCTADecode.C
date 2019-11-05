@@ -891,6 +891,15 @@ void WFCTADecode::GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pul
 }
 
 
+void WFCTADecode::GeteSaturation(uint8_t *begin, short isipm, int *esath, int *esatl)
+{
+	WFCTADecode::waveform(begin,isipm);
+	for(int i=0;i<28;i++)
+	{
+		*(esath+isipm*28+i) = saturationH[i];
+		*(esatl+isipm*28+i) = saturationL[i];
+	}
+}
 
 
 /************************************************
