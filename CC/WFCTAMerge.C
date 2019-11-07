@@ -57,14 +57,10 @@ void WFCTAMerge::EventInitial()
 
 long WFCTAMerge::GeteEvent(vector<WFCTAMerge> &evs)
 {
-	long rb_Time=0;
-	long e_Evt;
+	long e_Evt=-1;
 	vector<WFCTAMerge>::iterator evs_iter;
-	for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
-	{
-		if(rb_Time<(*evs_iter).rabbitTime)
-			e_Evt = (*evs_iter).eEvent;
-	}
+	evs_iter=evs.begin();
+	e_Evt = (*evs_iter).eEvent;
 	return e_Evt;
 }
 
@@ -72,22 +68,16 @@ long WFCTAMerge::RabbitTime(vector<WFCTAMerge> &evs)
 {
 	long rb_Time=0;
 	vector<WFCTAMerge>::iterator evs_iter;
-	for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
-	{
-		if(rb_Time<(*evs_iter).rabbitTime)
-			rb_Time = (*evs_iter).rabbitTime;
-	}
+	evs_iter=evs.begin();
+	rb_Time = (*evs_iter).rabbitTime;
 	return rb_Time;
 }
 long WFCTAMerge::Rabbittime(vector<WFCTAMerge> &evs)
 {
 	long rb_time=0;
 	vector<WFCTAMerge>::iterator evs_iter;
-	for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
-	{
-		if(rb_time<(*evs_iter).rabbittime)
-			rb_time = (*evs_iter).rabbittime;
-	}
+	evs_iter=evs.begin();
+	rb_time = (*evs_iter).rabbittime;
 	return rb_time;
 }
 
@@ -119,9 +109,15 @@ short WFCTAMerge::GetNChannel(vector<WFCTAMerge> &evs)
 {
 	short NChannel=0;
 	vector<WFCTAMerge>::iterator evs_iter;
-	for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
+	int nchannel[1024] = {0};
+	for(int isipm=0;isipm<1024;isipm++)
 	{
-		NChannel += (*evs_iter).n_Channel;
+		for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
+		{
+			nchannel[isipm] += (*evs_iter).IsData[isipm];
+		}
+		if(nchannel[isipm]!=0)
+			NChannel++;
 	}
 	return NChannel;
 }
@@ -140,28 +136,20 @@ bool WFCTAMerge::IsData_Merge(int isipm, vector<WFCTAMerge> &evs)
 
 long WFCTAMerge::eevent_Merge(int isipm, vector<WFCTAMerge> &evs)
 {
-	long rb_Time=0;
 	long e_evt;
 	vector<WFCTAMerge>::iterator evs_iter;
-	for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
-	{
-		if(rb_Time<(*evs_iter).rabbitTime)
-			e_evt = (*evs_iter).eevent[isipm];
-	}
+	evs_iter=evs.begin();
+	e_evt = (*evs_iter).eevent[isipm];
 	return e_evt;
 }
 
 
 short WFCTAMerge::zipmod_Merge(int isipm, vector<WFCTAMerge> &evs)
 {
-	long rb_Time=0;
 	short z_mod;
 	vector<WFCTAMerge>::iterator evs_iter;
-	for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
-	{
-		if(rb_Time<(*evs_iter).rabbitTime)
-			z_mod = (*evs_iter).zipmod[isipm];
-	}
+	evs_iter=evs.begin();
+	z_mod = (*evs_iter).zipmod[isipm];
 	return z_mod;
 }
 
