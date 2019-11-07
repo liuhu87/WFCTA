@@ -144,6 +144,7 @@ int main(int argc, char**argv)
 			merge_ev.n_Channel++;
 			if(ITEL==5){	ISIPM = 1023 - (sipm_position_iter->first);}
 			else	   {	ISIPM = sipm_position_iter->first;}
+			merge_ev.IsData[ISIPM] = 1;
 			merge_ev.eevent[ISIPM] = wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first);
 			merge_ev.zipmod[ISIPM] = wfctaDecode->zipMode(buf,sipm_position_iter->first);
 			merge_ev.Over_Single_Marker[ISIPM] = wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first);
@@ -171,6 +172,7 @@ int main(int argc, char**argv)
 			wfctaEvent->n_Channel=WFCTAMerge::GetNChannel(merge_evs);
 			for(int isipm=0;isipm<1024;isipm++)
 			{
+				if(!WFCTAMerge::IsData_Merge(isipm,merge_evs)){continue;}
 				wfctaEvent->iSiPM.push_back(isipm);
 				wfctaEvent->eevent.push_back( WFCTAMerge::eevent_Merge(isipm,merge_evs) );
 				wfctaEvent->zipmod.push_back( WFCTAMerge::zipmod_Merge(isipm,merge_evs) );

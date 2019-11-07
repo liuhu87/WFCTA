@@ -39,6 +39,7 @@ class WFCTAMerge
 		bool Over_Record_Marker[1024];
 
 		int Npoint[28];
+		int IsData[1024];
 		int saturationH[1024][28];
 		int saturationL[1024][28];
 		int pulsehigh[1024][28];
@@ -69,6 +70,8 @@ class WFCTAMerge
 		static float GetAdcL(int isipm, vector<WFCTAMerge> &evs);
 		static int eSatH_Merge(int isipm, vector<WFCTAMerge> &evs);
 		static int eSatL_Merge(int isipm, vector<WFCTAMerge> &evs);
+
+		static bool IsData_Merge(int isipm, vector<WFCTAMerge> &evs);
 
 };
 

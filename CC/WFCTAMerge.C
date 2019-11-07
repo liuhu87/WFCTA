@@ -37,9 +37,10 @@ void WFCTAMerge::EventInitial()
 	n_Channel=0;
 	for(int i=0;i<1024;i++)
 	{
+		IsData[i] = 0;
 		eevent[i] = -1;
 		zipmod[i] = -1;
-		winsum[i] = 0;
+		winsum[i] = -1;
 		Over_Single_Marker[i] = 0;
 		Over_Record_Marker[i] = 0;
 	}
@@ -123,6 +124,18 @@ short WFCTAMerge::GetNChannel(vector<WFCTAMerge> &evs)
 		NChannel += (*evs_iter).n_Channel;
 	}
 	return NChannel;
+}
+
+bool WFCTAMerge::IsData_Merge(int isipm, vector<WFCTAMerge> &evs)
+{
+	bool isdata = 0;
+	vector<WFCTAMerge>::iterator evs_iter;
+	for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
+	{
+		if((*evs_iter).IsData[isipm]==1)
+			isdata = 1;
+	}
+	return isdata;
 }
 
 long WFCTAMerge::eevent_Merge(int isipm, vector<WFCTAMerge> &evs)

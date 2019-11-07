@@ -797,6 +797,7 @@ float WFCTADecode::Getwinsum(uint8_t *begin, short isipm)
 			((uint64_t)begin[packposition+65]<<16)|
 			((uint64_t)begin[packposition+66]<<8)|
 			((uint64_t)begin[packposition+67]) ) ;
+	m_winsum /= 16.;
 	return m_winsum;
 }
 
