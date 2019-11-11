@@ -37,8 +37,12 @@ WFCTAEvent::WFCTAEvent():TSelector()
 	eSatL.reserve(MAXPMT);
 	BaseH.reserve(MAXPMT);
 	BaseL.reserve(MAXPMT);
+	LaserBaseH.reserve(MAXPMT);
+	LaserBaseL.reserve(MAXPMT);
 	AdcH.reserve(MAXPMT);
 	AdcL.reserve(MAXPMT);
+	LaserAdcH.reserve(MAXPMT);
+	LaserAdcL.reserve(MAXPMT);
 	SatH.reserve(MAXPMT);
 	SatL.reserve(MAXPMT);
 	Single_Threshold.reserve(MAXPMT);
@@ -65,8 +69,12 @@ WFCTAEvent::WFCTAEvent():TSelector()
 	eSatL.resize(MAXPMT);
 	BaseH.resize(MAXPMT);
 	BaseL.resize(MAXPMT);
+	LaserBaseH.resize(MAXPMT);
+	LaserBaseL.resize(MAXPMT);
 	AdcH.resize(MAXPMT);
 	AdcL.resize(MAXPMT);
+	LaserAdcH.resize(MAXPMT);
+	LaserAdcL.resize(MAXPMT);
 	SatH.resize(MAXPMT);
 	SatL.resize(MAXPMT);
 	Single_Threshold.resize(MAXPMT);
@@ -122,8 +130,12 @@ void WFCTAEvent::Init()
 	eSatL.clear();
 	BaseH.clear();
 	BaseL.clear();
+	LaserBaseH.clear();
+	LaserBaseL.clear();
 	AdcH.clear();
 	AdcL.clear();
+	LaserAdcH.clear();
+	LaserAdcL.clear();
 	SatH.clear();
 	SatL.clear();
 
@@ -173,8 +185,12 @@ void WFCTAEvent::EventInitial()
 	eSatL.clear();
 	BaseH.clear();
 	BaseL.clear();
+	LaserBaseH.clear();
+	LaserBaseL.clear();
 	AdcH.clear();
 	AdcL.clear();
+	LaserAdcH.clear();
+	LaserAdcL.clear();
 	SatH.clear();
 	SatL.clear();
 

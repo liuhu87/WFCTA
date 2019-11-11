@@ -22,7 +22,6 @@ class WFCTAMerge
 		static vector<int> merged_pulsehigh;
 		static vector<int> merged_pulselow;
 
-		static void Calc_Q_Base(int isipm, vector<WFCTAMerge> &evs);
 		static void FindPeak(int isipm, vector<WFCTAMerge> &evs);
 		static void WaveForm_Merge(int isipm, vector<WFCTAMerge> &evs);
 	public:
@@ -64,10 +63,15 @@ class WFCTAMerge
 		static char GetPeakPosL(int isipm, vector<WFCTAMerge> &evs);
 		static int GetPeakAmpH(int isipm, vector<WFCTAMerge> &evs);
 		static int GetPeakAmpL(int isipm, vector<WFCTAMerge> &evs);
+		static void Calc_Q_Base(int isipm, vector<WFCTAMerge> &evs, int laserCalc);
 		static float GetBaseH(int isipm, vector<WFCTAMerge> &evs);
 		static float GetBaseL(int isipm, vector<WFCTAMerge> &evs);
 		static float GetAdcH(int isipm, vector<WFCTAMerge> &evs);
 		static float GetAdcL(int isipm, vector<WFCTAMerge> &evs);
+		static float GetLaserBaseH(int isipm, vector<WFCTAMerge> &evs);
+		static float GetLaserBaseL(int isipm, vector<WFCTAMerge> &evs);
+		static float GetLaserAdcH(int isipm, vector<WFCTAMerge> &evs);
+		static float GetLaserAdcL(int isipm, vector<WFCTAMerge> &evs);
 		static int eSatH_Merge(int isipm, vector<WFCTAMerge> &evs);
 		static int eSatL_Merge(int isipm, vector<WFCTAMerge> &evs);
 

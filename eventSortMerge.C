@@ -187,6 +187,7 @@ int main(int argc, char**argv)
 				wfctaEvent->PeakPosL.push_back( WFCTAMerge::GetPeakPosL(isipm,merge_evs) );
 				wfctaEvent->PeakAmH.push_back( WFCTAMerge::GetPeakAmpH(isipm,merge_evs) );
 				wfctaEvent->PeakAmL.push_back( WFCTAMerge::GetPeakAmpL(isipm,merge_evs) );
+				WFCTAMerge::Calc_Q_Base(isipm,merge_evs,0);
 				wfctaEvent->BaseH.push_back( WFCTAMerge::GetBaseH(isipm,merge_evs) );
 				wfctaEvent->BaseL.push_back( WFCTAMerge::GetBaseL(isipm,merge_evs) );
 				adch = WFCTAMerge::GetAdcH(isipm,merge_evs);
@@ -197,6 +198,11 @@ int main(int argc, char**argv)
 				else         {  wfctaEvent->SatH.push_back(0);}
 				if(adcl>6000){    wfctaEvent->SatL.push_back(1);}
 				else         {    wfctaEvent->SatL.push_back(0);}
+				WFCTAMerge::Calc_Q_Base(isipm,merge_evs,1);
+				wfctaEvent->LaserBaseH.push_back( WFCTAMerge::GetLaserBaseH(isipm,merge_evs) );
+				wfctaEvent->LaserBaseL.push_back( WFCTAMerge::GetLaserBaseL(isipm,merge_evs) );
+				wfctaEvent->LaserAdcH.push_back( WFCTAMerge::GetLaserAdcH(isipm,merge_evs) );
+				wfctaEvent->LaserAdcL.push_back( WFCTAMerge::GetLaserAdcL(isipm,merge_evs) );
 				if(isipm==1){
 					printf("winsum_merge:%f\n",WFCTAMerge::WimSum_Merge(isipm,merge_evs));
 				}

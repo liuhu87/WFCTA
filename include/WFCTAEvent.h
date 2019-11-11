@@ -53,8 +53,12 @@ class WFCTAEvent : public TSelector
 		vector<bool> eSatL;
 		vector<float> BaseH;
 		vector<float> BaseL;
+		vector<float> LaserBaseH;
+		vector<float> LaserBaseL;
 		vector<float> AdcH;
 		vector<float> AdcL;
+		vector<float> LaserAdcH;
+		vector<float> LaserAdcL;
 		vector<bool> SatH;
 		vector<bool> SatL;
 		vector<short> Single_Threshold;  //!

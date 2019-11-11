@@ -254,75 +254,242 @@ int WFCTAMerge::GetPeakAmpL(int isipm, vector<WFCTAMerge> &evs)
 	WFCTAMerge::FindPeak(isipm,evs);
 	return peakAmpL;
 }
+
 float WFCTAMerge::GetBaseH(int isipm, vector<WFCTAMerge> &evs)
 {
-	WFCTAMerge::Calc_Q_Base(isipm,evs);
+	//WFCTAMerge::Calc_Q_Base(isipm,evs,laserCalc);
 	return m_Basehigh;
 }
 float WFCTAMerge::GetBaseL(int isipm, vector<WFCTAMerge> &evs)
 {
-	WFCTAMerge::Calc_Q_Base(isipm,evs);
+	//WFCTAMerge::Calc_Q_Base(isipm,evs,laserCalc);
 	return m_Baselow;
 }
 float WFCTAMerge::GetAdcH(int isipm, vector<WFCTAMerge> &evs)
 {
-	WFCTAMerge::Calc_Q_Base(isipm,evs);
+	//WFCTAMerge::Calc_Q_Base(isipm,evs,laserCalc);
 	return m_Adchigh;
 }
 float WFCTAMerge::GetAdcL(int isipm, vector<WFCTAMerge> &evs)
 {
-	WFCTAMerge::Calc_Q_Base(isipm,evs);
+	//WFCTAMerge::Calc_Q_Base(isipm,evs,laserCalc);
 	return m_Adclow;
 }
 
-
-void WFCTAMerge::Calc_Q_Base(int isipm, vector<WFCTAMerge> &evs)
+float WFCTAMerge::GetLaserBaseH(int isipm, vector<WFCTAMerge> &evs)
 {
+	//WFCTAMerge::Calc_Q_Base(isipm,evs,laserCalc);
+	return m_Basehigh;
+}
+float WFCTAMerge::GetLaserBaseL(int isipm, vector<WFCTAMerge> &evs)
+{
+	//WFCTAMerge::Calc_Q_Base(isipm,evs,laserCalc);
+	return m_Baselow;
+}
+float WFCTAMerge::GetLaserAdcH(int isipm, vector<WFCTAMerge> &evs)
+{
+	//WFCTAMerge::Calc_Q_Base(isipm,evs,laserCalc);
+	return m_Adchigh;
+}
+float WFCTAMerge::GetLaserAdcL(int isipm, vector<WFCTAMerge> &evs)
+{
+	//WFCTAMerge::Calc_Q_Base(isipm,evs,laserCalc);
+	return m_Adclow;
+}
+
+void WFCTAMerge::Calc_Q_Base(int isipm, vector<WFCTAMerge> &evs, int laserCalc)
+{
+	int waveStart,waveEnd;
+	int wave_calc_len;
+	int base_calc_len;
+
 	int wave_len = merged_pulsehigh.size();
 	WFCTAMerge::FindPeak(isipm,evs);
+	if(isipm==1){
+		printf("peakPosH:%d peakAmH:%d\n",peakPosH,peakAmpH);
+	}
 	m_Basehigh = 0;
 	m_Baselow = 0;
 	m_Adchigh = 0;
 	m_Adclow = 0;
 
-	if(peakPosH<3)
+	if(laserCalc==0)
 	{
-		for(int i=6;i<wave_len;i++)  { m_Basehigh += merged_pulsehigh.at(i);}
-		for(int i=0;i<6;i++)		 { m_Adchigh += merged_pulsehigh.at(i); }
-	}
-	else if(peakPosH>wave_len-5)
-	{
-		for(int i=0;i<wave_len-6;i++)		 { m_Basehigh += merged_pulsehigh.at(i);}
-		for(int i=wave_len-6;i<wave_len;i++) { m_Adchigh += merged_pulsehigh.at(i); }
+		//calc high gain cosmic ray adc and base
+		base_calc_len=0;
+		wave_calc_len=0;
+		if(peakPosH>0)	{	waveStart = peakPosH-1;}
+		else			{	waveStart = 0;}
+		if(peakPosH<wave_len-2)	{	waveEnd = peakPosH+2;}
+		else					{	waveEnd = wave_len-1;}
+		for(int i=waveStart;i<=waveEnd;i++){
+			m_Adchigh += merged_pulsehigh.at(i);
+			wave_calc_len++;
+		}
+		for(int i=0;i<waveStart-2;i++){
+			m_Basehigh += merged_pulsehigh.at(i);
+			base_calc_len++;
+		}
+		for(int i=waveEnd+3;i<wave_len;i++){
+			m_Basehigh += merged_pulsehigh.at(i);
+			base_calc_len++;
+		}
+		m_Basehigh = m_Basehigh/(4*base_calc_len);
+		m_Adchigh -= m_Basehigh*4*wave_calc_len;
+		if(isipm==1){
+			printf("BaseH:%f AdcH:%f waveStart:%d waveEnd:%d wave_calc_len:%d base_calc_len:%d\n",m_Basehigh,m_Adchigh,waveStart,waveEnd,wave_calc_len,base_calc_len);
+		}
+
+		//calc low gain cosmic ray adc and base
+		base_calc_len=0;
+		wave_calc_len=0;
+		if(peakPosL>0)	{	waveStart = peakPosL-1;}
+		else			{	waveStart = 0;}
+		if(peakPosL<wave_len-2)	{	waveEnd = peakPosL+2;}
+		else					{	waveEnd = wave_len-1;}
+		for(int i=waveStart;i<=waveEnd;i++){
+			m_Adclow += merged_pulselow.at(i);
+			wave_calc_len++;
+		}
+		for(int i=0;i<waveStart-2;i++){
+			m_Baselow += merged_pulselow.at(i);
+			base_calc_len++;
+		}
+		for(int i=waveEnd+3;i<wave_len;i++){
+			m_Baselow += merged_pulselow.at(i);
+			base_calc_len++;
+		}
+		m_Baselow = m_Baselow/(4*base_calc_len);
+		m_Adclow -= m_Baselow*4*wave_calc_len;
 	}
 	else
 	{
-		for(int i=0;i<peakPosH-2;i++)           { m_Basehigh += merged_pulsehigh.at(i);}
-		for(int i=peakPosH+4;i<wave_len;i++)	{ m_Basehigh += merged_pulsehigh.at(i);}
-		for(int i=peakPosH-2;i<peakPosH+4;i++)  { m_Adchigh += merged_pulsehigh.at(i); }
-	}
+		double preBaseH=0;
+		double preBaseL=0;
+		if(peakPosH<6)			{	for(int i=14;i<wave_len;i++)	{preBaseH += merged_pulsehigh.at(i);}}
+		if(peakPosH>wave_len-9)	{	for(int i=0;i<wave_len-14;i++)	{preBaseH += merged_pulsehigh.at(i);}}
+		else					{
+									for(int i=0;i<peakPosH-5;i++)         { preBaseH += merged_pulsehigh.at(i);}
+									for(int i=peakPosH+9;i<wave_len;i++)	{ preBaseH += merged_pulsehigh.at(i);}
+								}
+		if(peakPosL<6)			{	for(int i=14;i<wave_len;i++)	{preBaseL += merged_pulselow.at(i);}}
+		if(peakPosL>wave_len-9)	{	for(int i=0;i<wave_len-14;i++)	{preBaseL += merged_pulselow.at(i);}}
+		else					{
+									for(int i=0;i<peakPosL-5;i++)         { preBaseL += merged_pulselow.at(i);}
+									for(int i=peakPosL+9;i<wave_len;i++)	{ preBaseL += merged_pulselow.at(i);}
+								}
+		preBaseH /= (wave_len-14);
+		preBaseL /= (wave_len-14);
 
-	if(peakPosL<3)
-	{
-		for(int i=6;i<wave_len;i++)  { m_Baselow += merged_pulselow.at(i);}
-		for(int i=0;i<6;i++)		 { m_Adclow += merged_pulselow.at(i); }
-	}
-	else if(peakPosL>wave_len-5)
-	{
-		for(int i=0;i<wave_len-6;i++)		 { m_Baselow += merged_pulselow.at(i);}
-		for(int i=wave_len-6;i<wave_len;i++) { m_Adclow += merged_pulselow.at(i); }
-	}
-	else
-	{
-		for(int i=0;i<peakPosL-2;i++)			{ m_Baselow += merged_pulselow.at(i);}
-		for(int i=peakPosL+4;i<wave_len;i++)    { m_Baselow += merged_pulselow.at(i);}
-		for(int i=peakPosL-2;i<peakPosL+4;i++)  { m_Adclow += merged_pulselow.at(i); }
-	}
+		int ipulseH;
+		//calc high gain laser adc and base
+		base_calc_len=0;
+		wave_calc_len=0;
+		ipulseH = peakPosH;
+		m_Adchigh += merged_pulsehigh.at(ipulseH);
+		wave_calc_len++;
+		ipulseH -= 1;
+		while(1){
+			if(ipulseH<0){break;}
+			m_Adchigh += merged_pulsehigh.at(ipulseH);
+			wave_calc_len++;
+			ipulseH -= 1;
+			if(ipulseH<=0 || merged_pulsehigh.at(ipulseH)<preBaseH+200){
+				if(ipulseH<0){break;}
+				m_Adchigh += merged_pulsehigh.at(ipulseH);
+				wave_calc_len++;
+				break;
+			}
+		}
+		if(ipulseH>=0)	{	waveStart = ipulseH;}
+		else			{	waveStart = 0;}
+		for(int i=0;i<waveStart-2;i++){
+			m_Basehigh += merged_pulsehigh.at(i);
+			base_calc_len++;
+		}
+		ipulseH = peakPosH+1;
+		if(ipulseH<wave_len){
+			m_Adchigh += merged_pulsehigh.at(ipulseH);
+			wave_calc_len++;
+			ipulseH += 1;
+		}
+		while(1){
+			if(ipulseH>wave_len-1){break;}
+			m_Adchigh += merged_pulsehigh.at(ipulseH);
+			wave_calc_len++;
+			ipulseH += 1;
+			if(ipulseH>=wave_len-1 || merged_pulsehigh.at(ipulseH)<preBaseH+200){
+				if(ipulseH>wave_len-1){break;}
+				m_Adchigh += merged_pulsehigh.at(ipulseH);
+				wave_calc_len++;
+				break;
+			}
+		}
+		if(ipulseH<=wave_len-1) {   waveEnd = ipulseH;}
+		else					{   waveEnd = wave_len-1;}
+		for(int i=waveEnd+3;i<wave_len;i++){
+			m_Basehigh += merged_pulsehigh.at(i);
+			base_calc_len++;
+		}
+		m_Basehigh = m_Basehigh/(4*base_calc_len);
+		m_Adchigh -= m_Basehigh*4*wave_calc_len;
+		if(isipm==1){
+			printf("BaseH:%f AdcH:%f waveStart:%d waveEnd:%d wave_calc_len:%d base_calc_len:%d preBaseH:%lf\n",m_Basehigh,m_Adchigh,waveStart,waveEnd,wave_calc_len,base_calc_len,preBaseH);
+		}
 
-	m_Basehigh = m_Basehigh/(4*(wave_len-6));
-	m_Baselow = m_Baselow/(4*(wave_len-6));
-	m_Adchigh -= m_Basehigh*24;
-	m_Adclow -= m_Baselow*24;
+		int ipulseL;
+		//calc low gain laser adc and base
+		base_calc_len=0;
+		wave_calc_len=0;
+		ipulseL = peakPosL;
+		m_Adclow += merged_pulselow.at(ipulseL);
+		wave_calc_len++;
+		ipulseL -= 1;
+		while(1){
+			if(ipulseL<0){break;}
+			m_Adclow += merged_pulselow.at(ipulseL);
+			wave_calc_len++;
+			ipulseL -= 1;
+			if(ipulseL<=0 || merged_pulselow.at(ipulseL)<preBaseL+9){
+				if(ipulseL<0){break;}
+				m_Adclow += merged_pulselow.at(ipulseL);
+				wave_calc_len++;
+				break;
+			}
+		}
+		if(ipulseL>=0)	{	waveStart = ipulseL;}
+		else			{	waveStart = 0;}
+		for(int i=0;i<waveStart-2;i++){
+			m_Baselow += merged_pulselow.at(i);
+			base_calc_len++;
+		}
+		ipulseL = peakPosL+1;
+		if(ipulseL<wave_len){
+			m_Adclow += merged_pulselow.at(ipulseL);
+			wave_calc_len++;
+			ipulseL += 1;
+		}
+		while(1){
+			if(ipulseL>wave_len-1){break;}
+			m_Adclow += merged_pulselow.at(ipulseL);
+			wave_calc_len++;
+			ipulseL += 1;
+			if(ipulseL>=wave_len-1 || merged_pulselow.at(ipulseL)<preBaseL+9){
+				if(ipulseL>wave_len-1){break;}
+				m_Adclow += merged_pulselow.at(ipulseL);
+				wave_calc_len++;
+				break;
+			}
+		}
+		if(ipulseL<=wave_len-1) {   waveEnd = ipulseL;}
+		else					{   waveEnd = wave_len-1;}
+		for(int i=waveEnd+3;i<wave_len;i++){
+			m_Baselow += merged_pulselow.at(i);
+			base_calc_len++;
+		}
+		m_Baselow = m_Baselow/(4*base_calc_len);
+		m_Adclow -= m_Baselow*4*wave_calc_len;
+	}
 }
 
 void WFCTAMerge::FindPeak(int isipm, vector<WFCTAMerge> &evs)
@@ -330,15 +497,29 @@ void WFCTAMerge::FindPeak(int isipm, vector<WFCTAMerge> &evs)
 	WFCTAMerge::WaveForm_Merge(isipm,evs);
 	double sumhighmax = -1000;
 	double sumhigh;
-	for(int ii=0;ii<merged_pulsehigh.size();ii++){
-		sumhigh = merged_pulsehigh.at(ii);
-		if(sumhighmax<sumhigh) {sumhighmax = sumhigh; peakPosH = ii; peakAmpH = sumhigh;}
-	}
 	double sumlowmax = -1000;
 	double sumlow;
-	for(int ii=0;ii<merged_pulsehigh.size();ii++){
-		sumlow = merged_pulselow.at(ii);
-		if(sumlowmax<sumlow) {sumlowmax = sumlow; peakPosL = ii; peakAmpL = sumlow;}
+	for(int ii=0;ii<merged_pulsehigh.size()-1;ii++){
+		sumhigh = merged_pulsehigh.at(ii)+merged_pulsehigh.at(ii+1);
+		sumlow = merged_pulselow.at(ii)+merged_pulselow.at(ii+1);
+		if(sumhighmax<sumhigh){
+			sumhighmax = sumhigh;
+			if(merged_pulsehigh.at(ii)>merged_pulsehigh.at(ii+1)){
+				peakPosH = ii; peakAmpH = merged_pulsehigh.at(ii);
+			}
+			else{
+				peakPosH = ii+1; peakAmpH = merged_pulsehigh.at(ii+1);
+			}
+		}
+		if(sumlowmax<sumlow){
+			sumlowmax = sumlow;
+			if(merged_pulselow.at(ii)>merged_pulselow.at(ii+1)){
+				peakPosL = ii; peakAmpL = merged_pulselow.at(ii);
+			}
+			else{
+				peakPosL = ii+1; peakAmpL = merged_pulselow.at(ii+1);
+			}
+		}
 	}
 }
 
