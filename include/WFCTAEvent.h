@@ -131,7 +131,7 @@ class WFCTAEvent : public TSelector
 		void rabbittime2lt();
 		void InitImage();
 		void SetImage();
-		void AdcToPe(float *deltag_20, float *correct_PreTemp);
+		void AdcToPe(float *deltag_20, float *correct_PreTemp, int isledevent);
 		//void AdcToPe();
 		void PrelimImageClean(double cut);
 		void GetNeighborPixs();

@@ -477,7 +477,7 @@ void WFCTAEvent::InitImage()
 
 //change adc count to number of pe
 //void WFCTAEvent::AdcToPe()
-void WFCTAEvent::AdcToPe(float *deltag_20, float *correct_PreTemp)
+void WFCTAEvent::AdcToPe(float *deltag_20, float *correct_PreTemp, int isledevent)
 {
 	int isipm;
 	double pe;
@@ -492,9 +492,10 @@ void WFCTAEvent::AdcToPe(float *deltag_20, float *correct_PreTemp)
 		else if(pe>Ntotal){  pe = Ntotal;}
 		else              {  pe = -Ntotal*log(1-pe/Ntotal);}
 
-		theta = pow(cos(sqrt(ImageX[isipm]*ImageX[isipm]+ImageY[isipm]*ImageY[isipm])/2870),4);
-		//printf("%d theta:%lf\n",isipm,theta);
-		pe = pe/theta;
+		if(isledevent){
+			theta = pow(cos(sqrt(ImageX[isipm]*ImageX[isipm]+ImageY[isipm]*ImageY[isipm])/2870),4);
+			pe = pe/theta;
+		}
 		//if(iEvent%1000==0)
 		//  printf("%d deltag_20:%f,coTemp:%f,coTemp-20:%f,theta:%lf\n",isipm,*(deltag_20+isipm),*(correct_PreTemp+isipm),*(correct_PreTemp+isipm)-T0,theta);
 		pe = pe/(1 + (*(deltag_20+isipm))*(*(correct_PreTemp+isipm)-T0));

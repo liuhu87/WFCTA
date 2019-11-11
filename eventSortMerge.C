@@ -142,16 +142,17 @@ int main(int argc, char**argv)
 		//get info of each sipm: q, base, peakposition...//
 		for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){
 			merge_ev.n_Channel++;
-			if(ITEL==5){	ISIPM = 1023 - (sipm_position_iter->first);}
-			else	   {	ISIPM = sipm_position_iter->first;}
+			ISIPM = sipm_position_iter->first;
 			merge_ev.IsData[ISIPM] = 1;
 			merge_ev.eevent[ISIPM] = wfctaDecode->eventId_in_channel(buf,sipm_position_iter->first);
 			merge_ev.zipmod[ISIPM] = wfctaDecode->zipMode(buf,sipm_position_iter->first);
 			merge_ev.Over_Single_Marker[ISIPM] = wfctaDecode->GetOver_Single_Mark(buf,sipm_position_iter->first);
 			merge_ev.Over_Record_Marker[ISIPM] = wfctaDecode->GetOver_Record_Mark(buf,sipm_position_iter->first);
 			merge_ev.winsum[ISIPM] = wfctaDecode->Getwinsum(buf,sipm_position_iter->first);
-			wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)(merge_ev.pulsehigh), (int *)(merge_ev.pulselow));
-			wfctaDecode->GeteSaturation(buf,sipm_position_iter->first,(int *)(merge_ev.saturationH), (int *)(merge_ev.saturationL));
+			//wfctaDecode->GetWaveForm(buf,sipm_position_iter->first,(int *)(merge_ev.pulsehigh), (int *)(merge_ev.pulselow));
+			//wfctaDecode->GeteSaturation(buf,sipm_position_iter->first,(int *)(merge_ev.saturationH), (int *)(merge_ev.saturationL));
+			wfctaDecode->GetWaveForm(buf,short(ISIPM),(int *)(merge_ev.pulsehigh), (int *)(merge_ev.pulselow));
+			wfctaDecode->GeteSaturation(buf,short(ISIPM),(int *)(merge_ev.saturationH), (int *)(merge_ev.saturationL));
 		}
 
 		merge_evs.push_back(merge_ev);
@@ -173,7 +174,8 @@ int main(int argc, char**argv)
 			for(int isipm=0;isipm<1024;isipm++)
 			{
 				if(!WFCTAMerge::IsData_Merge(isipm,merge_evs)){continue;}
-				wfctaEvent->iSiPM.push_back(isipm);
+				if(ITEL==5)	{wfctaEvent->iSiPM.push_back( 1023 - isipm );}
+				else		{wfctaEvent->iSiPM.push_back( isipm );}
 				wfctaEvent->eevent.push_back( WFCTAMerge::eevent_Merge(isipm,merge_evs) );
 				wfctaEvent->zipmod.push_back( WFCTAMerge::zipmod_Merge(isipm,merge_evs) );
 				wfctaEvent->Over_Single_Marker.push_back( WFCTAMerge::OvSigMarker_Merge(isipm,merge_evs) );

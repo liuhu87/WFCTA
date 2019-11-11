@@ -354,21 +354,23 @@ void WFCTAMerge::WaveForm_Merge(int isipm, vector<WFCTAMerge> &evs)
 		{
 			for(int ipoint=0;ipoint<28;ipoint++)
 			{
+				if((*evs_iter).pulsehigh[isipm][ipoint]==0){continue;}
 				merged_pulsehigh.push_back((*evs_iter).pulsehigh[isipm][ipoint]);
 				merged_pulselow.push_back((*evs_iter).pulselow[isipm][ipoint]);
+				first_event++;
 			}
 		}
 		else
 		{
 			for(int ipoint=8;ipoint<28;ipoint++)
 			{
+				if((*evs_iter).pulsehigh[isipm][ipoint]==0){continue;}
 				merged_pulsehigh.push_back((*evs_iter).pulsehigh[isipm][ipoint]);
 				merged_pulselow.push_back((*evs_iter).pulselow[isipm][ipoint]);
 			}
 		}
-		first_event++;
 
-		/*
+	/*	
 		if(isipm==1)
 		{
 			printf("%02d:waveform_h:     ",first_event);
@@ -385,5 +387,6 @@ void WFCTAMerge::WaveForm_Merge(int isipm, vector<WFCTAMerge> &evs)
 			printf("\n");
 		}
 		*/
+		
 	}
 }
