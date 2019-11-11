@@ -6,10 +6,11 @@
 
 using namespace std;
 
+short WFCTAMerge::emptyPulse=0;
 int32_t WFCTAMerge::peakAmpH=0;
 int32_t WFCTAMerge::peakAmpL=0;
-uint8_t WFCTAMerge::peakPosH=0;
-uint8_t WFCTAMerge::peakPosL=0;
+int16_t WFCTAMerge::peakPosH=0;
+int16_t WFCTAMerge::peakPosL=0;
 float WFCTAMerge::m_Basehigh=0;
 float WFCTAMerge::m_Baselow=0;
 float WFCTAMerge::m_Adchigh=0;
@@ -220,10 +221,10 @@ int WFCTAMerge::eSatL_Merge(int isipm, vector<WFCTAMerge> &evs)
 }
 
 
-char WFCTAMerge::GetPeakPosH(int isipm, vector<WFCTAMerge> &evs)
+short WFCTAMerge::GetPeakPosH(int isipm, vector<WFCTAMerge> &evs)
 {
 	WFCTAMerge::FindPeak(isipm,evs);
-	if(isipm==1)
+	/*if(isipm==1)
 	{
 		printf("merged_waveform_h: ");
 		for(int ii=0;ii<merged_pulsehigh.size();ii++){
@@ -235,14 +236,19 @@ char WFCTAMerge::GetPeakPosH(int isipm, vector<WFCTAMerge> &evs)
 			printf("%d ",merged_pulselow.at(ii));
 		}
 		printf("\n");
-	}
-	return peakPosH;
+	}*/
+	short peak_pos_H = short(peakPosH+(emptyPulse/28)*20);
+	//if(isipm==1){
+	//	printf("peak_pos_H:%d emptyPulse:%d shift:%d\n",peak_pos_H,emptyPulse,(emptyPulse/28)*20);
+	//}
+	return peak_pos_H;
 }
 
-char WFCTAMerge::GetPeakPosL(int isipm, vector<WFCTAMerge> &evs)
+short WFCTAMerge::GetPeakPosL(int isipm, vector<WFCTAMerge> &evs)
 {
 	WFCTAMerge::FindPeak(isipm,evs);
-	return peakPosL;
+	short peak_pos_L = short(peakPosL+(emptyPulse/28)*20);
+	return peak_pos_L;
 }
 int WFCTAMerge::GetPeakAmpH(int isipm, vector<WFCTAMerge> &evs)
 {
@@ -529,13 +535,14 @@ void WFCTAMerge::WaveForm_Merge(int isipm, vector<WFCTAMerge> &evs)
 	merged_pulsehigh.clear();
 	merged_pulselow.clear();
 	int first_event=0;
+	emptyPulse=0;
 	for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
 	{
 		if(!first_event)
 		{
 			for(int ipoint=0;ipoint<28;ipoint++)
 			{
-				if((*evs_iter).pulsehigh[isipm][ipoint]==0){continue;}
+				if((*evs_iter).pulsehigh[isipm][ipoint]==0){emptyPulse++;continue;}
 				merged_pulsehigh.push_back((*evs_iter).pulsehigh[isipm][ipoint]);
 				merged_pulselow.push_back((*evs_iter).pulselow[isipm][ipoint]);
 				first_event++;

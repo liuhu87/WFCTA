@@ -64,8 +64,8 @@ class WFCTAEvent : public TSelector
 		vector<short> Single_Threshold;  //!
 		vector<short> Record_Threshold;  //!
 		vector<char> peak;  //!
-		vector<char> PeakPosH;
-		vector<char> PeakPosL;
+		vector<short> PeakPosH;
+		vector<short> PeakPosL;
 		vector<int> PeakAmH;
 		vector<int> PeakAmL;
 		vector<bool> gain_marker;  //!

@@ -11,10 +11,11 @@ using namespace std;
 class WFCTAMerge
 {
 	protected:
+		static short emptyPulse;
 		static int32_t peakAmpH;
 		static int32_t peakAmpL;
-		static uint8_t peakPosH;
-		static uint8_t peakPosL;
+		static int16_t peakPosH;
+		static int16_t peakPosL;
 		static float m_Basehigh;
 		static float m_Baselow;
 		static float m_Adchigh;
@@ -59,8 +60,8 @@ class WFCTAMerge
 		static bool OvSigMarker_Merge(int isipm, vector<WFCTAMerge> &evs);
 		static bool OvRecMarker_Merge(int isipm, vector<WFCTAMerge> &evs);
 		static float WimSum_Merge(int isipm, vector<WFCTAMerge> &evs);
-		static char GetPeakPosH(int isipm, vector<WFCTAMerge> &evs);
-		static char GetPeakPosL(int isipm, vector<WFCTAMerge> &evs);
+		static short GetPeakPosH(int isipm, vector<WFCTAMerge> &evs);
+		static short GetPeakPosL(int isipm, vector<WFCTAMerge> &evs);
 		static int GetPeakAmpH(int isipm, vector<WFCTAMerge> &evs);
 		static int GetPeakAmpL(int isipm, vector<WFCTAMerge> &evs);
 		static void Calc_Q_Base(int isipm, vector<WFCTAMerge> &evs, int laserCalc);
