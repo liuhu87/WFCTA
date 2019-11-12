@@ -22,7 +22,7 @@ int main(int argc, char**argv)
 {
 	if(argc!=3)
 	{
-		printf("Use %s inputfile outfile\n",argv[0]);
+		printf("Use %s iptpath/inputfile outpath/outfile\n",argv[0]);
 		return 0;
 	}
 
@@ -38,7 +38,11 @@ int main(int argc, char**argv)
 	map<short, int>* sipm_position;
 	map<short, int>::iterator sipm_position_iter;
 
-	TFile *rootfile = new TFile(argv[2],"recreate");
+	char Name1[300]="root://eos01.ihep.ac.cn/";
+	char Name2[300];
+	strcpy(Name2,Name1);
+	strcat(Name2,argv[2]);
+	TFile *rootfile = TFile::Open(Name2,"recreate");
 	WFCTAEvent *wfctaEvent = new WFCTAEvent();
 	/*********************************************************************/
 	TTree *eventShow = new TTree("eventShow","info of evnets");
