@@ -36,8 +36,9 @@ class CommonTools {
    static double InvConvert(int time);
    static int TimeFlag(double time,int type);
    static int TimeFlag(int time,int type);
-   static bool GetFirstLastLine(const char* filename,char* firstline,char * lastline);
+   static int GetFirstLastLine(const char* filename,char* firstline,char * lastline);
    static int GetTimeFromFileName(const char* filename,int start,int length);
+   static int GetBins(int start,int end,double step,double bins[100000]);
    static int GetTelIndex(const char* filename,int start,int length);
    static int get_file_size_time(const char* filename);
    static void getFiles(string path,vector<string>& files);

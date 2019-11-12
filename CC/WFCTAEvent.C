@@ -419,6 +419,9 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex){
       if(type==8&&ii<PeakAmL.size()) content=PeakAmL.at(ii)+0.01;
       if(type==9&&ii<SatH.size()) content=SatH.at(ii)?1.:-1.;
       if(type==10&&ii<SatL.size()) content=SatL.at(ii)?1.:-1.;
+      if(type==11&&(ii<SatH.size()&&ii<AdcH.size())){
+         content=SatH.at(ii)?(AdcL.at(ii)/WFCTAMCEvent::fAmpLow):(AdcH.at(ii)/WFCTAMCEvent::fAmpHig);
+      }
    }
    return content;
 }
@@ -462,16 +465,20 @@ bool WFCTAEvent::CleanImage(int isipm,int itel,bool IsIndex){
       //else{if(content<trig1) continue;}
       if(content<trig1) continue;
       double ImageXi=0,ImageYi=0;
-      ImageXi=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
-      ImageYi=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
-      if(iTel==5&&rabbitTime<1570680000) {ImageXi*=-1; ImageYi*=-1;}
+      //ImageXi=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
+      //ImageYi=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
+      ImageXi=WCamera::GetSiPMX(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      ImageYi=WCamera::GetSiPMY(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      if(iTel==5&&rabbitTime<15706800000) {ImageXi*=-1; ImageYi*=-1;}
       int nneigh=0;
       for(int jj=0;jj<size;jj++){
          if(jj==ii) continue;
          double ImageXj=0,ImageYj=0;
-         ImageXj=WCamera::GetSiPMX(jj)/WFTelescope::FOCUS/PI*180;
-         ImageYj=WCamera::GetSiPMY(jj)/WFTelescope::FOCUS/PI*180;
-         if(iTel==5&&rabbitTime<1570680000) {ImageXj*=-1; ImageYj*=-1;}
+         //ImageXj=WCamera::GetSiPMX(jj)/WFTelescope::FOCUS/PI*180;
+         //ImageYj=WCamera::GetSiPMY(jj)/WFTelescope::FOCUS/PI*180;
+         ImageXj=WCamera::GetSiPMX(jj)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+         ImageYj=WCamera::GetSiPMY(jj)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+         if(iTel==5&&rabbitTime<15706800000) {ImageXj*=-1; ImageYj*=-1;}
          double dist=sqrt(pow(ImageXi-ImageXj,2)+pow(ImageYi-ImageYj,2));
          if(dist>0.6) continue;
          bool sat1=(GetContent(jj,itel,9,true)>0.5);
@@ -505,9 +512,11 @@ double WFCTAEvent::Interface(const double* par){
    for(int ii=0;ii<size;ii++){
       int isipm=iSiPM.at(ii);
       if(!CleanImage(ii,(int)(par[0]+0.5),true)) continue;
-      double ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS;///PI*180;
-      double ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS;///PI*180;
-      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+      //double ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS;///PI*180;
+      //double ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS;///PI*180;
+      double ImageX=WCamera::GetSiPMX(isipm)/WFTelescopeArray::GetFocus((int)(par[0]+0.5));///PI*180;
+      double ImageY=WCamera::GetSiPMY(isipm)/WFTelescopeArray::GetFocus((int)(par[0]+0.5));///PI*180;
+      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
       double content=GetContent(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true);
       double err=0.25/180.*PI;
       chi2+=pow((ImageX*sin(par[3])-ImageY*cos(par[3])+par[2])/err,2)*content;
@@ -538,9 +547,11 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
       if(!CleanImage(ii,itel,true)) continue;
       double content=GetContent(ii,itel,type,true);
       double ImageX,ImageY;
-      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS;///PI*180;
-      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS;///PI*180;
-      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+      //ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS;///PI*180;
+      //ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS;///PI*180;
+      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescopeArray::GetFocus(iTel);///PI*180;
+      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescopeArray::GetFocus(iTel);///PI*180;
+      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
 
       mx += ImageX*content;
       my += ImageY*content;
@@ -622,8 +633,10 @@ TH1F* WFCTAEvent::GetLongDistribution(int itel,int type){
       int isipm0=iSiPM.at(ii);
       if(!CleanImage(ii,itel,true)) continue;
       double ImageX,ImageY;
-      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS/PI*180;
-      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS/PI*180;
+      //ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS/PI*180;
+      //ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS/PI*180;
+      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescopeArray::GetFocus(iTel)/PI*180;
       if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       double dist=fabs(sin(phi)*ImageX-cos(phi)*ImageY+CC);
       if(dist>margin) continue;
@@ -666,8 +679,10 @@ TH1F* WFCTAEvent::GetShortDistribution(int itel,int type){
       int isipm0=iSiPM.at(ii);
       if(!CleanImage(ii,itel,true)) continue;
       double ImageX,ImageY;
-      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS/PI*180;
-      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS/PI*180;
+      //ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS/PI*180;
+      //ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS/PI*180;
+      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescopeArray::GetFocus(iTel)/PI*180;
       if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       double dist=fabs(sin(phi)*ImageX-cos(phi)*ImageY+CC);
       double xx,yy;
@@ -715,8 +730,10 @@ int WFCTAEvent::GetSign(bool IsLaser,bool IsMC){
       int isipm=iSiPM.at(ii);
       if(!CleanImage(ii,itel,true)) continue;
       double ImageX,ImageY;
-      ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS/PI*180;
-      ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS/PI*180;
+      //ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS/PI*180;
+      //ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS/PI*180;
+      ImageX=WCamera::GetSiPMX(isipm)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      ImageY=WCamera::GetSiPMY(isipm)/WFTelescopeArray::GetFocus(iTel)/PI*180;
       if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       double x0,y0,xx,yy;
       bool res1=GetCrossCoor(0.,0.,x0,y0);
@@ -1228,8 +1245,31 @@ void WFCTAEvent::GetCCphi(double zenith,double azimuth,double incoo[3],double in
    Getnz(incoo,indir,planephi,nz,nz1,nz2);
    return GetCCphi(zenith,azimuth,planephi,nz,CC,phi);
 }
+bool WFCTAEvent::CalPHIRange0(double zenith,double azimuth,double planephi,double nz1,double nz2,double PHI_in,double* PHIRange){
+   //the PHI range to have image ((x*cos(phi0)+y*sin(phi0))*cos(theta)+z*sin(theta)>=0)
+   double theta=PI/2-zenith;
+   double phi0=azimuth;
+   double p21=cos(theta)*cos(phi0-planephi);
+   double p22=nz1*sin(phi0-planephi)*cos(theta)+nz2*sin(theta);
+   double norm2=sqrt(p21*p21+p22*p22);
+   double margin=1.0e-5;
+   if(norm2<margin){ //any PHI is correct
+      PHIRange[0]=0;
+      PHIRange[1]=2*PI;
+      return true;
+   }
+   else{
+      double PHI_ref=acos(p21/norm2);
+      if(p22<0) PHI_ref=2*PI-PHI_ref;
+      PHIRange[0]=PHI_ref-PI/2;
+      PHIRange[1]=PHI_ref+PI/2;
+      return (cos(PHI_in-PHI_ref)>=margin);
+   }
+}
 
 bool WFCTAEvent::GetImageXYCoo(double zenith,double azimuth,double planephi,double nz1,double nz2,double PHI_in,double &xx,double &yy){
+   double PHIRange[2];
+   if(!CalPHIRange0(zenith,azimuth,planephi,nz1,nz2,PHI_in,PHIRange)) return false;
    double theta=PI/2-zenith;
    double phi0=azimuth;
    double denum=(cos(PHI_in)*cos(phi0-planephi)+nz1*sin(PHI_in)*sin(phi0-planephi))*cos(theta)+nz2*sin(PHI_in)*sin(theta);
@@ -1244,8 +1284,9 @@ bool WFCTAEvent::GetImageXYCoo(double zenith,double azimuth,double* incoo,double
    double phi0=azimuth;
    double planephi,nz,nz1,nz2;
    Getnz(incoo,indir,planephi,nz,nz1,nz2);
-   //printf("zenith=%lf azi=%lf PHI=%lf indir={%lf,%lf} planephi=%lf nz=%lf\n",zenith,azimuth,PHI_in,indir[0]/PI*180,indir[1]/PI*180,planephi/PI*180,nz);
-   return GetImageXYCoo(zenith,azimuth,planephi,nz1,nz2,PHI_in,xx,yy);
+   bool res=GetImageXYCoo(zenith,azimuth,planephi,nz1,nz2,PHI_in,xx,yy);
+   //printf("zenith=%lf azi=%lf PHI=%lf indir={%lf,%lf} planephi=%lf nz=%lf xy={%lf,%lf}\n",zenith/PI*180,azimuth/PI*180,PHI_in/PI*180,indir[0]/PI*180,indir[1]/PI*180,planephi/PI*180,nz,xx/PI*180,yy/PI*180);
+   return res;
 
    //double theta=PI/2-zenith;
    //double phi0=azimuth;
@@ -1503,12 +1544,13 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
          if(index1<0) index1=iline;
          else if(index2<0) index2=iline;
          else{
-            if(jdebug>0) printf("WFCTAEvent::GetXYRange: return=-1, error in calculationg boundaries. line=%d calY=%d {%lf,%lf}\n",iline,(iline/2)==0,xysol[iline][0],xysol[iline][1]);
+            if(jdebug>0) printf("WFCTAEvent::GetXYRange: return=-1, error in calculationg boundaries. line=%d calY=%d {%lf,%lf}\n",iline,(iline/2)==0,xysol[iline][0]/PI*180,xysol[iline][1]/PI*180);
             //return -1;
          }
       }
+      if(jdebug>0) printf("WFCTAEvent::GetXYRange: iline=%d index1=%d index2=%d\n",iline,index1,index2);
    }
-   if(index1<=0||index2<=0){
+   if(index1<0||index2<0){
       if(jdebug>0) printf("WFCTAEvent::GetXYRange: return=-4, Image is not in the field of view of telescope CC=%lf phi=%lf\n",CC/PI*180,phi/PI*180);
       return -4;
    }
@@ -1560,7 +1602,20 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
    }
 
    //the PHI range to have image ((x*cos(phi0)+y*sin(phi0))*cos(theta)+z*sin(theta)>=0)
-   double p21=cos(theta)*cos(phi0-planephi);
+   double PHIRange[2];
+   bool inside1=CalPHIRange0(zenith,azimuth,planephi,nz1,nz2,PHI1,PHIRange);
+   bool inside2=CalPHIRange0(zenith,azimuth,planephi,nz1,nz2,PHI2,PHIRange);
+   if((!inside1)&&(!inside2)){
+      if(jdebug>0) printf("WFCTAEvent::GetXYRange: return=-7, error between the input parameters, because of PHI12={%lf,%lf} PHIRange={%lf,%lf}\n",PHI1/PI*180,PHI2/PI*180,PHIRange[0]/PI*180,PHIRange[1]/PI*180);
+      return -7;
+   }
+   else if(inside1&&(!inside2)){
+      PHI2=CommonTools::ProcessAngle(PHIRange[1]);
+   }
+   else if((!inside1)&&inside2){
+      PHI1=CommonTools::ProcessAngle(PHIRange[0]);
+   }
+   /*double p21=cos(theta)*cos(phi0-planephi);
    double p22=nz1*sin(phi0-planephi)*cos(theta)+nz2*sin(theta);
    double norm2=sqrt(p21*p21+p22*p22);
    if(norm2<margin){ //any PHI is correct
@@ -1586,7 +1641,7 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
          if(jdebug>0) printf("WFCTAEvent::GetXYRange: return=-7, error between the input parameters, because of PHI+PHI0={%lf,%lf}\n",angle1/PI*180,angle2/PI*180);
          return -7;
       }
-   }
+   }*/
 
    double PHI_low=IsLaser?PHI1:PHI2;
    double PHI_hig=IsLaser?PHI2:PHI1;
@@ -1675,7 +1730,8 @@ TGraph* WFCTAEvent::DrawImageLine(double zenith,double azimuth,double incoo[3],d
       double xx,yy;
       bool res=GetImageXYCoo(zenith,azimuth,incoo,indir,PHI,xx,yy);
       if(!res) continue;
-      gr->SetPoint(gr->GetN(),xx,yy);
+      //printf("line: %d,xy={%lf,%lf}\n",gr->GetN(),xx/PI*180,yy/PI*180);
+      gr->SetPoint(gr->GetN(),xx/PI*180,yy/PI*180);
    }
    gr->SetLineColor(1);
    gr->SetLineWidth(4);
@@ -1749,9 +1805,11 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold
    image->SetTitle(Form("iTel=%d iEvent=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d);X [degree];Y [degree]",iTel,iEvent,rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6)));
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
-      ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
-      ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
-      //if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+      //ImageX=-WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
+      //ImageY= WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
+      ImageX=-WCamera::GetSiPMX(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      ImageY= WCamera::GetSiPMY(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
       image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
       //printf("WFCTAEvent::Draw: SiPM=%d ImageX=%lf ImageY=%lf\n",ii,ImageX,ImageY);
    }
@@ -1832,9 +1890,11 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,bool DoClean,double thr
    double yrange[2]={1.0e5,-1.0e5};
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
-      ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
-      ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
-      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+      //ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
+      //ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
+      ImageX=WCamera::GetSiPMX(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      ImageY=WCamera::GetSiPMY(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
 
       double theta0[5],phi0[5];
       for(int i2=0;i2<4;i2++){
@@ -1897,9 +1957,11 @@ TH2Poly* WFCTAEvent::DrawCloudFormat(int type,const char* opt,bool DoClean,doubl
    double yrange[2]={1.0e5,-1.0e5};
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
-      ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
-      ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
-      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+      //ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
+      //ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
+      ImageX=WCamera::GetSiPMX(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      ImageY=WCamera::GetSiPMY(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
 
       double x0[5],y0[5];
       for(int i2=0;i2<4;i2++){
@@ -1960,8 +2022,10 @@ TGraph2D* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int ViewO
       int isipm=iSiPM.at(ii);
       if(!CleanImage(ii,iTel,true)) continue;
       double ImageX,ImageY;
-      ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS/PI*180;
-      ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS/PI*180;
+      //ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS/PI*180;
+      //ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS/PI*180;
+      ImageX=WCamera::GetSiPMX(isipm)/WFTelescopeArray::GetFocus(iTel)/PI*180;
+      ImageY=WCamera::GetSiPMY(isipm)/WFTelescopeArray::GetFocus(iTel)/PI*180;
       if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
       double content=GetContent(ii,iTel,type,true);
       if(type==0&&ii<ADC_Cut.size()) content=content>adccuttrigger?1.:0.;
@@ -2039,7 +2103,78 @@ bool WFCTAEvent::IsLed(int nfire_threshold){
    return nfire>=nfire_threshold;
 }
 bool WFCTAEvent::IsLaser(){
-   return false;
+   return (abs(rabbittime*20-990022580)<16000);
+}
+void WFCTAEvent::CalInfo(double result[100]){
+   double MAX=0;
+   const int ncut=9;
+   double value[ncut];
+   double Num[ncut];
+   double Sum[ncut];
+   double SumX[ncut];
+   double SumY[ncut];
+   double SumX2[ncut];
+   double SumY2[ncut];
+   double Xaverage[ncut];
+   double Yaverage[ncut];
+   double SXvariance[ncut];
+   double SYvariance[ncut];
+
+   int size=iSiPM.size();
+   for(int ii=0;ii<size;ii++){
+      double npe=GetContent(ii,0,11,true);
+      if(npe>MAX) MAX=npe;
+   }
+   int np=0;
+   result[np++]=MAX;
+   result[np++]=ncut;
+   for(int icut=0;icut<ncut;icut++){
+      value[icut]=0.1*(ncut-icut)*MAX;
+      Num[icut]=0;
+      Sum[icut]=0;
+      SumX[icut]=0;
+      SumY[icut]=0;
+      SumX2[icut]=0;
+      SumY2[icut]=0;
+      Xaverage[icut]=0;
+      Yaverage[icut]=0;
+      SXvariance[icut]=0;
+      SYvariance[icut]=0;
+      for(int ii=0;ii<size;ii++){
+         double npe=GetContent(ii,0,11,true);
+         if(npe>value[icut]){
+            Num[icut]++;
+            Sum[icut]+=npe;
+            double ImageXi=WCamera::GetSiPMX(iSiPM.at(ii))/WFTelescope::FOCUS/PI*180;
+            double ImageYi=WCamera::GetSiPMY(iSiPM.at(ii))/WFTelescope::FOCUS/PI*180;
+            SumX[icut]+=ImageXi*npe;
+            SumY[icut]+=ImageYi*npe;
+            SumX2[icut]+=ImageXi*ImageXi*npe;
+            SumY2[icut]+=ImageYi*ImageYi*npe;
+         }
+      }
+      if(Sum[icut]>0){
+         Xaverage[icut]=SumX[icut]/Sum[icut];
+         Yaverage[icut]=SumY[icut]/Sum[icut];
+         SXvariance[icut]=SumX2[icut]/Sum[icut]-pow(Xaverage[icut],2);
+         SYvariance[icut]=SumY2[icut]/Sum[icut]-pow(Yaverage[icut],2);
+      }
+      result[np++]=value[icut];
+      result[np++]=Num[icut];
+      result[np++]=Xaverage[icut];
+      result[np++]=Yaverage[icut];
+      result[np++]=SXvariance[icut];
+      result[np++]=SYvariance[icut];
+   }
+}
+bool WFCTAEvent::IsNoise(int p0,double p1,int p2,double p3) {
+   double result[100];
+   CalInfo(result);
+   if(result[0]>400) return false;
+   double num=result[2+p0*6+1];
+   double xvar=sqrt(result[2+p2*6+4]);
+   double yvar=sqrt(result[2+p2*6+5]);
+   return (num>p1)&&(xvar>=p3&&yvar>=p3);
 }
 
 /******************************************

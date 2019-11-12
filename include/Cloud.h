@@ -11,6 +11,7 @@ using std::vector;
 class WFTelescopeArray;
 class Cloud {
    public:
+   static bool drawmoon;
    static int drawcircle;
    static double Cbintheta[Cntheta+1];
    static int Cnbinphi[Cntheta];

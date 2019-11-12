@@ -57,6 +57,7 @@ class WFTelescopeArray{
    WFMirrorArray* GetMirror(int iTel);
    SquareCone* GetCone(int iTel);
    WCamera* GetCamera(int iTel);
+   static double GetFocus(int iTel);
 };
 
 /*!

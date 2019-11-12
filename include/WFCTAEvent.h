@@ -168,6 +168,7 @@ class WFCTAEvent : public TSelector
                 static void Getnz(double incoo[3],double indir[2],double &planephi,double &nz,double &nz1,double &nz2);
                 static void GetCCphi(double zenith,double azimuth,double planephi,double nz,double &CC,double &phi);
                 static void GetCCphi(double zenith,double azimuth,double incoo[3],double indir[2],double &CC,double &phi);
+                static bool CalPHIRange0(double zenith,double azimuth,double planephi,double nz1,double nz2,double PHI_in,double* PHIRange);
                 static bool GetImageXYCoo(double zenith,double azimuth,double planephi,double nz1,double nz2,double PHI_in,double &xx,double &yy);
                 static bool GetImageXYCoo(double zenith,double azimuth,double* incoo,double* indir,double PHI_in,double &xx,double &yy);
                 static void GetPHI(double zenith,double azimuth,double planephi,double nz1,double nz2,double* ImageCoo,double &PHI_in);
@@ -189,6 +190,8 @@ class WFCTAEvent : public TSelector
 
                 bool IsLed(int nfire_threshold=1000);
                 bool IsLaser();
+                bool IsNoise(int p0=5,double p1=150,int p2=4,double p3=3.5);
+                void CalInfo(double result[100]);
 
 		void rabbittime2lt();
 		void InitImage();

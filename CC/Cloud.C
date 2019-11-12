@@ -5,6 +5,9 @@
 #include <fstream>
 #include "WFTelescope.h"
 #include "TText.h"
+#include "TFile.h"
+#include "TTree.h"
+bool Cloud::drawmoon=true;
 int Cloud::drawcircle=9;
 double Cloud::Cbintheta[Cntheta+1];
 int Cloud::Cnbinphi[Cntheta];
@@ -339,6 +342,32 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    day=CommonTools::TimeFlag(time,3);
    hour=CommonTools::TimeFlag(time,4);
    min=CommonTools::TimeFlag(time,5);
+   if(drawmoon){
+      TFile *file = TFile::Open("/afs/ihep.ac.cn/users/y/youzhiyong/moon-orbit/Moon_orbit_night1_2019.root","read");
+      TTree *tree = (TTree*)file->Get("tree");
+      double el,az;
+      int y, mon, d, h, min;
+      tree->SetBranchAddress("az",&az);
+      tree->SetBranchAddress("el",&el);
+      tree->SetBranchAddress("y",&y);
+      tree->SetBranchAddress("mon",&mon);
+      tree->SetBranchAddress("d",&d);
+      tree->SetBranchAddress("h",&h);
+      tree->SetBranchAddress("min",&min);
+      int npots=tree->GetEntries();
+      TGraph* gm=new TGraph();
+      for(int ii =0;ii<npots;ii++){
+         tree->GetEntry(ii);
+         if(y==(year+2000)&mon==month&d==day) {
+            gm->SetPoint(gm->GetN(),(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az),(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az));
+         }
+         //printf("Drawmoon: ip=%d year={%d,%d} month={%d,%d} day={%d,%d}\n",ii,y,year,mon,month,d,day);
+      }
+      gm->SetLineColor(1);
+      gm->SetLineWidth(3);
+      gm->Draw("l");
+      graphlist.push_back(gm);
+   }
    if(WFTelescopeArray::CTNumber==0) cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image",year,month,day,hour,min));
    else if(WFTelescopeArray::CTNumber==1){
       cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d},Ave Temp={%.2f,%.2f},Min Temp={%.2f,%.2f})",year,month,day,hour,min,pct->pct[0]->TelIndex_,tempave[0],tempmin[0]));
