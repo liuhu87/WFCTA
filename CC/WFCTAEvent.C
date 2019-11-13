@@ -217,7 +217,7 @@ void WFCTAEvent::InitTree(TTree *tree){
 void WFCTAEvent::CreateBranch(TTree *tree, int branchSplit){
 	if(tree){
 		Head()=this;
-		tree->Branch(BranchName(),"WFCTAEvent",&Head(),32000,branchSplit);
+		tree->Branch(BranchName(),"WFCTAEvent",&Head(),320000,branchSplit);
 		TBranch * branch=tree->GetBranch(BranchName());
 		int clevel=branch->GetCompressionLevel();
 #ifdef __LZMA__
