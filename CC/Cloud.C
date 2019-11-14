@@ -360,6 +360,7 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
          tree->GetEntry(ii);
          if(y==(year+2000)&mon==month&d==day) {
             gm->SetPoint(gm->GetN(),(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az),(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az));
+            printf("ii=%d el=%lf az=%lf\n",ii,90-el/PI*180,90-az/PI*180);
          }
          //printf("Drawmoon: ip=%d year={%d,%d} month={%d,%d} day={%d,%d}\n",ii,y,year,mon,month,d,day);
       }
