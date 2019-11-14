@@ -13,6 +13,7 @@ HEADERS  += $(INCDIR)/WFTelescope.h $(INCDIR)/WFMirror.h $(INCDIR)/WFCone.h $(IN
 HEADERS  += $(INCDIR)/WFCTALedEvent.h
 HEADERS  += $(INCDIR)/WFCTALaserEvent.h
 HEADERS  += $(INCDIR)/WFCTAEvent.h
+HEADERS  += $(INCDIR)/WFCTAMerge.h
 HEADERS  += $(INCDIR)/WFCTADecode.h
 HEADERS  += $(INCDIR)/EventNtuple.h 
 HEADERS  += $(INCDIR)/FluxModel.h
@@ -29,6 +30,7 @@ SOURCES  += $(SRCDIR)/WFTelescope.C $(SRCDIR)/WFMirror.C $(SRCDIR)/WFCone.C $(SR
 SOURCES  += $(SRCDIR)/WFCTALedEvent.C
 SOURCES  += $(SRCDIR)/WFCTALaserEvent.C
 SOURCES  += $(SRCDIR)/WFCTAEvent.C
+SOURCES  += $(SRCDIR)/WFCTAMerge.C
 SOURCES  += $(SRCDIR)/WFCTADecode.C
 SOURCES  += $(SRCDIR)/EventNtuple.C 
 SOURCES  += $(SRCDIR)/FluxModel.C
@@ -39,6 +41,8 @@ SOURCES  += $(SRCDIR)/StatusDB.C
 SOURCES  += $(SRCDIR)/ReadTrack.C
 SOURCES  += $(SRCDIR)/ShowerPlot.C
 SOURCES  += event.C
+SOURCES  += eventSort.C
+SOURCES  += eventSortMerge.C
 SOURCES  += eventYMJ.C
 SOURCES  += status.C
 SOURCES  += read.C
@@ -53,6 +57,7 @@ OBJS     += $(OBJDIR)/WFTelescope.o $(OBJDIR)/WFMirror.o $(OBJDIR)/WFCone.o $(OB
 OBJS     += $(OBJDIR)/WFCTALedEvent.o
 OBJS     += $(OBJDIR)/WFCTALaserEvent.o
 OBJS     += $(OBJDIR)/WFCTAEvent.o
+OBJS     += $(OBJDIR)/WFCTAMerge.o
 OBJS     += $(OBJDIR)/WFCTADecode.o
 OBJS     += $(OBJDIR)/EventNtuple.o 
 OBJS     += $(OBJDIR)/FluxModel.o
@@ -73,9 +78,15 @@ CXXFLAGS := -O3 -fPIC
 LDFLAGS  := `root-config --libs`
 # -lRGL -lEve -lGeom -lMinuit -lTMVA -lXMLIO -lMLP -lTreePlayer -lXrdClient -lGpad -lNet -lHist -lHistPainter -lGraf -lMatrix -lRooFit
 
-all:event.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe TelDir.exe $(LIBDIR)/lib.so
+all:event.exe eventSort.exe eventSortMerge.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe $(LIBDIR)/lib.so
 
 event.exe: $(OBJDIR)/event.o $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+eventSort.exe: $(OBJDIR)/eventSort.o $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+eventSortMerge.exe: $(OBJDIR)/eventSortMerge.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 eventYMJ.exe: $(OBJDIR)/eventYMJ.o $(OBJS)
@@ -104,6 +115,14 @@ $(LIBDIR)/lib.so: $(OBJS)
 	$(LD) -shared -o $@ $^ $(LDFLAGS)
 
 $(OBJDIR)/event.o: event.C
+	mkdir -p $(OBJDIR)
+	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
+
+$(OBJDIR)/eventSort.o: eventSort.C
+	mkdir -p $(OBJDIR)
+	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
+
+$(OBJDIR)/eventSortMerge.o: eventSortMerge.C
 	mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 

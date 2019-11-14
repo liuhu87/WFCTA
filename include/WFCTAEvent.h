@@ -45,6 +45,7 @@ class WFCTAEvent : public TSelector
 
 	public:
 		short iTel;
+		short merge_size;
 		long iEvent;
 		long eEvent;
 		long rabbitTime;
@@ -66,15 +67,19 @@ class WFCTAEvent : public TSelector
 		vector<bool> eSatL;
 		vector<float> BaseH;
 		vector<float> BaseL;
+		vector<float> LaserBaseH;
+		vector<float> LaserBaseL;
 		vector<float> AdcH;
 		vector<float> AdcL;
+		vector<float> LaserAdcH;
+		vector<float> LaserAdcL;
 		vector<bool> SatH;
 		vector<bool> SatL;
 		vector<short> Single_Threshold;  //!
 		vector<short> Record_Threshold;  //!
 		vector<char> peak;  //!
-		vector<char> PeakPosH;
-		vector<char> PeakPosL;
+		vector<short> PeakPosH;
+		vector<short> PeakPosL;
 		vector<int> PeakAmH;
 		vector<int> PeakAmL;
 		vector<bool> gain_marker;  //!
@@ -196,7 +201,8 @@ class WFCTAEvent : public TSelector
 		void rabbittime2lt();
 		void InitImage();
 		void SetImage();
-		void AdcToPe();
+		void AdcToPe(float *deltag_20, float *correct_PreTemp, int isledevent);
+		//void AdcToPe();
 		void PrelimImageClean(double cut);
 		void GetNeighborPixs();
 		int CalcHillas();

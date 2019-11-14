@@ -62,6 +62,7 @@ public:
     bool eSaturationHigh(uint8_t *begin, short isipm);
     bool eSaturationLow(uint8_t *begin, short isipm);
     void GetWaveForm(uint8_t *begin, short isipm, int *pulseh, int *pulsel);
+    void GeteSaturation(uint8_t *begin, short isipm, int *esath, int *esatl);
     
 
     void Getthresh(uint8_t *begin, int packsize, short *single_thresh, short *record_thresh);//Deal21Package
