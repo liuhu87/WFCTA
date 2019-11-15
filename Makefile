@@ -73,6 +73,7 @@ DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) `root-config --cflags`
 
 #CXXFLAGS := -O3 -fPIC -qopenmp
 CXXFLAGS := -O3 -fPIC
+#CXXFLAGS += -D_FCNTL_H
 #CXXFLAGS += -D_THIN_
 
 LDFLAGS  := `root-config --libs`

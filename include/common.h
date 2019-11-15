@@ -6,9 +6,10 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
+//#include <sys/types.h>
+//#include <sys/stat.h>
+//#include "/cvmfs/lhaaso.ihep.ac.cn/anysw/slc5_ia64_gcc73/external/root/6.14.00/etc/cling/lib/clang/5.0.0/include/bits/stat.h"
+//#include <dirent.h>
 #include <time.h>
 #include "TH1F.h"
 using namespace std;

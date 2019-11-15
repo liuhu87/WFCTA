@@ -197,33 +197,33 @@ int CommonTools::GetTelIndex(const char* filename,int start,int length){
 }
 
 int CommonTools::get_file_size_time(const char* filename){
-   struct stat statbuf;
-   if(stat(filename,&statbuf) == -1) return -1;
-   if(S_ISDIR(statbuf.st_mode)) return 1;
-   if(S_ISREG(statbuf.st_mode)) return 0;
+   //struct stat statbuf;
+   //if(stat(filename,&statbuf) == -1) return -1;
+   //if(S_ISDIR(statbuf.st_mode)) return 1;
+   //if(S_ISREG(statbuf.st_mode)) return 0;
    return -1;
 }
 void CommonTools::getFiles(string path,vector<string>& files){
-   files.clear();
-   string end(".dat");
+   //files.clear();
+   //string end(".dat");
 
-   DIR* dirp;
-   struct dirent *direntp;
-   int status;
-   char buf[300];
-   if(((status = get_file_size_time(path.data())) == 0) || (status == -1) ) return;
-   if( (dirp=opendir(path.data())) == NULL) return;
-   while((direntp=readdir(dirp))!=NULL){
-      sprintf(buf,"%s/%s",path.data(),direntp->d_name);
-      //printf("read %s\n",buf);
-      if(get_file_size_time(buf)==-1) break;
-      string filename(buf);
-      if( filename.length()>=end.length() && end == filename.substr(filename.length()-end.length(),end.length())){
-         files.push_back(filename);
-      }
-      else continue;
-   }
-   closedir(dirp);
+   //DIR* dirp;
+   //struct dirent *direntp;
+   //int status;
+   //char buf[300];
+   //if(((status = get_file_size_time(path.data())) == 0) || (status == -1) ) return;
+   //if( (dirp=opendir(path.data())) == NULL) return;
+   //while((direntp=readdir(dirp))!=NULL){
+   //   sprintf(buf,"%s/%s",path.data(),direntp->d_name);
+   //   //printf("read %s\n",buf);
+   //   if(get_file_size_time(buf)==-1) break;
+   //   string filename(buf);
+   //   if( filename.length()>=end.length() && end == filename.substr(filename.length()-end.length(),end.length())){
+   //      files.push_back(filename);
+   //   }
+   //   else continue;
+   //}
+   //closedir(dirp);
 }
 
 void CommonTools::InitHArrival(){
