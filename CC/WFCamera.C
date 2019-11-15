@@ -21,19 +21,36 @@ WCamera::~WCamera()
 
 void WCamera::SetSiPMMAP()
 {
-  int  k;
-  for(int i=0; i<PIX; i++){
-     for(int j=0; j<PIX; j++){
-         k = i*PIX + j;
-         if(i%2==0)
-            SiPMMAP[k][0] = (j+0.5-PIX/2.0)*SquareCone::D_ConeOut;
+  //int  k;
+  //for(int i=0; i<PIX; i++){
+  //   for(int j=0; j<PIX; j++){
+  //       k = i*PIX + j;
+  //       if(i%2==0)
+  //          SiPMMAP[k][0] = (j+0.5-PIX/2.0)*SquareCone::D_ConeOut;
 
-         if(i%2==1)
-            SiPMMAP[k][0] = (j+1-PIX/2.0)*SquareCone::D_ConeOut;
+  //       if(i%2==1)
+  //          SiPMMAP[k][0] = (j+1-PIX/2.0)*SquareCone::D_ConeOut;
 
-         SiPMMAP[k][1] = (PIX/2.0-i)*SquareCone::D_ConeOut - SquareCone::D_ConeOut/2.0;
-     }
-  }
+  //       SiPMMAP[k][1] = (PIX/2.0-i)*SquareCone::D_ConeOut - SquareCone::D_ConeOut/2.0;
+  //   }
+  //}
+
+   double interval = 1.0; //mm, gaps between subclusters
+   int Interx,Intery;
+   double centerx, centery;
+   centerx = 410;
+   centery = 410;
+   for(int k=0;k<1024;k++){
+      int i = k/PIX;
+      int j = k%PIX;
+      Intery = i/4;
+      Interx = j/4;
+      if(i%2==0)
+          SiPMMAP[k][0] = (j+0.5)*SquareCone::D_ConeOut + interval*Interx-centerx;
+      if(i%2==1)
+          SiPMMAP[k][0]  = (j+1)*SquareCone::D_ConeOut + interval*Interx-centerx;
+      SiPMMAP[k][1] = (PIX-i)*SquareCone::D_ConeOut + interval*Intery-centery;
+   }
 }
 
 double WCamera::GetSiPMX(int itube)
@@ -97,11 +114,18 @@ void WCamera::Init()
 {
   TubeSignal.resize(NSIPM);
   eTubeSignal.resize(NSIPM);
-  ArrivalTimeMin.resize(NSIPM);
-  ArrivalTimeMax.resize(NSIPM);
-  ArrivalAccTime.resize(NSIPM);
-  NArrival.resize(NSIPM);
   TubeTrigger.resize(NSIPM); 
+  NArrival=0;
+  ArrivalTimeMin=1.0e20;
+  ArrivalTimeMax=-1.0e20;
+  OverFlow=false;
+  for(int jj=0;jj<MaxTimeBin;jj++){
+     ArrivalTime[jj]=0;
+     for(int ii=0;ii<NSIPM;ii++){
+        ArrivalCount[ii][jj]=0;
+        ArrivalCountE[ii][jj]=0;
+     }
+  }
 }
 
 void WCamera::ReSet()
@@ -109,13 +133,21 @@ void WCamera::ReSet()
    for(int i=0; i<NSIPM; i++){
       TubeSignal[i] = 0;
       eTubeSignal[i] = 0;
-      ArrivalTimeMin[i]=0;
-      ArrivalTimeMax[i]=0;
-      ArrivalAccTime[i]=0;
-      NArrival[i]=0;
       TubeTrigger[i] = 0;
    }
    TelTrigger = 0;
+
+   NArrival=0;
+   ArrivalTimeMin=1.0e20;
+   ArrivalTimeMax=-1.0e20;
+   OverFlow=false;
+   for(int jj=0;jj<MaxTimeBin;jj++){
+      ArrivalTime[jj]=0;
+      for(int ii=0;ii<NSIPM;ii++){
+         ArrivalCount[ii][jj]=0;
+         ArrivalCountE[ii][jj]=0;
+      }
+   }
 }
 
 void WCamera::AddNSB()
@@ -128,23 +160,36 @@ void WCamera::AddNSB()
   }
 }
 
+long int WCamera::FindBin(double time){
+   long int index=(long int)(time/(CommonTools::timebinunit[CommonTools::IsLaser]*1.0e-9));
+   if(time<0) index=index-1;
+   return index;
+}
 void WCamera::Fill(int itube,double time,double weight){
    if(itube<0||itube>=NSIPM) return;
    else{
       TubeSignal[itube] += weight;
       eTubeSignal[itube] = sqrt(pow(eTubeSignal[itube],2)+pow(weight,2));
+      //process time information
       if(time!=0){
-         if(ArrivalTimeMin[itube]!=0){
-            if(time<ArrivalTimeMin[itube]) ArrivalTimeMin[itube]=time;
+         if(time<ArrivalTimeMin) ArrivalTimeMin=time;
+         if(time>ArrivalTimeMax) ArrivalTimeMax=time;
+         long int index=FindBin(time);
+         int i0=-1;
+         for(int ii=0;ii<NArrival;ii++){
+            if(index==ArrivalTime[ii]) {i0=ii; break;}
          }
-         else ArrivalTimeMin[itube]=time;
-         if(ArrivalTimeMax[itube]!=0){
-            if(time>ArrivalTimeMax[itube]) ArrivalTimeMax[itube]=time;
+         if(i0<0&&NArrival<MaxTimeBin){
+            ArrivalTime[NArrival]=index;
+            i0=NArrival;
+            NArrival++;
          }
-         else ArrivalTimeMax[itube]=time;
-
-         ArrivalAccTime[itube]+=time;
-         NArrival[itube]+=1;
+         if(i0>=0){
+            ArrivalCount[itube][i0]+=weight;
+            ArrivalCountE[itube][i0]=sqrt(pow(ArrivalCountE[itube][i0],2)+pow(weight,2));
+         }
+         else OverFlow=true;
+         //printf("WCamera::Fill:time=%lf PMT=%d i0=%d NArrival=%d index=%ld ArrivalCount=%lf OverFlow=%d\n",time,itube,i0,NArrival,index,ArrivalCount[itube][i0>=0?i0:0],OverFlow);
       }
    }
 }

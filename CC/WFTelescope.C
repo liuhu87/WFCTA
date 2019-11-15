@@ -51,6 +51,7 @@ void WFTelescopeArray::ReadFromFile(char* filename){
   float nsb;                  //night sky background 
 
   /*The telescope arrays settings*/
+  int *CT_Index;
   float *CT_X, *CT_Y, *CT_Z, *CT_Azi, *CT_Zen;
   float *timefirst, *timelast,*timemean, *ncphoton;
   /*cos directions of the pointing of telescopes */
@@ -86,6 +87,7 @@ void WFTelescopeArray::ReadFromFile(char* filename){
 
   CTNumber =readconfig-> GetCTNumber();
 
+  CT_Index = new int[CTNumber];
   CT_X = new float[CTNumber];
   CT_Y = new float[CTNumber];
   CT_Z = new float[CTNumber];
@@ -100,15 +102,22 @@ void WFTelescopeArray::ReadFromFile(char* filename){
   timemean = new float[CTNumber];
   ncphoton = new float[CTNumber];
 
-  for (int ict = 0; ict <CTNumber; ict++){
-     CT_X[ict] =  readconfig->GetCTPosition(ict,0);
-     CT_Y[ict] =  readconfig->GetCTPosition(ict,1);
-     CT_Z[ict] =  readconfig->GetCTPosition(ict,2);
-     CT_Zen[ict] =  readconfig->GetCTPosition(ict,3) * TMath::DegToRad();
-     CT_Azi[ict] =  readconfig->GetCTPosition(ict,4) * TMath::DegToRad();
-     CT_m[ict] = sin(CT_Zen[ict]) * cos(CT_Azi[ict]);
-     CT_n[ict] = sin(CT_Zen[ict]) * sin(CT_Azi[ict]);
-     CT_l[ict] = cos(CT_Zen[ict]);
+  int nict=0;
+  for (int ict = 1; ict <=NCTMax; ict++){
+     if(nict>=CTNumber) break;
+     if(readconfig->GetCTPosition(ict,3)<0) continue;
+     CT_Index[nict] = ict;
+     CT_X[nict] =  readconfig->GetCTPosition(ict,0);
+     CT_Y[nict] =  readconfig->GetCTPosition(ict,1);
+     CT_Z[nict] =  readconfig->GetCTPosition(ict,2);
+     CT_Zen[nict] =  readconfig->GetCTPosition(ict,3) * TMath::DegToRad();
+     CT_Azi[nict] =  readconfig->GetCTPosition(ict,4) * TMath::DegToRad();
+     CT_m[nict] = sin(CT_Zen[nict]) * cos(CT_Azi[nict]);
+     CT_n[nict] = sin(CT_Zen[nict]) * sin(CT_Azi[nict]);
+     CT_l[nict] = cos(CT_Zen[nict]);
+     //printf("Read: itel=%d iTel=%d pos={%f,%f,%f} dir={%f,%f}\n",nict,ict,readconfig->GetCTPosition(ict,0),readconfig->GetCTPosition(ict,1),readconfig->GetCTPosition(ict,2),readconfig->GetCTPosition(ict,3),readconfig->GetCTPosition(ict,4));
+     //printf("Read: itel=%d iTel=%d pos={%f,%f,%f} dir={%f,%f}\n",nict,CT_Index[nict],CT_X[nict],CT_Y[nict],CT_Z[nict],CT_Zen[nict]/PI*180,CT_Azi[nict]/PI*180);
+     nict++;
   }
   //*The total intensty of nsb in the trigger window equlas Fadc_bins X Fabs_length X nsb *//
   Fadc_bins = readconfig->GetFadcBins();
@@ -121,15 +130,18 @@ void WFTelescopeArray::ReadFromFile(char* filename){
   if(!pct) pct=new WFTelescope*[CTNumber];
   for(int ict=0; ict<CTNumber; ict++){
      pct[ict]=new WFTelescope();
-     pct[ict]->SetXY(CT_X[ict],CT_Y[ict]);
+     pct[ict]->TelIndex_=CT_Index[ict];
+     pct[ict]->SetXYZ(CT_X[ict],CT_Y[ict],CT_Z[ict]);
      pct[ict]->SetPointing(CT_Zen[ict],CT_Azi[ict]);
      pct[ict]->SetEulerMatrix(CT_Zen[ict],CT_Azi[ict]);
      //GetMirror(ict)->SetMirror();
      GetMirror(ict)->SetMirrorPointError(MirrorPointErrorFlag,MirrorPointError);
      //GetCamera(ict)->SetCTNumber(CTNumber);
      //GetCamera(ict)->Init();
+     //printf("Adding new telescope: itel=%d iTel=%d pos={%lf,%lf,%lf} dir={%lf,%lf}\n",ict,CT_Index[ict],CT_X[ict],CT_Y[ict],CT_Z[ict],CT_Zen[ict]/PI*180,CT_Azi[ict]/PI*180);
   }
 
+  delete []CT_Index;
   delete []CT_X;
   delete []CT_Y;
   delete []CT_Z;
@@ -144,12 +156,15 @@ void WFTelescopeArray::ReadFromFile(char* filename){
   delete []timemean;
   delete []ncphoton;
 }
-int WFTelescopeArray::WhichTel(double x0, double y0){
+int WFTelescopeArray::WhichTel(double x0, double y0,double z0,double m1,double n1,double l1){
    int whichct=-1;
    if(!CheckTelescope()) return whichct;
+   if(m1*m1+n1*n1+l1*l1<=0) return whichct;
    double mindist=10000000000000;
    for(int ict=0;ict<CTNumber;ict++){
-      double dist=sqrt(pow(x0-(pct[ict]->Telx_),2)+pow(y0-(pct[ict]->Tely_),2));
+      double x1=(l1==0)?x0:(x0+(pct[ict]->Telz_-z0)/l1*m1);
+      double y1=(l1==0)?y0:(y0+(pct[ict]->Telz_-z0)/l1*n1);
+      double dist=sqrt(pow(x1-(pct[ict]->Telx_),2)+pow(y1-(pct[ict]->Tely_),2));
       if(dist<mindist){
          mindist=dist;
          whichct=ict;
@@ -158,10 +173,10 @@ int WFTelescopeArray::WhichTel(double x0, double y0){
    return whichct;
 }
 int WFTelescopeArray::RayTrace(double x0, double y0, double z0, double m1, double n1, double l1,double weight,double wavelength,int &itel,double &t,int &itube,int &icell){
-   int whichct=WhichTel(x0,y0);
+   int whichct=WhichTel(x0,y0,z0,m1,n1,l1);
    if(whichct<0) return -1000;
    ///inside telescope
-   if(jdebug>0) printf("WFTelescopeArray::RayTrace: Passing Telescope InCoo={%f,%f,%f} TelCoo={%f,%f}\n",x0,y0,z0,pct[whichct]->Telx_,pct[whichct]->Tely_);
+   if(jdebug>0) printf("WFTelescopeArray::RayTrace: Passing Telescope InCoo={%f,%f,%f} TelCoo={%f,%f,%f}\n",x0,y0,z0,pct[whichct]->Telx_,pct[whichct]->Tely_,pct[whichct]->Telz_);
    if(!pct[whichct]->IncidentTel(x0,y0)) return -1;
    if(jdebug>0) printf("WFTelescopeArray::RayTrace: Inside Telescope%d\n",whichct);
 
@@ -195,6 +210,15 @@ bool WFTelescopeArray::CheckTelescope(){
    }
    return exist;
 }
+int WFTelescopeArray::GetTelescope(int iTel){
+   int res=-1;
+   for(int ii=0;ii<WFTelescopeArray::CTNumber;ii++){
+      WFTelescope* pct0=pct[ii];
+      if(!pct0) continue;
+      if(iTel==pct0->TelIndex_) {res=ii; break;}
+   }
+   return res;
+}
 TGraph* WFTelescopeArray::TelView(int iTel){
    if(!pct) return 0;
    if(iTel<0||iTel>=WFTelescopeArray::CTNumber) return 0;
@@ -212,7 +236,7 @@ TGraph* WFTelescopeArray::TelView(int iTel){
          double rr=sqrt(xx*xx+yy*yy);
          if(rr>1.) continue;
          double zz=sqrt(1-rr*rr);
-         double x0,y0,z0;
+         double x0=0,y0=0,z0=0;
          double m1=-xx;
          double n1=-yy;
          double l1=-zz;
@@ -221,9 +245,10 @@ TGraph* WFTelescopeArray::TelView(int iTel){
          double x0new,y0new,z0new;
          double m1new,n1new,l1new;
          pct0->ConvertCoor(x0,y0,z0,m1,n1,l1,x0new,y0new,z0new,m1new,n1new,l1new);
+         //printf("itel=%d dirin={%lf,%lf,%lf} dirout={%lf,%lf,%lf}\n",iTel,m1,n1,l1,m1new,n1new,l1new);
          z0new=WFTelescope::ZDOOR;
          double margin=100.;
-         int ntest=10;
+         int ntest=20;
          for(int itest=0;itest<ntest*ntest;itest++){
             int ix=itest/ntest;
             int iy=itest%ntest;
@@ -232,13 +257,14 @@ TGraph* WFTelescopeArray::TelView(int iTel){
             double t,xcluster,ycluster,m2,n2,l2;
             int result=pct0->RayTraceUpToCone(x0new,y0new,z0new,m1new,n1new,l1new,t,xcluster,ycluster,m2,n2,l2);
             if(result>=0){
-               double xc = -ycluster;
+               double xc = ycluster;
                double yc = xcluster;
                int itube=(pct0->pcame)->GetCone(xc,yc);
                if(itube>=0) inside=true;
                if(inside) break;
             }
          }
+         if(jdebug>0) printf("WFTelescopeArray::TelView: xbin=%d(xx=%.2lf) ybin=%d(yy=%.2lf) zz=%lf inside=%d\n",ibin,xx,ibin2,yy,zz,inside);
          if(inside_pre==false){
             if(inside==true){
                xbin[ibin]=xx;
@@ -253,7 +279,6 @@ TGraph* WFTelescopeArray::TelView(int iTel){
                break;
             }
          }
-         if(jdebug>0) printf("WFTelescopeArray::TelView: xbin=%d(xx=%.2lf) ybin=%d(yy=%.2lf) inside=%d\n",ibin,xx,ibin2,yy,inside);
       }
    }
 
@@ -297,6 +322,15 @@ WCamera* WFTelescopeArray::GetCamera(int iTel){
    if(!p0) return 0;
    return p0->pcame;
 }
+double WFTelescopeArray::GetFocus(int iTel){
+   if(iTel==1) return 2880;
+   else if(iTel==2) return 2910;
+   else if(iTel==3) return 2922;
+   else if(iTel==4) return 2942;
+   else if(iTel==5) return 2901;
+   else if(iTel==6) return 2906;
+   else return 2870;
+}
 
 double WFTelescope::MirrorSizeX=400.; //cm
 double WFTelescope::MirrorSizeY=400.; //cm
@@ -306,7 +340,7 @@ double WFTelescope::Hdoor=2379;
 double WFTelescope::TRANSPARENCY=0.87;
 double WFTelescope::CLUSTER_X = 894.25;
 double WFTelescope::CLUSTER_Y = 769.08;
-double WFTelescope::FOCUS = 2870;
+double WFTelescope::FOCUS = 2870; //2870
 double WFTelescope::ZCLUSTER0 = 2870;
 double WFTelescope::ZCLUSTER1 =(2870+230);
 TGraph2D *WFTelescope::Transmissivity=0;
@@ -316,8 +350,10 @@ double WFTelescope::Reflectivity[55];
 TGraph* WFTelescope::quantumeff=0;
 double WFTelescope::mirror_wl_max, WFTelescope::mirror_wl_min, WFTelescope::mirror_wl_step;
 void WFTelescope::Init(){
+   TelIndex_=0;
    Telx_=0;
    Tely_=0;
+   Telz_=0;
    TelZ_=0;
    TelA_=0;
    for(int ii=0;ii<3;ii++){
@@ -339,16 +375,17 @@ void WFTelescope::Clear(){
    if(Transmissivity) {delete Transmissivity; Transmissivity=0;}
    if(quantumeff) {delete quantumeff; quantumeff=0;}
 }
-void WFTelescope::SetXY(double x, double y)
+void WFTelescope::SetXYZ(double x, double y, double z)
 {
     Telx_ = x;
     Tely_ = y;
+    Telz_ = z;
 }
 void WFTelescope::SetPointing(double zenith,double azimuth)
 {
     TelZ_ = zenith;
     TelA_ = azimuth;
-    printf("WFTelescope::SetPointing: TelZ %f TelA %f\n", TelZ_, TelA_);
+    //printf("WFTelescope::SetPointing: TelZ %f TelA %f\n", TelZ_, TelA_);
 }
 void WFTelescope::SetEulerMatrix(double theta,double phi)
 {
@@ -552,7 +589,8 @@ bool WFTelescope::GetQuantumEff(double wavelength){
 void WFTelescope::ConvertCoor(double x0,double y0,double z0,double m1,double n1,double l1,double &x0new,double &y0new,double &z0new,double &m1new,double &n1new,double &l1new){
    double x1=x0-Telx_;
    double y1=y0-Tely_;
-   Euler(x1,y1,z0,&x0new,&y0new,&z0new);
+   double z1=z0-Telz_;
+   Euler(x1,y1,z1,&x0new,&y0new,&z0new);
    //from cm to mm;
    x0new*=10;
    y0new*=10;
@@ -628,6 +666,7 @@ bool WFTelescope::RayTraceCluster(double x0, double y0, double z0, double m1, do
        return true;
     }
     else{
+       return true;
        if(fabs(x)>CLUSTER_X/2.||fabs(y)>CLUSTER_Y/2.) return false; /////out of the range of the cluster
        return true;
     }
@@ -671,6 +710,21 @@ bool WFTelescope::RayTraceMirror2(double xmirror0,double ymirror0,double zmirror
     double xmirror = WFTelescopeArray::prandom->Gaus(xmirror0,WFMirror::MirrorSpot);
     double ymirror = WFTelescopeArray::prandom->Gaus(ymirror0,WFMirror::MirrorSpot);
     double zmirror = zmirror0;
+    /*//if(deltax==-10000){
+       double x,y,z;
+       x=0-xmirror;
+       y=0-ymirror;
+       z=WFMirror::CURVATURE-zmirror;
+       double norm=sqrt(x*x+y*y+z*z);
+       x/=norm;
+       y/=norm;
+       z/=norm;
+       double costheta = m1*x+n1*y+l1*z;
+       m2 = (m1-2.*costheta*x);
+       n2 = (n1-2.*costheta*y);
+       l2 = (l1-2.*costheta*z);
+       return true;
+    //}*/
     pmirr->pmirr[ii][mm]->GetReflected(m1,n1,l1,xmirror,ymirror,zmirror,&m2,&n2,&l2);
     if(WFTelescopeArray::jdebug>3) printf("WFTelescope::RayTraceMirror2: Reflection: RefCoo={%.3f,%.3f,%.3f} InDir={%.3f,%.3f,%.3f} OtDir={%.3f,%.3f,%.3f}\n",xmirror,ymirror,zmirror,m1,n1,l1,m2,n2,l2);
 
@@ -721,6 +775,8 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
 
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Passing From Door to Cone InCoo={%.f,%.f,%.f} InDir={%.f,%.f,%.f}\n",x0,y0,z0,m1,n1,l1);
     double result=RayTraceUpToCone(x0,y0,z0,m1,n1,l1,t,xcluster,ycluster,m2,n2,l2);
+    //l2=sqrt(1-m2*m2-n2*n2);
+    if(!(l2>=0)) l2=0;
     if(result<0) return result;
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Go Through From Door to Cone OtCoo={%.f,%.f} OtDir={%.f,%.f,%.f}\n",xcluster,ycluster,m2,n2,l2);
 
@@ -733,10 +789,10 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     }
 
     //from Tel Coo to Cone Coo.
-    double u,v,xc,yc;
-    u = m2;
-    v = n2;
-    //*ll = l2;
+    double u,v,w,xc,yc;
+    u = n2; //m2
+    v = m2; //n2
+    w = -l2;
     xc = ycluster; //-ycluster
     yc = xcluster;
 
@@ -744,6 +800,7 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Before Cone InCoo={%.f,%.f}\n",xc,yc);
     icone = pcame->GetCone(xc,yc);
     if(icone<0) return -7;
+    //else{itube=icone; return 1;}
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Inside Cone%d\n",icone);
 
     //*To Get the cone coordinates*//
@@ -753,8 +810,8 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     deltax =  xc - x;
     deltay =  yc - y;
     dircos[0] = u; //-u
-    dircos[1] = v;
-    dircos[2] = -sqrt(1-u*u-v*v);
+    dircos[1] = v; //v
+    dircos[2] = w; //-sqrt(1-u*u-v*v)
 
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Passinfg Cone%d delta={%f.%f} dircos={%f,%f,%f}\n",icone,deltax,deltay,dircos[0],dircos[1],dircos[2]);
     //*The ray trace in the cone *//

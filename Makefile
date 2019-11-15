@@ -49,6 +49,7 @@ SOURCES  += read.C
 SOURCES  += dosim.C
 SOURCES  += showcloudmap.C
 SOURCES  += dolasersim.C
+SOURCES  += TelDir.C
 
 OBJS     := $(OBJDIR)/common.o
 OBJS     += $(OBJDIR)/CorsikaIO.o $(OBJDIR)/CorsikaChain.o $(OBJDIR)/CorsikaEvent.o 
@@ -72,6 +73,7 @@ DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) `root-config --cflags`
 
 #CXXFLAGS := -O3 -fPIC -qopenmp
 CXXFLAGS := -O3 -fPIC
+#CXXFLAGS += -D_FCNTL_H
 #CXXFLAGS += -D_THIN_
 
 LDFLAGS  := `root-config --libs`
@@ -104,6 +106,9 @@ showcloudmap.exe: $(OBJDIR)/showcloudmap.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 dolasersim.exe: $(OBJDIR)/dolasersim.o $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+TelDir.exe: $(OBJDIR)/TelDir.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(LIBDIR)/lib.so: $(OBJS)
@@ -143,6 +148,10 @@ $(OBJDIR)/showcloudmap.o: showcloudmap.C
 	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 
 $(OBJDIR)/dolasersim.o: dolasersim.C
+	mkdir -p $(OBJDIR)
+	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
+
+$(OBJDIR)/TelDir.o: TelDir.C
 	mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 

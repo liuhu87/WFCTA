@@ -11,12 +11,14 @@ using std::vector;
 class WFTelescopeArray;
 class Cloud {
    public:
+   static bool drawmoon;
    static int drawcircle;
    static double Cbintheta[Cntheta+1];
    static int Cnbinphi[Cntheta];
    static double Cbinphi[Cntheta][Cnphi+1];
    TH2Poly* cloudmap;
    int time;
+   double temp;
    vector<TGraph*> graphlist;
 
    public:
@@ -31,6 +33,7 @@ class Cloud {
    Cloud() { Init(); }
    ~Cloud() { Clear(); }
    void ReadCloudMap(char* filename);
+   bool ReadTemp(char* filename=0);
    void AveTemp(double &avetemp,double &mintemp,TGraph* gr);
    void Draw(WFTelescopeArray* pct,char* opt=(char*)"colz");
 };

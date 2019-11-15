@@ -10,6 +10,7 @@
 #include "TGraph.h"
 #include "TRandom3.h"
 //#include "telescopeparameters.h"
+#include "common.h"
 
 using namespace std;
 
@@ -48,13 +49,15 @@ class WFTelescopeArray{
    ///deconstructor
    ~WFTelescopeArray() {Clear();}
    void ReadFromFile(char* filename);
-   int WhichTel(double x0, double y0);
+   int WhichTel(double x0, double y0,double z0=0, double m1=0, double n1=0, double l1=1);
    int RayTrace(double x0, double y0, double z0, double m1, double n1, double l1,double weight,double wavelength,int &itel,double &t,int &itube,int &icell);
    bool CheckTelescope();
+   int GetTelescope(int iTel);
    TGraph* TelView(int iTel);
    WFMirrorArray* GetMirror(int iTel);
    SquareCone* GetCone(int iTel);
    WCamera* GetCamera(int iTel);
+   static double GetFocus(int iTel);
 };
 
 /*!
@@ -89,11 +92,15 @@ class WFTelescope
    ///maximum z coordinate of cluster box,in mm
    static double ZCLUSTER1;
 
+   ///telescope index
+   int TelIndex_;
    ///telescope global information
    ///x position of the telescope
    double Telx_;
    ///y position of the telescope
    double Tely_;
+   ///z position of the telescope
+   double Telz_;
    ///zenith angle of the telescope
    double TelZ_;
    ///azimuth angle of the telescope
@@ -120,7 +127,7 @@ class WFTelescope
    void Clear();
    WFTelescope() {Init();}
    ~WFTelescope() {Clear();}
-   void SetXY(double x,double y);
+   void SetXYZ(double x,double y,double z=0);
    void SetPointing(double zenith, double azimuth);
    void SetEulerMatrix(double theta,double phi); 
    void Euler(double x0, double y0, double z0, double *x, double *y, double *z);

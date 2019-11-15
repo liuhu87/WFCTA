@@ -57,7 +57,7 @@ class EventNtuple{
    ///default deconstructor
    virtual ~EventNtuple();
    ///Fill all the events to tree or histograms
-   void Fill(TSelector** pevt);
+   void Fill(CorsikaEvent* pcor,WFCTAEvent* pevt,int iuse0=0);
 };
 
 #endif

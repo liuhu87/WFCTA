@@ -3,6 +3,11 @@
 #include "string.h"
 #include "stdlib.h"
 using namespace std;
+
+int Nuse=0;
+TH1F* CommonTools::HArrival[1024]={0};
+double CommonTools::timebinunit[2]={0.3,3000};
+bool CommonTools::IsLaser=false;
 ///check wheather the year is leap year
 bool CommonTools::Is366(int year){
    if((year%4==0)&&(year%100!=0)) return true;
@@ -101,21 +106,22 @@ int CommonTools::TimeFlag(int time,int type){
    double time0=InvConvert(time);
    return TimeFlag(time0,type);
 }
-bool CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * lastline){
+int CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * lastline){
    const int maxlen=300;
    char buff[maxlen];
    char timebuff[13];
-   long pos0,pos1;
+   long pos0,pos1,pos2;
    ifstream fbuff(filename,std::ios::in);
    fbuff.seekg(ios::beg);
    pos0=fbuff.tellg();
    fbuff.getline(buff,maxlen);
    pos1=fbuff.tellg();
-   bool res=(!fbuff.eof());
    int length=strlen(buff);
    strcpy(firstline,buff);
    fbuff.seekg(pos0-pos1,ios::end);
    fbuff.getline(buff,maxlen);
+   pos2=fbuff.tellg();
+   int res=(pos1>pos0)?(pos2-pos0)/(pos1-pos0):0;
    strcpy(lastline,buff);
    return res;
 }
@@ -139,6 +145,39 @@ int CommonTools::GetTimeFromFileName(const char* filename,int start,int length){
       return time;
    }
 }
+int CommonTools::GetBins(int start,int end,double step,double bins[100000]){
+   int h1=7,h2=18;
+   int nbin=0;
+   int hour1=TimeFlag(start,4);
+   int hour2=TimeFlag(end,4);
+   if(hour1>=h1&&hour1<=h2){
+      int min=TimeFlag(start,5);
+      int sec=TimeFlag(start,6);
+      start+=(h2+1-hour1)*3600+(0-min)*60+(0-sec);
+   }
+   if(hour2>=h1&&hour2<=h2){
+      int min=TimeFlag(end,5);
+      int sec=TimeFlag(end,6);
+      end-=((hour2-h1)*3600+min*60+sec);
+   }
+   bins[nbin++]=start;
+   while(nbin<100000){
+      double newbin=bins[nbin-1]+step;
+      int hour=TimeFlag((int)(newbin+0.5),4);
+      //printf("hour=%d\n",hour);
+      if(hour>=h1&&hour<=h2){
+         int min=TimeFlag((int)(newbin+0.5),5);
+         int sec=TimeFlag((int)(newbin+0.5),6);
+         newbin+=(h2+1-hour)*3600+(0-min)*60+(0-sec);
+         //printf("nbin=%d bins={%lf,%lf}\n",nbin,bins[nbin-1]+step,newbin);
+      }
+      bins[nbin++]=(newbin>=end)?end:newbin;
+      //printf("nbin=%d bins=%lf\n",nbin-1,bins[nbin-1]);
+      if(newbin>=end) break;
+   }
+   return nbin-1;
+}
+
 int CommonTools::GetTelIndex(const char* filename,int start,int length){
    int strlength=strlen(filename);
    if(start<0) return 0;
@@ -158,31 +197,54 @@ int CommonTools::GetTelIndex(const char* filename,int start,int length){
 }
 
 int CommonTools::get_file_size_time(const char* filename){
-   struct stat statbuf;
-   if(stat(filename,&statbuf) == -1) return -1;
-   if(S_ISDIR(statbuf.st_mode)) return 1;
-   if(S_ISREG(statbuf.st_mode)) return 0;
+   //struct stat statbuf;
+   //if(stat(filename,&statbuf) == -1) return -1;
+   //if(S_ISDIR(statbuf.st_mode)) return 1;
+   //if(S_ISREG(statbuf.st_mode)) return 0;
    return -1;
 }
 void CommonTools::getFiles(string path,vector<string>& files){
-   files.clear();
-   string end(".dat");
+   //files.clear();
+   //string end(".dat");
 
-   DIR* dirp;
-   struct dirent *direntp;
-   int status;
-   char buf[300];
-   if(((status = get_file_size_time(path.data())) == 0) || (status == -1) ) return;
-   if( (dirp=opendir(path.data())) == NULL) return;
-   while((direntp=readdir(dirp))!=NULL){
-      sprintf(buf,"%s/%s",path.data(),direntp->d_name);
-      //printf("read %s\n",buf);
-      if(get_file_size_time(buf)==-1) break;
-      string filename(buf);
-      if( filename.length()>=end.length() && end == filename.substr(filename.length()-end.length(),end.length())){
-         files.push_back(filename);
-      }
-      else continue;
+   //DIR* dirp;
+   //struct dirent *direntp;
+   //int status;
+   //char buf[300];
+   //if(((status = get_file_size_time(path.data())) == 0) || (status == -1) ) return;
+   //if( (dirp=opendir(path.data())) == NULL) return;
+   //while((direntp=readdir(dirp))!=NULL){
+   //   sprintf(buf,"%s/%s",path.data(),direntp->d_name);
+   //   //printf("read %s\n",buf);
+   //   if(get_file_size_time(buf)==-1) break;
+   //   string filename(buf);
+   //   if( filename.length()>=end.length() && end == filename.substr(filename.length()-end.length(),end.length())){
+   //      files.push_back(filename);
+   //   }
+   //   else continue;
+   //}
+   //closedir(dirp);
+}
+
+void CommonTools::InitHArrival(){
+   for(int ii=0;ii<1024;ii++){
+      HArrival[ii]=new TH1F(Form("PMT_%d",ii),"",(MaxTimeBin*2),-MaxTimeBin,MaxTimeBin);
    }
-   closedir(dirp);
+}
+void CommonTools::ResetHArrival(){
+   for(int ii=0;ii<1024;ii++){
+      if(HArrival[ii]) HArrival[ii]->Reset();
+   }
+}
+
+double CommonTools::ProcessAngle(double angle){
+   if(angle>=0&&angle<(2*PI)) return angle;
+   else if(angle<0){
+      int nn=int((angle)/(-2*PI)-1.0e-8);
+      return angle+(nn+1)*(2*PI);
+   }
+   else{
+      int nn=int((angle)/(2*PI));
+      return angle-nn*(2*PI);
+   }
 }

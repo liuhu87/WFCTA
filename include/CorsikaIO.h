@@ -30,7 +30,7 @@ class CorsikaEvent;
 #define _RECORD_LENGTH_     _SUBBLOCK_LENGTH_*_NSUBBLOCK_
 
 //use number of primary particle
-#define Nuse 20
+#define NuseMax 20
 
 //#define PI 3.14159265358979312
 //#define RADDEG 180/PI
@@ -49,7 +49,7 @@ struct EveInfo{
   Float_t ep;
   Float_t pxp, pyp, pzp;
   Float_t thetap, phip,stheight;
-  Float_t corex[Nuse],corey[Nuse];
+  Float_t corex[NuseMax],corey[NuseMax];
   
   //EVTE
   Int_t nphoton, nelectron, nhadron, nmuon, nparticle;

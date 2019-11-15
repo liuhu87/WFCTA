@@ -6,10 +6,12 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
+//#include <sys/types.h>
+//#include <sys/stat.h>
+//#include "/cvmfs/lhaaso.ihep.ac.cn/anysw/slc5_ia64_gcc73/external/root/6.14.00/etc/cling/lib/clang/5.0.0/include/bits/stat.h"
+//#include <dirent.h>
 #include <time.h>
+#include "TH1F.h"
 using namespace std;
 using std::vector;
 
@@ -18,21 +20,40 @@ using std::vector;
 const double hplank=6.62607015e-34; //in J*s
 const double hplank_gev=4.1356676969e-24; //in GeV*s
 const double vlight=2.998e10;
+extern int Nuse;
   ///convert time
 class CommonTools {
+   public:
+   ///cerenkov photon arrival information
+   static TH1F* HArrival[1024];
+   ///time bin width,in unit of nano second
+   static double timebinunit[2];
+   ///check wheather it is laser event
+   static bool IsLaser;
+
    public:
    static bool Is366(int year);
    static int Convert(double time);
    static double InvConvert(int time);
    static int TimeFlag(double time,int type);
    static int TimeFlag(int time,int type);
-   static bool GetFirstLastLine(const char* filename,char* firstline,char * lastline);
+   static int GetFirstLastLine(const char* filename,char* firstline,char * lastline);
    static int GetTimeFromFileName(const char* filename,int start,int length);
+   static int GetBins(int start,int end,double step,double bins[100000]);
    static int GetTelIndex(const char* filename,int start,int length);
    static int get_file_size_time(const char* filename);
    static void getFiles(string path,vector<string>& files);
+
+   static void InitHArrival();
+   static void ResetHArrival();
+
+   static double ProcessAngle(double angle);
 };
 
 /// Max number of Telescopes
 #define NCTMax 20
+
+/// Max number of time bins
+#define MaxTimeBin 150
+
 #endif

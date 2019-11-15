@@ -4,6 +4,7 @@
 #include "math.h"
 #include "common.h"
 #include "WFTelescope.h"
+#include "WFCamera.h"
 #include "WFCTAEvent.h"
 #include "TAxis3D.h"
 #include "Readparam.h"
@@ -184,13 +185,53 @@ bool Atmosphere::MieScatterAngleTheta(double wavelength, double &theta, double a
    //   return false;
    //}
 
+double phase_init[181]={
+    0.591448, 0.594184, 0.594692, 0.593188, 0.589878, 0.584950,
+    0.578583, 0.570940, 0.562176, 0.552432, 0.541840, 0.530522,
+    0.518590, 0.506148, 0.493292, 0.480108, 0.466677, 0.453072,
+    0.439359, 0.425599, 0.411846, 0.398150, 0.384554, 0.371098,
+    0.357817, 0.344743, 0.331900, 0.319315, 0.307006, 0.294990,
+    0.283283, 0.271895, 0.260836, 0.250113, 0.239731, 0.229694,
+    0.220003, 0.210658, 0.201657, 0.193000, 0.184681, 0.176696,
+    0.169040, 0.161706, 0.154689, 0.147979, 0.141570, 0.135453,
+    0.129620, 0.124061, 0.118768, 0.113732, 0.108942, 0.104390,
+    0.100067, 0.095962, 0.092068, 0.088374, 0.084872, 0.081554,
+    0.078409, 0.075431, 0.072611, 0.069941, 0.067412, 0.065019,
+    0.062753, 0.060608, 0.058577, 0.056654, 0.054832, 0.053106,
+    0.051470, 0.049919, 0.048449, 0.047053, 0.045728, 0.044470,
+    0.043275, 0.042138, 0.041056, 0.040027, 0.039046, 0.038111,
+    0.037220, 0.036369, 0.035557, 0.034782, 0.034040, 0.033331,
+    0.032653, 0.032004, 0.031383, 0.030788, 0.030219, 0.029673,
+    0.029151, 0.028650, 0.028172, 0.027713, 0.027274, 0.026855,
+    0.026454, 0.026071, 0.025706, 0.025357, 0.025026, 0.024710,
+    0.024411, 0.024127, 0.023859, 0.023605, 0.023367, 0.023143,
+    0.022933, 0.022738, 0.022556, 0.022388, 0.022234, 0.022093,
+    0.021966, 0.021851, 0.021750, 0.021661, 0.021585, 0.021522,
+    0.021471, 0.021432, 0.021405, 0.021391, 0.021388, 0.021397,
+    0.021418, 0.021450, 0.021494, 0.021548, 0.021614, 0.021691,
+    0.021779, 0.021878, 0.021987, 0.022106, 0.022236, 0.022375,
+    0.022525, 0.022684, 0.022853, 0.023031, 0.023218, 0.023414,
+    0.023619, 0.023831, 0.024052, 0.024280, 0.024516, 0.024759,
+    0.025009, 0.025265, 0.025527, 0.025795, 0.026069, 0.026347,
+    0.026631, 0.026919, 0.027212, 0.027509, 0.027811, 0.028116,
+    0.028426, 0.028739, 0.029058, 0.029381, 0.029710, 0.030045,
+    0.030387, 0.030737, 0.031097, 0.031469, 0.031855, 0.032257,
+    0.032677};
+    //double sum=0;
+    //for(int ii=0;ii<180;ii++){
+    //   sum+=phase_init[ii+1]*1./180*PI;
+    //}
+    //printf("sum=%lf\n",sum);
+
    double xxx;
    double yrange[2];
    xxx=Laser::prandom->Uniform(0,1);
    if(anglerange[1]<=anglerange[0]){
       //theta=gMieScatAngle->Eval(xxx);
       theta=xxx*PI;
-      weight*=1;
+      //weight*=1;
+      int nn=(int)(xxx*180);
+      weight*=(phase_init[nn]*(nn+1-xxx*180)+phase_init[nn+1]*(xxx*180-nn))/0.393957;
       return true;
    }
    else{
@@ -200,7 +241,9 @@ bool Atmosphere::MieScatterAngleTheta(double wavelength, double &theta, double a
       if(theta<0) return false;
       //theta=gMieScatAngle->Eval(theta);
       theta*=PI;
-      weight*=1;
+      //weight*=1;
+      int nn=(int)(xxx*180);
+      weight*=(phase_init[nn]*(nn+1-xxx*180)+phase_init[nn+1]*(xxx*180-nn))/0.393957;
       return true;
    }
 }
@@ -276,7 +319,7 @@ double Atmosphere::FreePathLength(double z0,double dir0[3],double lengthrange[2]
       else{
          double z00=z0;
          bool findlowrange=false;
-         while(integ<lengthrange[1]){
+         while(length<lengthrange[1]){
             double z1=z00+DeltaZ(z00);
             double dleng=fabs((z1-z00)/dir0[2]*norm);
             double dintg=(aod_air+aod_aerosol)*ZDependence((z00+z1)/2)*dleng;
@@ -347,10 +390,11 @@ The class for laser photon propagation
 int Laser::jdebug=0;
 int Laser::Doigen=-1;
 bool Laser::DoPlot=false;
+bool Laser::Doextin=true;
 float Laser::IniRange[4][2]={{1.0e9,-1.0e9},{1.0e9,-1.0e9},{1.0e9,-1.0e9},{1.0e9,-1.0e9}};
 TRandom3* Laser::prandom = 0;
 double Laser::TelSimDist=400.; //in cm
-double Laser::TelSimAngl=10.; //in degree
+double Laser::TelSimAngl=12.; //in degree
 double Laser::scale=1.0;
 double Laser::unittime=1600.; //in ns
 double Laser::intensity = 0;//mj
@@ -362,6 +406,17 @@ double Laser::pulsetime = 0;
 double Laser::spotrange[2] = {0,0};//0.001;//mm, the range of the initial laser spot
 double Laser::divergence[2] = {0,0};//0.0573; //mrad
 
+double Laser::LaserCooErr=100.; //in cm
+double Laser::LaserZenErr=0.02;//0.02; //in degree
+double Laser::LaserAziErr=0.02;//0.02; //in degree
+
+double Laser::lengthmin=400;
+double Laser::lengthmax=2000;
+double Laser::lengthmin2=400;
+double Laser::lengthmax2=4000;
+TH1D* Laser::hdenu;
+TH1D* Laser::hprob[NCTMax][1024];
+TH1D* Laser::hleng[NCTMax][1024];
 void Laser::Init(int seed){
    if(!prandom) prandom = new TRandom3();
    prandom->SetSeed(seed);
@@ -372,6 +427,14 @@ void Laser::Init(int seed){
    for(int ii=0;ii<2;ii++) laserdir[ii]=0;
    plot=0;
    for(int ii=0;ii<4;ii++) {plotrange[ii][0]=IniRange[ii][0]; plotrange[ii][1]=IniRange[ii][1];}
+   hdenu=0;
+   for(int itel=0;itel<NCTMax;itel++){
+      for(int isipm=0;isipm<NSIPM;isipm++){
+         hprob[itel][isipm]=0;
+         hleng[itel][isipm]=0;
+      }
+   }
+
    Reset();
 }
 void Laser::Release(){
@@ -380,6 +443,13 @@ void Laser::Release(){
    if(plot){
       //plot->Delete();
       delete plot;
+   }
+   if(hdenu) {delete hdenu; hdenu=0;}
+   for(int itel=0;itel<NCTMax;itel++){
+      for(int isipm=0;isipm<NSIPM;isipm++){
+         if(hprob[itel][isipm]) {delete hprob[itel][isipm]; hprob[itel][isipm]=0;}
+         if(hleng[itel][isipm]) {delete hleng[itel][isipm]; hleng[itel][isipm]=0;}
+      }
    }
 }
 void Laser::Reset(){
@@ -406,6 +476,10 @@ void Laser::Reset(){
       vocoo[ii].clear();
       vodir[ii].clear();
    }
+   interpoint=0;
+   volength.clear();
+   volength2.clear();
+   vosipm.clear();
    if(pwfc) pwfc->EventInitial();
 
    if(plot){
@@ -414,6 +488,13 @@ void Laser::Reset(){
       plot=new TObjArray();
    }
    for(int ii=0;ii<4;ii++) {plotrange[ii][0]=IniRange[ii][0]; plotrange[ii][1]=IniRange[ii][1];}
+   if(hdenu) {delete hdenu; hdenu=0;}
+   for(int itel=0;itel<NCTMax;itel++){
+      for(int isipm=0;isipm<NSIPM;isipm++){
+         if(hprob[itel][isipm]) {delete hprob[itel][isipm]; hprob[itel][isipm]=0;}
+         if(hleng[itel][isipm]) {delete hleng[itel][isipm]; hleng[itel][isipm]=0;}
+      }
+   }
 }
 void Laser::SetParameters(char* filename){
    WReadConfig read;
@@ -489,10 +570,10 @@ double Laser::mindist(double zero[3],double coor_in[3],double dir_in[3],double *
 }
 double Laser::mindist(double coor_in[3],double dir_in[3],int &whichtel,double *coor_min,bool &decrease){
    int nct;
-   double telcoor[NCTMax][2];
+   double telcoor[NCTMax][3];
    WFTelescopeArray* pta=WFTelescopeArray::GetHead();
    if(!pta){
-      nct=1; telcoor[0][0]=telcoor[0][1]=0;
+      nct=1; telcoor[0][0]=telcoor[0][1]=telcoor[0][2]=0;
    }
    else{
       nct=pta->CTNumber;
@@ -500,6 +581,7 @@ double Laser::mindist(double coor_in[3],double dir_in[3],int &whichtel,double *c
          WFTelescope* pt=pta->pct[ii];
          telcoor[ii][0]=pt->Telx_;
          telcoor[ii][1]=pt->Tely_;
+         telcoor[ii][2]=pt->Telz_;
       }
    }
    whichtel=-2;
@@ -507,7 +589,7 @@ double Laser::mindist(double coor_in[3],double dir_in[3],int &whichtel,double *c
    double min=1.0e10;
    for(int ii=0;ii<nct;ii++){
       double coor_min0[3];
-      double zero[3]={telcoor[ii][0],telcoor[ii][1],0};
+      double zero[3]={telcoor[ii][0],telcoor[ii][1],telcoor[ii][2]};
       double dis=mindist(zero,coor_in,dir_in,coor_min0,decrease);
       //printf("mindist ct=%d: zero={%lf,%lf,%lf} coo={%lf,%lf,%lf} dist=%lf\n",ii,zero[0],zero[1],zero[2],coor_min0[0],coor_min0[1],coor_min0[2],dis);
       if(dis<min){
@@ -549,6 +631,23 @@ void Laser::DirectionDis(double &theta,double &phi){
    phi=(dx==0)?(dy>=0?(PI/2):(-PI/2)):atan(dy/dx);
    if(dx<0) phi+=PI;
 }
+void Laser::GetAveTelPos(double zero[3]){
+   WFTelescopeArray* pta=WFTelescopeArray::GetHead();
+   if(!pta) return;
+   double avecoo[3]={0,0,0};
+   int ncount=0;
+   for(int ii=0;ii<pta->CTNumber;ii++){
+      WFTelescope* pt=pta->pct[ii];
+      if(!pt) continue;
+      ncount++;
+      avecoo[0]+=pt->Telx_;
+      avecoo[1]+=pt->Tely_;
+      avecoo[2]+=pt->Telz_;
+   }
+   if(ncount>0){
+      for(int ii=0;ii<3;ii++) zero[ii]=avecoo[ii]/ncount;
+   }
+}
 bool Laser::InitialGen(){
    double norm=1;
    //direction
@@ -556,6 +655,7 @@ bool Laser::InitialGen(){
    DirectionDis(theta,phi);
    double xdir[3],ydir[3],zdir[3];
    double zero[3]={0,0,0};
+   GetAveTelPos(zero);
    double dir_in[3]={sin(laserdir[0]/180.*PI)*cos(laserdir[1]/180.*PI),sin(laserdir[0]/180.*PI)*sin(laserdir[1]/180.*PI),cos(laserdir[0]/180.*PI)};
    double dir_in2[3]={0,0,1};
    if(!CartesianFrame(zero,lasercoo,dir_in,dir_in2,xdir,ydir,zdir)) return false;
@@ -1100,7 +1200,7 @@ int Laser::Propagate(double &distance,double &weight){
       WFTelescope* pt=(pta)?pta->pct[itel]:0;
       if(!pt) continue;
       double dir_tel[3]={-sin(pt->TelZ_)*cos(pt->TelA_),-sin(pt->TelZ_)*sin(pt->TelA_),-cos(pt->TelZ_)}; //pointing direction of the telescope
-      double zero[3]={pt->Telx_,pt->Tely_,0};
+      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_};
       double range[2];
       int findres=FindLengthRange(zero,coor_gen,dir_gen,dir_tel,range);
       if(jdebug>5) printf("Laser::Propagate: find telescope and length range, ntel=%d itel=%d lengthrange={%le,%le} return=%d\n",ntel,itel,range[0],range[1],findres);
@@ -1138,6 +1238,7 @@ int Laser::Propagate(double &distance,double &weight){
    else{
       zero[0]=pt->Telx_;
       zero[1]=pt->Tely_;
+      zero[2]=pt->Telz_;
       dir_tel[0]=-sin(pt->TelZ_)*cos(pt->TelA_);
       dir_tel[1]=-sin(pt->TelZ_)*sin(pt->TelA_);
       dir_tel[2]=-cos(pt->TelZ_);
@@ -1147,6 +1248,7 @@ int Laser::Propagate(double &distance,double &weight){
 
    //generate free path length, theta angle, and phi angle
    double freelength=Atmosphere::FreePathLength(coor_gen[2],dir_gen,lengthrange,weight);
+   interpoint=freelength;
    if(jdebug>4||(!isfinite(weight))) printf("Laser::Propagate: freelength=%le lengthrange={%le,%le} weight={%le,%le}\n",freelength,lengthrange[0],lengthrange[1],weight0,weight);
    if(freelength>lengthrange[0]&&freelength<lengthrange[1]&&whichtel>=0){
       //generate theta angle range
@@ -1164,7 +1266,7 @@ int Laser::Propagate(double &distance,double &weight){
    if(decrease&&dist<TelSimDist){ //laser in the field view of the telescope
       if(jdebug>4) printf("Laser::Propagate: laser in the field of view of telescope(%lf), distance=%lf(free length=%lf) decrease=%d coo={%lf,%lf,%lf}\n",dist,distance,freelength,decrease,coor_min[0],coor_min[1],coor_min[2]);
       int returntype;
-      if(distance<freelength){
+      if((distance<freelength&&Doextin)||(!Doextin)){
          Telindex=whichtel;
          for(int ii=0;ii<3;ii++){
             coor_out[ii]=coor_min[ii];
@@ -1273,7 +1375,7 @@ int Laser::Propagate(double &distance,double &weight){
          double lengthrange2[2]={0,0};
          double freelength2=Atmosphere::FreePathLength(coor_scat[2],dir_scat,lengthrange2,weight);
          if(decrease&&dist<TelSimDist){ //inside the field of view of one telescope after scattering
-            if(fabs(distance-freelength)<freelength2){
+            if((fabs(distance-freelength)<freelength2&&Doextin)||(!Doextin)){
                Telindex=whichtel;
                for(int ii=0;ii<3;ii++){
                   coor_out[ii]=coor_min[ii];
@@ -1360,16 +1462,17 @@ bool Laser::DoWFCTASim(){
          if(WFCTALaserEvent::Recordweight) (pwfc->laserevent).weight.push_back(weight);
          (pwfc->laserevent).hweight->Fill(log10(weight));
          if(whichtel<0||whichtel>=WFTelescopeArray::CTNumber){
+            vosipm.push_back(-1);
             if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(whichtel);
             (pwfc->mcevent).hRayTrace->Fill(whichtel,weight);
             //printf("pushing back tracing il=%d whichtel=%d\n",il,whichtel);
             continue;
          }
          WFTelescope* pt=pct->pct[whichtel];
-         if(!pt) continue;
+         if(!pt) {vosipm.push_back(-1); continue;}
 
-         x0=vocoo[0].at(il)-pt->Telx_;
-         y0=vocoo[1].at(il)-pt->Tely_;
+         x0=vocoo[0].at(il);
+         y0=vocoo[1].at(il);
          z0=vocoo[2].at(il);
          m1=vodir[0].at(il);
          n1=vodir[1].at(il);
@@ -1380,6 +1483,7 @@ bool Laser::DoWFCTASim(){
          //apply the telescope camera SiPM quantum efficiency
          if(wave>0){
             if(!WFTelescope::GetQuantumEff(wave)){
+               vosipm.push_back(-1);
                if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(-14);
                (pwfc->mcevent).hRayTrace->Fill(-14,weight);
                continue;
@@ -1389,11 +1493,13 @@ bool Laser::DoWFCTASim(){
          if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(res);
          (pwfc->mcevent).hRayTrace->Fill(res,weight);
          if(res>=0){
+            vosipm.push_back(itube);
             findtel=true;
             avet+=t;
             nt++;
             if(jdebug>4) printf("Laser::DoWFCTASim: the photon go through the pmt %d, iphoton=%d time={%.9le,%.9le}\n",itube,il,tt,t); //jdebug>4
          }
+         else vosipm.push_back(-1);
          //printf("pushing back tracing il=%d whichtel=%d res=%d\n",il,whichtel,res);
       }
       if(pwfc){
@@ -1412,7 +1518,7 @@ bool Laser::DoWFCTASim(){
          //(pwfc->mcevent).Wavegen.insert((pwfc->mcevent).Wavegen.begin(),vgwav.begin(),vgwav.end());
          if(findtel){
             (pwfc->mcevent).Copy(pct);
-            pwfc->CalculateADC();
+            pwfc->CalculateDataVar();
             (pwfc->mcevent).GetTubeTrigger();
             (pwfc->mcevent).GetTelescopeTrigger(pct);
          }
@@ -1539,7 +1645,7 @@ TCanvas* Laser::Draw(const char* option,int ViewOpt,const char* savedir){
          WFTelescope* pt=(pta)?pta->pct[itel]:0;
          if(!pt) continue;
          TPolyLine3D* line=new TPolyLine3D(2);
-         double postel[3]={pt->Telx_,pt->Tely_,0};
+         double postel[3]={pt->Telx_,pt->Tely_,pt->Telz_};
          double dirtel[3]={sin(pt->TelZ_)*cos(pt->TelA_),sin(pt->TelZ_)*sin(pt->TelA_),cos(pt->TelZ_)};
          double xyzmax[3]={TMath::Max(fabs(plotrange[0][0]),fabs(plotrange[0][1])),TMath::Max(fabs(plotrange[1][0]),fabs(plotrange[1][1])),TMath::Max(fabs(plotrange[2][0]),fabs(plotrange[2][1]))};
          double length_dir=sqrt(pow(xyzmax[0],2)+pow(xyzmax[1],2)+pow(xyzmax[2],2));
@@ -1589,4 +1695,91 @@ TCanvas* Laser::Draw(const char* option,int ViewOpt,const char* savedir){
 
    if(savedir) cc->SaveAs(Form("%s/%d.png",savedir,ievent_gen));
    return cc;
+}
+
+int Laser::GetProb(long int ngen){
+   TH1::SetDefaultSumw2();
+   Reset();
+   Time_gen=10000;
+   time_gen=0;
+   long int ngentel=0;
+   for(long int igen=0;igen<ngen;igen++){
+      bool dogen=InitialGen();
+      if(!dogen) continue;
+      iphoton_gen=igen;
+      vgwav.push_back(wavelength_gen);
+      for(int ii=0;ii<3;ii++){
+         vgcoo[ii].push_back(coor_gen[ii]);
+         vgdir[ii].push_back(dir_gen[ii]);
+      }
+      double weight=1.;
+      double distance;
+      int res=Propagate(distance,weight);
+      volength.push_back(interpoint);
+      volength2.push_back(distance);
+      if(res<0) Telindex=res-15;
+      else{  //the telescope index has been calculated in Propagate
+         ngentel++;
+      }
+      vowei.push_back(weight);
+      votim.push_back(distance/vlight);
+      votel.push_back(Telindex);
+      for(int ii=0;ii<3;ii++){
+         vocoo[ii].push_back(res>=0?coor_out[ii]:0);
+         vodir[ii].push_back(res>=0?dir_out[ii]:0);
+      }
+      count_gen+=weight;
+      if((igen%10000)==0) printf("%ld of %ld generated\n",igen,ngen);
+   }
+   bool dosim=DoWFCTASim();
+
+   if(!hdenu){
+      hdenu=new TH1D("hdenum",";distance [m];Events",1000,lengthmin-0.5,lengthmax-0.5);
+   }
+   int size=vocoo[0].size();
+   int res=0;
+   for(int ii=0;ii<size;ii++){
+      double weight=vowei.at(ii);
+      double length1=volength.at(ii)/100.;
+      double length2=volength2.at(ii)/100.;
+      int isipm=vosipm.at(ii);
+      int whichtel=votel.at(ii);
+      hdenu->Fill(length1,weight);
+      if(isipm<0||isipm>=NSIPM) continue;
+      if(whichtel<0||whichtel>=NCTMax) continue;
+      if(!hprob[whichtel][isipm]){
+         hprob[whichtel][isipm]=(TH1D*)hdenu->Clone(Form("prob_sipm%d_tel%d",isipm,whichtel));
+         hprob[whichtel][isipm]->Reset();
+      }
+      hprob[whichtel][isipm]->Fill(length1,weight);
+      if(!hleng[whichtel][isipm]){
+         //hleng[whichtel][isipm]=(TH1D*)hdenu->Clone(Form("leng_sipm%d_tel%d",isipm,whichtel));
+         //hleng[whichtel][isipm]->Reset();
+         hleng[whichtel][isipm]=new TH1D(Form("leng_sipm%d_tel%d",isipm,whichtel),";Distance [m];Events",1000,lengthmin2-0.5,lengthmax2-0.5);
+      }
+      hleng[whichtel][isipm]->Fill(length2,weight);
+      res++;
+   }
+
+   /*for(int ii=0;ii<NCTMax;ii++){
+      for(int jj=0;jj<NSIPM;jj++){
+         if(hprob[ii][jj]){
+            TH1D* hden=hdenu;
+            TH1D* hnum=hprob[ii][jj];
+            for(int ibin=1;ibin<hden->GetNbinsX();ibin++){
+               double n1=hden->GetBinContent(ibin);
+               double en1=hden->GetBinError(ibin);
+               double n2=hnum->GetBinContent(ibin);
+               double en2=hnum->GetBinError(ibin);
+               double content=(n1==0)?0:(n2/n1);
+               double econtent=(n1==0)?0:sqrt(pow((n1-n2)/n1*en2,2)+pow(n2/n1,2)*(en1*en1-en2*en2))/n1;
+               hprob[ii][jj]->SetBinContent(ibin,content);
+               hprob[ii][jj]->SetBinError(ibin,econtent);
+            }
+         }
+      }
+   }*/
+
+   ievent_gen++;
+   return res;
 }

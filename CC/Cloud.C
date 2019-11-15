@@ -4,6 +4,10 @@
 #include "TMath.h"
 #include <fstream>
 #include "WFTelescope.h"
+#include "TText.h"
+#include "TFile.h"
+#include "TTree.h"
+bool Cloud::drawmoon=true;
 int Cloud::drawcircle=9;
 double Cloud::Cbintheta[Cntheta+1];
 int Cloud::Cnbinphi[Cntheta];
@@ -117,10 +121,12 @@ int Cloud::FindBinIndex(double xx,double yy){
 void Cloud::Init(){
    cloudmap=0;
    time=0;
+   temp=0;
    graphlist.clear();
 }
 void Cloud::Reset(){
    time=0;
+   temp=0;
    if(cloudmap){
       delete cloudmap;
    }
@@ -179,6 +185,10 @@ void Cloud::ReadCloudMap(char* filename){
    if(!cloudmap) Reset();
    else cloudmap->TH2::Reset();
    ifstream fin(filename,std::ios::in);
+   if(!fin.is_open()){
+      printf("Cloud::ReadCloudMap: open file %s failed\n",filename);
+      return;
+   }
    double x0;
    int index;
    double ti,xi;
@@ -193,6 +203,40 @@ void Cloud::ReadCloudMap(char* filename){
    time=CommonTools::Convert(ti);
    fin.close();
 }
+bool Cloud::ReadTemp(char* filename){
+   bool res=false;
+   if(!filename){
+      if(time<100) return false;
+      int time1;
+      int hour=CommonTools::TimeFlag(time,4);
+      int min=CommonTools::TimeFlag(time,5);
+      bool gt2005=(hour>=20&&min>5);
+      if(gt2005) time1=time+(24*3600*2);
+      else time1=time+(24*3600);
+      int year=CommonTools::TimeFlag(time1,1)+2000;
+      int month=CommonTools::TimeFlag(time1,2);
+      int day=CommonTools::TimeFlag(time1,3);
+      filename=Form("/scratchfs/ybj/lix/laser-dat/Temp-humi/%02d/temp/12345_cloud_temp_%04d%02d%02d.txt",month,year,month,day);
+      printf("ReadTemp: time=%d filename=%s\n",time,filename);
+   }
+   ifstream fin(filename,std::ios::in);
+   if(!fin.is_open()) {temp=0; return res;}
+   double ti,tempi,hi;
+   int index;
+   while(!fin.eof()){
+      fin>>ti>>index>>tempi>>index>>hi>>index;
+      int time1=CommonTools::Convert(ti*100);
+      //printf("time=%d time1=%d temp=%lf hi=%lf\n",time,time1,tempi,hi);
+      if(abs(time-time1)<100){
+         temp=tempi;
+         res=true;
+         break;
+      }
+   }
+   if(!res) temp=0;
+   fin.close();
+   return res;
+}
 TGraph* Cloud::TelView(WFTelescopeArray* pct,int iTel){
    if(!pct) return 0;
    else{
@@ -205,9 +249,9 @@ TGraph* Cloud::TelView(WFTelescopeArray* pct,int iTel){
          double yy=gr->GetY()[ii];
          double zz=sqrt(1-xx*xx-yy*yy);
          double theta=TMath::ACos(zz)/PI*180.;
-	 double phi=(xx==0)?(yy>=0?PI/2.:-PI/2.):TMath::ATan(yy/xx);
-         if(xx<0) phi+=PI;
-         if(phi<0) phi+=2*PI;
+         double rr=sqrt(xx*xx+yy*yy);
+         double phi=acos(-yy/rr);
+         if(xx<0) phi=2*PI-phi;
          gr2->SetPoint(ii,theta*cos(phi),theta*sin(phi));
       }
       delete gr;
@@ -248,16 +292,32 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    if(!cloudmap) return;
    cloudmap->Draw(opt);
    printf("Cloud::Draw: Draw CloudMap\n");
-   double tempave=0,tempmin=0;
+   double tempave[NCTMax],tempmin[NCTMax];
+   for(int ii=0;ii<NCTMax;ii++){
+      tempave[ii]=0;
+      tempmin[ii]=0;
+   }
    for(int itel=0;itel<WFTelescopeArray::CTNumber&&pct;itel++){
+      WFTelescope* pt=pct->pct[itel];
+      if(!pt) continue;
       TGraph* gr=TelView(pct,itel);
       if(!gr) continue;
       gr->Draw("l");
       printf("Cloud::Draw: Draw Telescope %d\n",itel);
       gr->SetLineColor(1);
       gr->SetLineWidth(2);
-      if(itel==0) AveTemp(tempave,tempmin,gr);
+      AveTemp(tempave[itel],tempmin[itel],gr);
       graphlist.push_back(gr);
+
+      int telindex=pt->TelIndex_;
+      double telzen=pt->TelZ_;
+      double telazi=pt->TelA_;
+      double xx=telzen/PI*180.*cos(telazi);
+      double yy=telzen/PI*180.*sin(telazi);
+      TText* text=new TText(-yy,xx,Form("%d",telindex));
+      text->SetTextFont(12);
+      text->SetTextSize(0.05);
+      text->Draw("same");
    }
    if(drawcircle>0){
       for(int ii=0;ii<=drawcircle;ii++){
@@ -282,6 +342,51 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    day=CommonTools::TimeFlag(time,3);
    hour=CommonTools::TimeFlag(time,4);
    min=CommonTools::TimeFlag(time,5);
-   cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Average Temp=%.2f,Minimum Temp=%.2f,in the field of view)",year,month,day,hour,min,tempave,tempmin));
+   if(drawmoon){
+      TFile *file = TFile::Open("/afs/ihep.ac.cn/users/y/youzhiyong/moon-orbit/Moon_orbit_night1_2019.root","read");
+      TTree *tree = (TTree*)file->Get("tree");
+      double el,az;
+      int y, mon, d, h, min;
+      tree->SetBranchAddress("az",&az);
+      tree->SetBranchAddress("el",&el);
+      tree->SetBranchAddress("y",&y);
+      tree->SetBranchAddress("mon",&mon);
+      tree->SetBranchAddress("d",&d);
+      tree->SetBranchAddress("h",&h);
+      tree->SetBranchAddress("min",&min);
+      int npots=tree->GetEntries();
+      TGraph* gm=new TGraph();
+      for(int ii =0;ii<npots;ii++){
+         tree->GetEntry(ii);
+         if(y==(year+2000)&mon==month&d==day) {
+            gm->SetPoint(gm->GetN(),(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az),(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az));
+            printf("ii=%d el=%lf az=%lf\n",ii,90-el/PI*180,90-az/PI*180);
+         }
+         //printf("Drawmoon: ip=%d year={%d,%d} month={%d,%d} day={%d,%d}\n",ii,y,year,mon,month,d,day);
+      }
+      gm->SetLineColor(1);
+      gm->SetLineWidth(3);
+      gm->Draw("l");
+      graphlist.push_back(gm);
+   }
+   if(WFTelescopeArray::CTNumber==0) cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image",year,month,day,hour,min));
+   else if(WFTelescopeArray::CTNumber==1){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d},Ave Temp={%.2f,%.2f},Min Temp={%.2f,%.2f})",year,month,day,hour,min,pct->pct[0]->TelIndex_,tempave[0],tempmin[0]));
+   }
+   else if(WFTelescopeArray::CTNumber==2){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d},Ave Temp={%.2f,%.2f},Min Temp={%.2f,%.2f})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,tempave[0],tempave[1],tempmin[0],tempmin[1]));
+   }
+   else if(WFTelescopeArray::CTNumber==3){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d,%d},Ave Temp={%.2f,%.2f,%.2f},Min Temp={%.2f,%.2f,%.2f})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,pct->pct[2]->TelIndex_,tempave[0],tempave[1],tempave[2],tempmin[0],tempmin[1],tempmin[2]));
+   }
+   else if(WFTelescopeArray::CTNumber==4){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d,%d,%d},Ave Temp={%.2f,%.2f,%.2f,%.2f},Min Temp={%.2f,%.2f,%.2f,%.2f})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,pct->pct[2]->TelIndex_,pct->pct[3]->TelIndex_,tempave[0],tempave[1],tempave[2],tempave[3],tempmin[0],tempmin[1],tempmin[2],tempmin[3]));
+   }
+   else if(WFTelescopeArray::CTNumber==5){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d,%d,%d,%d},Ave Temp={%.2f,%.2f,%.2f,%.2f,%.2lf},Min Temp={%.2f,%.2f,%.2f,%.2f,%.2lf})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,pct->pct[2]->TelIndex_,pct->pct[3]->TelIndex_,pct->pct[4]->TelIndex_,tempave[0],tempave[1],tempave[2],tempave[3],tempave[4],tempmin[0],tempmin[1],tempmin[2],tempmin[3],tempmin[4]));
+   }
+   else if(WFTelescopeArray::CTNumber>=6){
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d,%d,%d,%d,%d},Ave Temp={%.2f,%.2f,%.2f,%.2f,%.2lf,%.2lf},Min Temp={%.2f,%.2f,%.2f,%.2f,%.2lf,%.2lf})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,pct->pct[2]->TelIndex_,pct->pct[3]->TelIndex_,pct->pct[4]->TelIndex_,pct->pct[5]->TelIndex_,tempave[0],tempave[1],tempave[2],tempave[3],tempave[4],tempave[5],tempmin[0],tempmin[1],tempmin[2],tempmin[3],tempmin[4],tempmin[5]));
+   }
 }
 

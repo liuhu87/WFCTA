@@ -16,7 +16,7 @@ void CorsikaEvent::Init(){
    thetap=0;
    phip=0;
    stheight=0;
-   for(int ii=0;ii<Nuse;ii++) {corex[ii]=0; corey[ii]=0;}
+   for(int ii=0;ii<NuseMax;ii++) {corex[ii]=0; corey[ii]=0;}
    //EVTE
    nphoton=0;
    nelectron=0;
@@ -83,7 +83,7 @@ void CorsikaEvent::Reset(){
    thetap=0;
    phip=0;
    stheight=0;
-   for(int ii=0;ii<Nuse;ii++) {corex[ii]=0; corey[ii]=0;}
+   for(int ii=0;ii<NuseMax;ii++) {corex[ii]=0; corey[ii]=0;}
    //EVTE
    nphoton=0;
    nelectron=0;
@@ -154,7 +154,7 @@ void CorsikaEvent::Copy(CorsikaIO* pcorio){
    thetap=(pcorio->Evt).thetap;
    phip=(pcorio->Evt).phip;
    stheight=(pcorio->Evt).stheight;
-   for(int ii=0;ii<Nuse;ii++) {corex[ii]=(pcorio->Evt).corex[ii]; corey[ii]=(pcorio->Evt).corey[ii];}
+   for(int ii=0;ii<NuseMax;ii++) {corex[ii]=(pcorio->Evt).corex[ii]; corey[ii]=(pcorio->Evt).corey[ii];}
 
    nphoton=(pcorio->Evt).nphoton;
    nelectron=(pcorio->Evt).nelectron;
@@ -199,7 +199,11 @@ int CorsikaEvent::WhichCore(double x0,double y0){
    }
    return whichcore;
 }
-bool CorsikaEvent::DoWFCTASim(){
+bool CorsikaEvent::DoWFCTASim(int iuse){
+   if((iuse<0||iuse>=Nuse)&&(iuse!=100)){
+      cerr<<"CorsikaEvent::DoWFCTASim: iuse ou out of range(iuse="<<iuse<<" Nuse="<<Nuse<<"), exiting..."<<endl;
+      return false;
+   }
    WFTelescopeArray* pct=WFTelescopeArray::GetHead();
    if(!pct) return false;
    if(!pct->CheckTelescope()) return false;
@@ -219,6 +223,7 @@ bool CorsikaEvent::DoWFCTASim(){
 
          int whichcore=WhichCore(cx.at(icer),cy.at(icer));
          if(whichcore<0) continue;
+         if((whichcore!=iuse)&&(iuse!=100)) continue;
          findcore=true;
 
          x0=cx.at(icer)-corex[whichcore];
@@ -234,11 +239,18 @@ bool CorsikaEvent::DoWFCTASim(){
          if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(res);
          (pwfc->mcevent).hRayTrace->Fill(res,weight);
          (pwfc->mcevent).Ngen+=weight;
+
+         //printf("CorsikaEvent::DoWFCTASim: run=%d event=%d ilight=%d cxy={%.0lf,%.0lf} corexy={%.0lf,%.0lf} coo={%lf,%lf} res=%d\n",run,event,icer,cx.at(icer),cy.at(icer),corex[whichcore],corey[whichcore],x0,y0,res);
+         //printf("Corepos(Nuse=%d): ",Nuse);
+         for(int ii=0;ii<Nuse;ii++){
+            //printf("{%.0lf,%.0lf} ",corex[ii],corey[ii]);
+         }
+         //printf("\n");
       }
       if(!findcore) return false;
       if(pwfc){
          (pwfc->mcevent).Copy(pct);
-         pwfc->CalculateADC();
+         pwfc->CalculateDataVar();
          (pwfc->mcevent).GetTubeTrigger();
          (pwfc->mcevent).GetTelescopeTrigger(pct);
       }
@@ -246,16 +258,15 @@ bool CorsikaEvent::DoWFCTASim(){
    }
 }
 void CorsikaEvent::Fill(){
+   if(CorsikaIO::jdebug>0||true) printf("CorsikaEvent::Fill: Processing run=%d event=%d\n",run,event);
    if(EventNtuple::GetHead()){ //fill the data in EventNtuple
-      if(DoWFCTASim()){
-         pwfc->iEvent=event;
-         pwfc->rabbitTime=CommonTools::Convert(date*1000000.);
-         TSelector* pevt0[]={0,(TSelector*)pwfc};
-         EventNtuple::GetHead()->Fill(pevt0);
-      }
-      else{
-         TSelector* pevt0[]={this,0};
-         EventNtuple::GetHead()->Fill(pevt0);
+      EventNtuple::GetHead()->Fill(this,0);
+      for(int iuse=0;iuse<Nuse;iuse++){
+         if(DoWFCTASim(iuse)){
+            pwfc->iEvent=event;
+            pwfc->rabbitTime=CommonTools::Convert(date*1000000.+iuse);
+            EventNtuple::GetHead()->Fill(0,pwfc,iuse);
+         }
       }
    }
    if(ReadTrack::GetHead()&&ReadTrack::DoPlot){ //Copy Shower information to ReadTrack to do plot
