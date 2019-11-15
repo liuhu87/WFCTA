@@ -137,10 +137,10 @@ class WFCTAEvent : public TSelector
 		void SetImage();
 		void AdcToPe(float *deltag_20, float *correct_PreTemp, int isledevent);
 		//void AdcToPe();
-		void PrelimImageClean(double cut);
+		void PrelimImageClean(double cut, int laserEvent);
 		void GetNeighborPixs();
 		int CalcHillas();
-		void GetCleanImage();
+		void GetCleanImage(int LedEvent);
 
 
 		ClassDef(WFCTAEvent,3);

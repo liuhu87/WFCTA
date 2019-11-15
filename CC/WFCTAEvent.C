@@ -217,7 +217,7 @@ void WFCTAEvent::InitTree(TTree *tree){
 void WFCTAEvent::CreateBranch(TTree *tree, int branchSplit){
 	if(tree){
 		Head()=this;
-		tree->Branch(BranchName(),"WFCTAEvent",&Head(),32000,branchSplit);
+		tree->Branch(BranchName(),"WFCTAEvent",&Head(),320000,branchSplit);
 		TBranch * branch=tree->GetBranch(BranchName());
 		int clevel=branch->GetCompressionLevel();
 #ifdef __LZMA__
@@ -525,14 +525,42 @@ void WFCTAEvent::AdcToPe(float *deltag_20, float *correct_PreTemp, int isledeven
 }
 
 //clean image preliminary
-void WFCTAEvent::PrelimImageClean(double cut)
+void WFCTAEvent::PrelimImageClean(double cut, int laserEvent)
 {
-	for(int ii=0;ii<RawImagePe.size();ii++){
-		if(RawImagePe.at(ii)<cut){continue;}
-		FullImagePe.push_back(RawImagePe.at(ii));
-		FullImageSiPM.push_back(RawImageSiPM.at(ii));
-		FullImageX.push_back(RawImageX.at(ii));
-		FullImageY.push_back(RawImageY.at(ii));
+	if(laserEvent){
+		for(int ii=0;ii<RawImagePe.size();ii++){
+			if(RawImagePe.at(ii)<cut){continue;}
+			FullImagePe.push_back(RawImagePe.at(ii));
+			FullImageSiPM.push_back(RawImageSiPM.at(ii));
+			FullImageX.push_back(RawImageX.at(ii));
+			FullImageY.push_back(RawImageY.at(ii));
+		}
+	}
+	else{
+		int Maxpro_Peakpos_H=-1;
+		int Maxpro_Peakpos_H_Times=-1;
+		map<short,int> maxpro_peakposh;
+		map<short,int>::iterator maxpro_peakposh_iter;
+		maxpro_peakposh.clear();
+		cut =20;
+		for(int ii=0;ii<RawImagePe.size();ii++){
+			if(RawImagePe.at(ii)<cut){continue;}
+			maxpro_peakposh[PeakPosH.at(ii)]++;
+		}
+		for(maxpro_peakposh_iter=maxpro_peakposh.begin(); maxpro_peakposh_iter!=maxpro_peakposh.end(); maxpro_peakposh_iter++){
+			if(Maxpro_Peakpos_H_Times<maxpro_peakposh_iter->second){
+				Maxpro_Peakpos_H_Times = maxpro_peakposh_iter->second;
+				Maxpro_Peakpos_H = maxpro_peakposh_iter->first;
+			}
+		}
+		for(int ii=0;ii<RawImagePe.size();ii++){
+			if(PeakPosH.at(ii)<Maxpro_Peakpos_H-2 || PeakPosH.at(ii)>Maxpro_Peakpos_H+2){/*printf("%d\n",RawImagePe.at(ii));*/continue;}
+			if(RawImagePe.at(ii)<cut){continue;}
+			FullImagePe.push_back(RawImagePe.at(ii));
+			FullImageSiPM.push_back(RawImageSiPM.at(ii));
+			FullImageX.push_back(RawImageX.at(ii));
+			FullImageY.push_back(RawImageY.at(ii));
+		}
 	}
 }
 
@@ -616,21 +644,31 @@ int WFCTAEvent::CalcHillas()
 }
 
 //clean image
-void WFCTAEvent::GetCleanImage()
+void WFCTAEvent::GetCleanImage(int LedEvent)
 {
-	for(int ii=0;ii<FullImagePe.size();ii++){
-		if(FullImageSiPM.at(ii)==0||FullImageSiPM.at(ii)==1023)
-		{
-			if(fNpixfriends.at(ii)<=2){continue;}
+	if(LedEvent){
+		for(int ii=0;ii<FullImagePe.size();ii++){
+			CleanImagePe.push_back(FullImagePe.at(ii));
+			CleanImageSiPM.push_back(FullImageSiPM.at(ii));
+			CleanImageX.push_back(FullImageX.at(ii));
+			CleanImageY.push_back(FullImageY.at(ii));
 		}
-		else
-		{
-			if(fNpixfriends.at(ii)<=cleanPix){continue;}//use this to clean image
+	}
+	else{
+		for(int ii=0;ii<FullImagePe.size();ii++){
+			if(FullImageSiPM.at(ii)==0||FullImageSiPM.at(ii)==1023)
+			{
+				if(fNpixfriends.at(ii)<=2){continue;}
+			}
+			else
+			{
+				if(fNpixfriends.at(ii)<=cleanPix){continue;}//use this to clean image
+			}
+			CleanImagePe.push_back(FullImagePe.at(ii));
+			CleanImageSiPM.push_back(FullImageSiPM.at(ii));
+			CleanImageX.push_back(FullImageX.at(ii));
+			CleanImageY.push_back(FullImageY.at(ii));
 		}
-		CleanImagePe.push_back(FullImagePe.at(ii));
-		CleanImageSiPM.push_back(FullImageSiPM.at(ii));
-		CleanImageX.push_back(FullImageX.at(ii));
-		CleanImageY.push_back(FullImageY.at(ii));
 	}
 }
 
