@@ -343,6 +343,7 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    hour=CommonTools::TimeFlag(time,4);
    min=CommonTools::TimeFlag(time,5);
    if(drawmoon){
+      double time_target=hour*3600+min*60;
       TFile *file = TFile::Open("/afs/ihep.ac.cn/users/y/youzhiyong/moon-orbit/Moon_orbit_night1_2019.root","read");
       TTree *tree = (TTree*)file->Get("tree");
       double el,az;
@@ -358,7 +359,8 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
       TGraph* gm=new TGraph();
       for(int ii =0;ii<npots;ii++){
          tree->GetEntry(ii);
-         if(y==(year+2000)&mon==month&d==day) {
+         double time_entry=h*3600+min*60;
+         if((y==(year+2000)&mon==month&d==day)&&(time_entry<time_target&&el<PI/2)) {
             gm->SetPoint(gm->GetN(),(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az),(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az));
             printf("ii=%d el=%lf az=%lf\n",ii,90-el/PI*180,90-az/PI*180);
          }
