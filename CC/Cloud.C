@@ -347,6 +347,7 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    sec=CommonTools::TimeFlag(time,6);
    if(drawmoon){
       TGraph* gm=new TGraph();
+      bool moonexist=false;
 
       double MJD19700101=40587;
       for(int ii=0;ii<720;ii++){
@@ -366,10 +367,13 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
       double ha = astroLST(jd) - ra;
       double el,az;
       slaDe2h(ha, dec, DUGLAT, &az, &el);
+      double xx=(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az);
+      double yy=(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az);
       double unit=180/PI;
-      printf("time=%.0lf(%d-%02d-%02d %02d:%02d:%02d) dir={%lf,%lf}\n",time0,CommonTools::TimeFlag((int)time0,1),CommonTools::TimeFlag((int)time0,2),CommonTools::TimeFlag((int)time0,3),CommonTools::TimeFlag((int)time0,4),CommonTools::TimeFlag((int)time0,5),CommonTools::TimeFlag((int)time0,6),el*unit,az*unit);
-      if(el<-10./180*PI) continue;
-      gm->SetPoint(gm->GetN(),(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az),(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az));
+      printf("time=%.0lf(%d-%02d-%02d %02d:%02d:%02d) dir={%lf,%lf} {%lf,%lf}\n",time0,CommonTools::TimeFlag((int)time0,1),CommonTools::TimeFlag((int)time0,2),CommonTools::TimeFlag((int)time0,3),CommonTools::TimeFlag((int)time0,4),CommonTools::TimeFlag((int)time0,5),CommonTools::TimeFlag((int)time0,6),el*unit,az*unit,xx,yy);
+      if(fabs(xx)>90||fabs(yy)>90) continue;
+      if(ii==0) moonexist=true;
+      if(moonexist) gm->SetPoint(gm->GetN(),xx,yy);
       }
 
       /*double time_target=hour*3600+min*60+sec;
