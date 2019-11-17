@@ -7,6 +7,8 @@
 #include "TText.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "slalib.h"
+#include "astro.h"
 bool Cloud::drawmoon=true;
 int Cloud::drawcircle=9;
 double Cloud::Cbintheta[Cntheta+1];
@@ -336,39 +338,70 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
          graphlist.push_back(gc);
       }
    }
-   int year,month,day,hour,min;
+   int year,month,day,hour,min,sec;
    year=CommonTools::TimeFlag(time,1);
    month=CommonTools::TimeFlag(time,2);
    day=CommonTools::TimeFlag(time,3);
    hour=CommonTools::TimeFlag(time,4);
    min=CommonTools::TimeFlag(time,5);
+   sec=CommonTools::TimeFlag(time,6);
    if(drawmoon){
-      double time_target=hour*3600+min*60;
+      TGraph* gm=new TGraph();
+
+      double MJD19700101=40587;
+      for(int ii=0;ii<720;ii++){
+      double time0=time-ii*60;
+      double mjd=MJD19700101+(time0-37)/86400.;
+      double jd=mjd+2400000.5;
+      //double PV[6];
+      //slaDmoon(mjd,PV);
+      //double unit=180/PI;
+      //printf("time=%d(%d-%d-%d %d:%d:%d) PV={%le,%le,%le,%le,%le,%le}\n",time0,year,month,day,hour,min,sec,PV[0]*unit,PV[1]*unit,PV[2]*unit,PV[3]*unit,PV[4]*unit,PV[5]*unit);
+
+      float lam,bet,lamdot,betdot,rsun;
+      astroSunmon(jd,1,&lam,&bet,&lamdot,&betdot,&rsun);
+      float ra,dec;
+      astroEctoeq(lam,bet,&ra,&dec);
+
+      double ha = astroLST(jd) - ra;
+      double el,az;
+      slaDe2h(ha, dec, DUGLAT, &az, &el);
+      double unit=180/PI;
+      printf("time=%.0lf(%d-%02d-%02d %02d:%02d:%02d) dir={%lf,%lf}\n",time0,CommonTools::TimeFlag((int)time0,1),CommonTools::TimeFlag((int)time0,2),CommonTools::TimeFlag((int)time0,3),CommonTools::TimeFlag((int)time0,4),CommonTools::TimeFlag((int)time0,5),CommonTools::TimeFlag((int)time0,6),el*unit,az*unit);
+      if(el<-10./180*PI) continue;
+      gm->SetPoint(gm->GetN(),(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az),(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az));
+      }
+
+      /*double time_target=hour*3600+min*60+sec;
       TFile *file = TFile::Open("/afs/ihep.ac.cn/users/y/youzhiyong/moon-orbit/Moon_orbit_night1_2019.root","read");
       TTree *tree = (TTree*)file->Get("tree");
       double el,az;
-      int y, mon, d, h, min;
+      int y, mon, d, h, min2,sec2;
       tree->SetBranchAddress("az",&az);
       tree->SetBranchAddress("el",&el);
       tree->SetBranchAddress("y",&y);
       tree->SetBranchAddress("mon",&mon);
       tree->SetBranchAddress("d",&d);
       tree->SetBranchAddress("h",&h);
-      tree->SetBranchAddress("min",&min);
+      tree->SetBranchAddress("min",&min2);
+      sec2=0;
       int npots=tree->GetEntries();
-      TGraph* gm=new TGraph();
       for(int ii =0;ii<npots;ii++){
          tree->GetEntry(ii);
-         double time_entry=h*3600+min*60;
-         if((y==(year+2000)&mon==month&d==day)&&(time_entry<time_target&&el<PI/2)) {
+         double time_entry=h*3600+min2*60+sec2;
+         //if((y==(year+2000)&mon==month&d==day)&&(time_entry<time_target&&el<PI/2)) {
+         if((y==(year+2000)&mon==month&d==day)&&(time_entry*0<time_target)) {
             gm->SetPoint(gm->GetN(),(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az),(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az));
-            printf("ii=%d el=%lf az=%lf\n",ii,90-el/PI*180,90-az/PI*180);
+            printf("ii=%d time={%lf(%d-%d-%d),%lf(%d-%d-%d)} el=%lf az=%lf\n",ii,time_target,hour,min,sec,time_entry,h,min2,sec2,90-el/PI*180,90-az/PI*180);
          }
          //printf("Drawmoon: ip=%d year={%d,%d} month={%d,%d} day={%d,%d}\n",ii,y,year,mon,month,d,day);
-      }
+      }*/
       gm->SetLineColor(1);
       gm->SetLineWidth(3);
-      gm->Draw("l");
+      gm->SetMarkerStyle(20);
+      gm->SetMarkerSize(0.3);
+      gm->Draw("p");
+      printf("Cloud::Draw: Draw Moon Trajectory\n");
       graphlist.push_back(gm);
    }
    if(WFTelescopeArray::CTNumber==0) cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image",year,month,day,hour,min));

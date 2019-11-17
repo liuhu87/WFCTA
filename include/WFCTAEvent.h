@@ -188,7 +188,7 @@ class WFCTAEvent : public TSelector
                 TGraph* DrawImageLine(int itel=0);
                 TGraph* DrawCorePos(double* corepos,int itel=0,int type=3);
                 TGraph* DrawCoreReg(double* corepos,int itel=0,int type=3);
-                static void slaDtp2s ( double xi, double eta, double raz, double decz, double &ra, double &dec );
+                //static void slaDtp2s ( double xi, double eta, double raz, double decz, double &ra, double &dec );
 	        TH2Poly* DrawGlobal(int type=0,const char* opt="colz",bool DoClean=true,double threshold=500.);
                 TH2Poly* DrawCloudFormat(int type=0,const char* opt="colz",bool DoClean=true,double threshold=500.);
                 TGraph2D* Draw3D(int type,const char* opt,double threshold,int ViewOpt=0);

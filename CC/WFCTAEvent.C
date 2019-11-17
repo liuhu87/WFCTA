@@ -11,6 +11,7 @@
 #include <TSystem.h>
 #include "TF1.h"
 #include "Laser.h"
+#include "slalib.h"
 
 using namespace std;
 
@@ -1877,7 +1878,7 @@ TGraph* WFCTAEvent::DrawPulse(int isipm,const char* opt,bool IsHigh,bool DoClean
    if(DoDraw) gr->Draw(opt);
    return gr;
 }
-void WFCTAEvent::slaDtp2s(double xi, double eta, double raz, double decz, double &ra, double &dec ){
+/*void WFCTAEvent::slaDtp2s(double xi, double eta, double raz, double decz, double &ra, double &dec ){
   double sdecz, cdecz, denom;
 
   sdecz = sin ( decz );
@@ -1887,7 +1888,7 @@ void WFCTAEvent::slaDtp2s(double xi, double eta, double raz, double decz, double
   dec = atan2 ( sdecz + eta * cdecz, sqrt ( xi * xi + denom * denom ) );
   //if(ra<0) ra=ra+2*PI;
   //printf("xi=%lf eta=%lf raz=%lf decz=%lf ra=%lf dec=%lf\n",xi/PI*180,eta/PI*180,raz/PI*180,decz/PI*180,ra/PI*180,dec/PI*180);
-}
+}*/
 TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,bool DoClean,double threshold){
    WFTelescopeArray* pct=WFTelescopeArray::GetHead();
    if(!pct) return 0;
@@ -1929,7 +1930,7 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,bool DoClean,double thr
             xx=ImageX+0.25;
             yy=ImageY-0.25;
          }
-         slaDtp2s(-xx/180*PI,yy/180*PI,raz,decz,phi0[i2],theta0[i2]);
+         slaDtp2s(-xx/180*PI,yy/180*PI,raz,decz,&(phi0[i2]),&(theta0[i2]));
          theta0[i2]=theta0[i2]/PI*180;
          phi0[i2]=phi0[i2]/PI*180;
          //printf("iSiPM=%d xx=%.1lf yy=%.1lf theta=%.1lf phi=%.1lf\n",ii,xx,yy,theta0[i2],phi0[i2]);
@@ -1997,7 +1998,7 @@ TH2Poly* WFCTAEvent::DrawCloudFormat(int type,const char* opt,bool DoClean,doubl
             yy=ImageY-0.25;
          }
          double theta0,phi0;
-         slaDtp2s(-xx/180*PI,yy/180*PI,raz,decz,phi0,theta0);
+         slaDtp2s(-xx/180*PI,yy/180*PI,raz,decz,&phi0,&theta0);
          theta0=PI/2-theta0;
          x0[i2]=-theta0/PI*180*sin(phi0);
          y0[i2]=theta0/PI*180*cos(phi0);

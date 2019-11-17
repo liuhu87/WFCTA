@@ -23,6 +23,7 @@ HEADERS  += $(INCDIR)/Laser.h
 HEADERS  += $(INCDIR)/StatusDB.h
 HEADERS  += $(INCDIR)/ReadTrack.h
 HEADERS  += $(INCDIR)/ShowerPlot.h
+HEADERS  += $(INCDIR)/astro.h
 
 SOURCES  := $(SRCDIR)/common.C
 SOURCES  += $(SRCDIR)/CorsikaIO.C $(SRCDIR)/CorsikaChain.C $(SRCDIR)/CorsikaEvent.C 
@@ -40,6 +41,7 @@ SOURCES  += $(SRCDIR)/Laser.C
 SOURCES  += $(SRCDIR)/StatusDB.C
 SOURCES  += $(SRCDIR)/ReadTrack.C
 SOURCES  += $(SRCDIR)/ShowerPlot.C
+SOURCES  += $(SRCDIR)/astro.C
 SOURCES  += event.C
 SOURCES  += eventSort.C
 SOURCES  += eventSortMerge.C
@@ -67,9 +69,10 @@ OBJS     += $(OBJDIR)/Laser.o
 OBJS     += $(OBJDIR)/StatusDB.o
 OBJS     += $(OBJDIR)/ReadTrack.o
 OBJS     += $(OBJDIR)/ShowerPlot.o
+OBJS     += $(OBJDIR)/astro.o
 OBJS     += $(OBJDIR)/dictionary.o
 
-DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) `root-config --cflags`
+DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) -Islalib/include `root-config --cflags`
 
 #CXXFLAGS := -O3 -fPIC -qopenmp
 CXXFLAGS := -O3 -fPIC
@@ -78,6 +81,7 @@ CXXFLAGS := -O3 -fPIC
 
 LDFLAGS  := `root-config --libs`
 # -lRGL -lEve -lGeom -lMinuit -lTMVA -lXMLIO -lMLP -lTreePlayer -lXrdClient -lGpad -lNet -lHist -lHistPainter -lGraf -lMatrix -lRooFit
+LDFLAGS  += -L/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/slalib/lib -lsla
 
 all:event.exe eventSort.exe eventSortMerge.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe $(LIBDIR)/lib.so
 
@@ -113,7 +117,8 @@ TelDir.exe: $(OBJDIR)/TelDir.o $(OBJS)
 
 $(LIBDIR)/lib.so: $(OBJS)
 	mkdir -p $(LIBDIR)
-	$(LD) -shared -o $@ $^ $(LDFLAGS)
+	cp $(OBJDIR)/dictionary_rdict.pcm $(LIBDIR)/
+	$(LD) $(CXXFLAGS) -shared -o $@ $^ $(LDFLAGS)
 
 $(OBJDIR)/event.o: event.C
 	mkdir -p $(OBJDIR)
