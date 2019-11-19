@@ -189,6 +189,8 @@ class WFCTAEvent : public TSelector
 
                 bool IsLed(int nfire_threshold=1000);
                 bool IsLaser();
+                bool IsNoise(int p0=5,double p1=150,int p2=4,double p3=3.5);
+                void CalInfo(double result[100]);
 
 		void rabbittime2lt();
 		void InitImage();

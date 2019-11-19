@@ -419,6 +419,9 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex){
       if(type==8&&ii<PeakAmL.size()) content=PeakAmL.at(ii)+0.01;
       if(type==9&&ii<SatH.size()) content=SatH.at(ii)?1.:-1.;
       if(type==10&&ii<SatL.size()) content=SatL.at(ii)?1.:-1.;
+      if(type==11&&(ii<SatH.size()&&ii<AdcH.size())){
+         content=SatH.at(ii)?(AdcL.at(ii)/WFCTAMCEvent::fAmpLow):(AdcH.at(ii)/WFCTAMCEvent::fAmpHig);
+      }
    }
    return content;
 }
@@ -2040,6 +2043,77 @@ bool WFCTAEvent::IsLed(int nfire_threshold){
 }
 bool WFCTAEvent::IsLaser(){
    return false;
+}
+void WFCTAEvent::CalInfo(double result[100]){
+   double MAX=0;
+   const int ncut=9;
+   double value[ncut];
+   double Num[ncut];
+   double Sum[ncut];
+   double SumX[ncut];
+   double SumY[ncut];
+   double SumX2[ncut];
+   double SumY2[ncut];
+   double Xaverage[ncut];
+   double Yaverage[ncut];
+   double SXvariance[ncut];
+   double SYvariance[ncut];
+
+   int size=iSiPM.size();
+   for(int ii=0;ii<size;ii++){
+      double npe=GetContent(ii,0,11,true);
+      if(npe>MAX) MAX=npe;
+   }
+   int np=0;
+   result[np++]=MAX;
+   result[np++]=ncut;
+   for(int icut=0;icut<ncut;icut++){
+      value[icut]=0.1*(ncut-icut)*MAX;
+      Num[icut]=0;
+      Sum[icut]=0;
+      SumX[icut]=0;
+      SumY[icut]=0;
+      SumX2[icut]=0;
+      SumY2[icut]=0;
+      Xaverage[icut]=0;
+      Yaverage[icut]=0;
+      SXvariance[icut]=0;
+      SYvariance[icut]=0;
+      for(int ii=0;ii<size;ii++){
+         double npe=GetContent(ii,0,11,true);
+         if(npe>value[icut]){
+            Num[icut]++;
+            Sum[icut]+=npe;
+            double ImageXi=WCamera::GetSiPMX(iSiPM.at(ii))/WFTelescope::FOCUS/PI*180;
+            double ImageYi=WCamera::GetSiPMY(iSiPM.at(ii))/WFTelescope::FOCUS/PI*180;
+            SumX[icut]+=ImageXi*npe;
+            SumY[icut]+=ImageYi*npe;
+            SumX2[icut]+=ImageXi*ImageXi*npe;
+            SumY2[icut]+=ImageYi*ImageYi*npe;
+         }
+      }
+      if(Sum[icut]>0){
+         Xaverage[icut]=SumX[icut]/Sum[icut];
+         Yaverage[icut]=SumY[icut]/Sum[icut];
+         SXvariance[icut]=SumX2[icut]/Sum[icut]-pow(Xaverage[icut],2);
+         SYvariance[icut]=SumY2[icut]/Sum[icut]-pow(Yaverage[icut],2);
+      }
+      result[np++]=value[icut];
+      result[np++]=Num[icut];
+      result[np++]=Xaverage[icut];
+      result[np++]=Yaverage[icut];
+      result[np++]=SXvariance[icut];
+      result[np++]=SYvariance[icut];
+   }
+}
+bool WFCTAEvent::IsNoise(int p0,double p1,int p2,double p3) {
+   double result[100];
+   CalInfo(result);
+   (result[0]>400) return false;
+   double num=result[2+p0*6+1];
+   double xvar=sqrt(result[2+p2*6+4]);
+   double yvar=sqrt(result[2+p2*6+5]);
+   return (num>p1)&&(xvar>p3&&yvar>p3);
 }
 
 /******************************************
