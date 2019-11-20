@@ -1,0 +1,8 @@
+*.exe
+*.o
+*.so
+dictionary.C
+dictionary.h
+*.root
+*.out
+dictionary_rdict.pcm

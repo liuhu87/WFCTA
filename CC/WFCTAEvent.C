@@ -2325,9 +2325,17 @@ void WFCTAEvent::AdcToPe(float *deltag_20, float *correct_PreTemp, int isledeven
 }
 
 //clean image preliminary
-void WFCTAEvent::PrelimImageClean(double cut, int laserEvent)
+void WFCTAEvent::PrelimImageClean(double cut, int laserEvent, int ledEvent)
 {
-	if(laserEvent){
+	if(ledEvent){
+		for(int ii=0;ii<RawImagePe.size();ii++){
+			FullImagePe.push_back(RawImagePe.at(ii));
+			FullImageSiPM.push_back(RawImageSiPM.at(ii));
+			FullImageX.push_back(RawImageX.at(ii));
+			FullImageY.push_back(RawImageY.at(ii));
+		}
+	}
+	else if(laserEvent){
 		for(int ii=0;ii<RawImagePe.size();ii++){
 			if(RawImagePe.at(ii)<cut){continue;}
 			FullImagePe.push_back(RawImagePe.at(ii));
@@ -2388,7 +2396,7 @@ void WFCTAEvent::GetNeighborPixs()
 }
 
 //calculate hillas parameters
-int WFCTAEvent::CalcHillas()
+int WFCTAEvent::CalcHillas(int ledEvent)
 {
 	DNpix = 0;
 	DSize = 0;
@@ -2398,48 +2406,55 @@ int WFCTAEvent::CalcHillas()
 	Dintercept = 0;
 	DLength = 0;
 	DWidth = 0;
-	double sx = 0;
-	double sy = 0;
-	double sxy = 0;
-	for(int ii=0;ii<FullImagePe.size();ii++){
-		if(FullImageSiPM.at(ii)==0||FullImageSiPM.at(ii)==1023)
-		{
-			if(fNpixfriends.at(ii)<=2){continue;}
+	if(ledEvent){
+		for(int ii=0;ii<FullImagePe.size();ii++){
+			DNpix++;
+			DSize += FullImagePe.at(ii);
 		}
-		else
-		{
-			if(fNpixfriends.at(ii)<=cleanPix){continue;}//use this to clean image
-		}
-		DNpix++;
-		DSize += FullImagePe.at(ii);
-		DMeanX += FullImagePe.at(ii) * FullImageX.at(ii);
-		DMeanY += FullImagePe.at(ii) * FullImageY.at(ii);
-		sx += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageX.at(ii);
-		sy += FullImagePe.at(ii) * FullImageY.at(ii) * FullImageY.at(ii);
-		sxy += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageY.at(ii);
 	}
+	else{
+		double sx = 0;
+		double sy = 0;
+		double sxy = 0;
+		for(int ii=0;ii<FullImagePe.size();ii++){
+			if(FullImageSiPM.at(ii)==0||FullImageSiPM.at(ii)==1023)
+			{
+				if(fNpixfriends.at(ii)<=2){continue;}
+			}
+			else
+			{
+				if(fNpixfriends.at(ii)<=cleanPix){continue;}//use this to clean image
+			}
+			DNpix++;
+			DSize += FullImagePe.at(ii);
+			DMeanX += FullImagePe.at(ii) * FullImageX.at(ii);
+			DMeanY += FullImagePe.at(ii) * FullImageY.at(ii);
+			sx += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageX.at(ii);
+			sy += FullImagePe.at(ii) * FullImageY.at(ii) * FullImageY.at(ii);
+			sxy += FullImagePe.at(ii) * FullImageX.at(ii) * FullImageY.at(ii);
+		}
 
-	if(DSize==0.) return 2;
-	DMeanX /= DSize;
-	DMeanY /= DSize;
-	sx /= DSize;
-	sy /= DSize;
-	sxy /= DSize;
-	double cx = sx - DMeanX*DMeanX;
-	double cy = sy - DMeanY*DMeanY;
-	double cxy = sxy - DMeanX*DMeanY;
-	double a = (cy-cx+sqrt((cy-cx)*(cy-cx)+4*cxy*cxy))/(2*cxy);
-	double b = DMeanY-a*DMeanX;
-	double ssx = (cx+2*a*cxy+a*a*cy)/(1+a*a);
-	double ssy = (a*a*cx-2*a*cxy+cy)/(1+a*a);
+		if(DSize==0.) return 2;
+		DMeanX /= DSize;
+		DMeanY /= DSize;
+		sx /= DSize;
+		sy /= DSize;
+		sxy /= DSize;
+		double cx = sx - DMeanX*DMeanX;
+		double cy = sy - DMeanY*DMeanY;
+		double cxy = sxy - DMeanX*DMeanY;
+		double a = (cy-cx+sqrt((cy-cx)*(cy-cx)+4*cxy*cxy))/(2*cxy);
+		double b = DMeanY-a*DMeanX;
+		double ssx = (cx+2*a*cxy+a*a*cy)/(1+a*a);
+		double ssy = (a*a*cx-2*a*cxy+cy)/(1+a*a);
 
-	if(cx==0||cy==0) return 4;
-	double delta = atan(a);
-	Dslope = a;
-	Dintercept = b;
-	DLength = sqrt(ssx);
-	DWidth = sqrt(ssy);
-
+		if(cx==0||cy==0) return 4;
+		double delta = atan(a);
+		Dslope = a;
+		Dintercept = b;
+		DLength = sqrt(ssx);
+		DWidth = sqrt(ssy);
+	}
 	return 0;
 }
 

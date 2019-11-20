@@ -666,8 +666,13 @@ void WFCTADecode::Find_SiPMs(uint8_t *begin)//, int packStart)
 			sc = db*10+fpga;
 			channel = *(begin+readPos+4);
 			SC_Channel2SiPM(sc,channel,&sipm);
-			m_sipm_position.insert(pair<short,int>(sipm,(int)readPos));
-			readPos += 126;
+			if(sipm>=0&&sipm<=1023){
+				m_sipm_position.insert(pair<short,int>(sipm,(int)readPos));
+				readPos += 126;
+			}
+			else{
+				readPos++;
+			}
 		}
 		else
 		{

@@ -70,7 +70,7 @@ void SC_Channel2SiPM(short F_DB, short mChannel, short *mSiPM)
     if(int(Channel_X*2)%2==1){Channel_X = Channel_X+0.5;}
     else {Channel_X = Channel_X;}
     Channel_Y = 32-Channel_Y;
-	*mSiPM = int(1023-(Channel_Y*32+Channel_X-1));
+	*mSiPM = short(1023-(Channel_Y*32+Channel_X-1));
 }
 
 

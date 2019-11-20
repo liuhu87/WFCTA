@@ -72,7 +72,7 @@ OBJS     += $(OBJDIR)/dictionary.o
 DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) `root-config --cflags`
 
 #CXXFLAGS := -O3 -fPIC -qopenmp
-CXXFLAGS := -O3 -fPIC
+CXXFLAGS := -O3 -fPIC #-shared
 #CXXFLAGS += -D_FCNTL_H
 #CXXFLAGS += -D_THIN_
 
@@ -113,6 +113,7 @@ TelDir.exe: $(OBJDIR)/TelDir.o $(OBJS)
 
 $(LIBDIR)/lib.so: $(OBJS)
 	mkdir -p $(LIBDIR)
+	cp $(OBJDIR)/dictionary_rdict.pcm $(LIBDIR)/
 	$(LD) -shared -o $@ $^ $(LDFLAGS)
 
 $(OBJDIR)/event.o: event.C
