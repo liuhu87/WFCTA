@@ -99,6 +99,16 @@ int WCamera::GetTube(double clusterx, double clustery)
   return itube;
 }
 
+bool WCamera::IsEdge(int isipm){
+  if(isipm<0||isipm>=NSIPM) return false;
+  int i = isipm/PIX;
+  int j = isipm%PIX;
+  bool isedge=false;
+  if(i==0||i==31) isedge==true;
+  if(j==0||j==31) isedge==true;
+  return isedge;
+}
+
 void WCamera::SetNSB(float nsb)
 {
    NSB = nsb;

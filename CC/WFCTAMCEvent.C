@@ -21,13 +21,14 @@ void WFCTAMCEvent::Init(int size){
 void WFCTAMCEvent::Reset(){
    Ngen=0;
    Timegen=0;
-   if(hRayTrace) hRayTrace->Reset();
+   //memset(this,0,sizeof(*this));
+   if(hRayTrace) {if(hRayTrace->Integral()>0) hRayTrace->Reset();}
    //for(int ii=0;ii<3;ii++){
    //   Coogen[ii].clear();
    //   Dirgen[ii].clear();
    //}
    //Wavegen.clear();
-   RayTrace.clear();
+   /*RayTrace.clear();
    for(int ict=0;ict<NCTMax;ict++){
       for(int ii=0;ii<NSIPM;ii++){
          TubeSignal[ict][ii]=0;
@@ -47,7 +48,7 @@ void WFCTAMCEvent::Reset(){
             ArrivalCountE[ict][ii][jj]=0;
          }
       }
-   }
+   }*/
 }
 void WFCTAMCEvent::Copy(WFTelescopeArray* pct){
    if(!pct) pct=WFTelescopeArray::GetHead();

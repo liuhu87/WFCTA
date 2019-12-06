@@ -1,8 +1,8 @@
-#include <stdlib.h>
 #include <cmath>
 #include <iostream>
 #include "WFCTAEvent.h"
 #include "WFCamera.h"
+#include "WFCone.h"
 #include "TH2Poly.h"
 #include "TMarker3DBox.h"
 #include "TAxis3D.h"
@@ -115,13 +115,14 @@ WFCTAEvent::~WFCTAEvent()
 	      tlist->RemoveLast();
 	   }
 	   delete tlist;
+	   tlist=0;
 	}
 	graphlist.clear();
 }
 
 void WFCTAEvent::Init()
 {
-   tlist=new TList();
+   tlist=0;
 
    iTel=-1;
    iEvent=-1;
@@ -170,6 +171,7 @@ void WFCTAEvent::Init()
    gDraw=0;
    gDrawErr=0;
    minimizer=0;
+   htlong=0;
 
    mcevent.Init();
    ledevent.Init();
@@ -177,17 +179,19 @@ void WFCTAEvent::Init()
 }
 void WFCTAEvent::EventInitial()
 {
-	int size=tlist->Capacity();
-	for(int ii=0;ii<size;ii++){
-	   delete tlist->At(ii);
-	}
-	for(int ii=0;ii<size;ii++){
-	   tlist->RemoveLast();
+	if(tlist){
+	   int size=tlist->Capacity();
+	   for(int ii=0;ii<size;ii++){
+	      delete tlist->At(ii);
+	   }
+	   for(int ii=0;ii<size;ii++){
+	      tlist->RemoveLast();
+	   }
 	}
 	for(int ii=0;ii<graphlist.size();ii++){
 	   delete (graphlist.at(ii));
 	}
-	graphlist.clear();
+	if(graphlist.size()>0) graphlist.clear();
 
 	iTel=-1;
 	merge_size=-1;
@@ -241,6 +245,7 @@ void WFCTAEvent::EventInitial()
 	if(gDraw) {delete gDraw; gDraw=0;}
 	if(gDrawErr) {delete gDrawErr; gDrawErr=0;}
 	if(minimizer) {delete minimizer; minimizer=0;}
+        if(htlong) {delete htlong; htlong=0;}
 
 	mcevent.Reset();
 	ledevent.Reset();
@@ -341,6 +346,8 @@ void WFCTAEvent::CalculateDataVar(int itel){
          eAdcL.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
          AdcH.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpHig);
          AdcL.push_back(mcevent.TubeSignal[itel][ii]*WFCTAMCEvent::fAmpLow);
+         SatH.push_back(false);
+         SatL.push_back(false);
 
          //PeakPosH.push_back((mcevent.ArrivalTime[itel][peaktime]-itmin));
          PeakPosH.push_back(int(avetime)-itmin);
@@ -359,6 +366,25 @@ void WFCTAEvent::CalculateDataVar(int itel){
          }
       }
    }
+}
+double WFCTAEvent::GetImageXYCoo(int isipm,double &ImageX,double &ImageY,double focus,bool Isdegree){
+   if(isipm<0||isipm>=NSIPM) return -1;
+   ImageX=WCamera::GetSiPMX(isipm);
+   ImageY=WCamera::GetSiPMY(isipm);
+   double numcon=Isdegree?(180./PI):1.;
+   double result=0;
+   if(focus>0){
+      ImageX*=numcon/focus;
+      ImageY*=numcon/focus;
+      result=SquareCone::D_ConeOut/focus*numcon;
+   }
+   else{
+      ImageX*=numcon/WFTelescope::FOCUS;
+      ImageY*=numcon/WFTelescope::FOCUS;
+      result=SquareCone::D_ConeOut/WFTelescope::FOCUS*numcon;
+   }
+   //if(iTel==5) {ImageX*=-1; ImageY*=-1;}
+   return result;
 }
 int WFCTAEvent::GetMaxADCBin(int itel){
 	int res=-1;
@@ -428,10 +454,10 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex){
       if(type==2&&ii<eAdcL.size()) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
       if(type==3&&ii<AdcH.size()) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
       if(type==4&&ii<AdcL.size()) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==5&&ii<PeakPosH.size()) content=PeakPosH.at(ii)+0.01;
-      if(type==6&&ii<PeakPosL.size()) content=PeakPosL.at(ii)+0.01;
-      if(type==7&&ii<PeakAmH.size()) content=PeakAmH.at(ii)+0.01;
-      if(type==8&&ii<PeakAmL.size()) content=PeakAmL.at(ii)+0.01;
+      if(type==5&&ii<PeakPosH.size()) content=PeakPosH.at(ii);
+      if(type==6&&ii<PeakPosL.size()) content=PeakPosL.at(ii);
+      if(type==7&&ii<PeakAmH.size()) content=PeakAmH.at(ii);
+      if(type==8&&ii<PeakAmL.size()) content=PeakAmL.at(ii);
       if(type==9&&ii<SatH.size()) content=SatH.at(ii)?1.:-1.;
       if(type==10&&ii<SatL.size()) content=SatL.at(ii)?1.:-1.;
       if(type==11&&(ii<SatH.size()&&ii<AdcH.size())){
@@ -480,20 +506,12 @@ bool WFCTAEvent::CleanImage(int isipm,int itel,bool IsIndex){
       //else{if(content<trig1) continue;}
       if(content<trig1) continue;
       double ImageXi=0,ImageYi=0;
-      //ImageXi=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
-      //ImageYi=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
-      ImageXi=WCamera::GetSiPMX(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      ImageYi=WCamera::GetSiPMY(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      if(iTel==5&&rabbitTime<15706800000) {ImageXi*=-1; ImageYi*=-1;}
+      GetImageXYCoo(ii,ImageXi,ImageYi);
       int nneigh=0;
       for(int jj=0;jj<size;jj++){
          if(jj==ii) continue;
          double ImageXj=0,ImageYj=0;
-         //ImageXj=WCamera::GetSiPMX(jj)/WFTelescope::FOCUS/PI*180;
-         //ImageYj=WCamera::GetSiPMY(jj)/WFTelescope::FOCUS/PI*180;
-         ImageXj=WCamera::GetSiPMX(jj)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-         ImageYj=WCamera::GetSiPMY(jj)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-         if(iTel==5&&rabbitTime<15706800000) {ImageXj*=-1; ImageYj*=-1;}
+         GetImageXYCoo(jj,ImageXj,ImageYj);
          double dist=sqrt(pow(ImageXi-ImageXj,2)+pow(ImageYi-ImageYj,2));
          if(dist>0.6) continue;
          bool sat1=(GetContent(jj,itel,9,true)>0.5);
@@ -521,22 +539,34 @@ bool WFCTAEvent::PassClean(int itel,int nthreshold){
 
 double WFCTAEvent::Interface(const double* par){
    int size=iSiPM.size();
-   double chi2=0;
-   int ndof=0;
-   double sum=0;
+   double content[1024];
+   double econtent[1024];
+   double allcontent=0;
+   double eallcontent=0;
    for(int ii=0;ii<size;ii++){
       int isipm=iSiPM.at(ii);
-      if(!CleanImage(ii,(int)(par[0]+0.5),true)) continue;
-      //double ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS;///PI*180;
-      //double ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS;///PI*180;
-      double ImageX=WCamera::GetSiPMX(isipm)/WFTelescopeArray::GetFocus((int)(par[0]+0.5));///PI*180;
-      double ImageY=WCamera::GetSiPMY(isipm)/WFTelescopeArray::GetFocus((int)(par[0]+0.5));///PI*180;
-      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
-      double content=GetContent(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true);
-      double err=0.25/180.*PI;
-      chi2+=pow((ImageX*sin(par[3])-ImageY*cos(par[3])+par[2])/err,2)*content;
+      if(CleanImage(ii,(int)(par[0]+0.5),true)){
+         content[ii]=GetContent(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true);
+         econtent[ii]=GetContentError(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true);
+      }
+      else{
+         content[ii]=0;
+         econtent[ii]=0;
+      }
+      allcontent+=content[ii];
+      eallcontent=sqrt(pow(eallcontent,2)+pow(econtent[ii],2));
+   }
+   double chi2=0;
+   int ndof=0;
+   for(int ii=0;ii<size&&(allcontent>0);ii++){
+      int isipm=iSiPM.at(ii);
+      double ImageX,ImageY;
+      double dcell=GetImageXYCoo(isipm,ImageX,ImageY,WFTelescope::FOCUS,false);
+      if(dcell<0) continue;
+      double distance=(ImageX*sin(par[3])-ImageY*cos(par[3])+par[2]);
+      double probi=content[ii]/allcontent;
+      chi2+=probi*pow(distance/(dcell/2.),2);
       ndof++;
-      sum+=content;
    }
    ////for test
    //for(int ii=0;ii<9;ii++){
@@ -544,12 +574,48 @@ double WFCTAEvent::Interface(const double* par){
    //   ndof++;
    //   sum+=1;
    //}
-   if(sum>0){
-      chi2/=(sum/ndof);
-      //chi2/=sum;
-   }
+
+   //chi2/=(chi2/ndof);
    return chi2;
 }
+/*double WFCTAEvent::InterfaceT(const double* par){
+   if(!htlong){
+      htlong=GetDistribution(true,(int)(par[0]+0.5),5,false);
+      htlong=CorrTimeDist(htlong,CheckLaser(),CheckMC());
+   }
+   int size=iSiPM.size();
+   double content[1024];
+   double econtent[1024];
+   double allcontent=0;
+   double eallcontent=0;
+   for(int ii=0;ii<size;ii++){
+      int isipm=iSiPM.at(ii);
+      if(CleanImage(ii,(int)(par[0]+0.5),true)){
+         content[ii]=GetContent(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true);
+         econtent[ii]=GetContentError(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true);
+      }
+      else{
+         content[ii]=0;
+         econtent[ii]=0;
+      }
+      allcontent+=content[ii];
+      eallcontent=sqrt(pow(eallcontent,2)+pow(econtent[ii],2));
+   }
+   double chi2=0;
+   int ndof=0;
+   for(int ii=0;ii<size&&(allcontent>0);ii++){
+      int isipm=iSiPM.at(ii);
+      double ImageX,ImageY;
+      double dcell=GetImageXYCoo(isipm,ImageX,ImageY,WFTelescope::FOCUS,false);
+      if(dcell<0) continue;
+      double distance=(ImageX*sin(par[3])-ImageY*cos(par[3])+par[2]);
+      double probi=content[ii]/allcontent;
+      chi2+=probi*pow(distance/(dcell/2.),2);
+      ndof++;
+   }
+
+   return chi2;
+}*/
 bool WFCTAEvent::DoFit(int itel,int type,bool force){
    itel=0;
    if(itel<0||itel>=WFTelescopeArray::CTNumber) return false;
@@ -562,11 +628,7 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
       if(!CleanImage(ii,itel,true)) continue;
       double content=GetContent(ii,itel,type,true);
       double ImageX,ImageY;
-      //ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS;///PI*180;
-      //ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS;///PI*180;
-      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescopeArray::GetFocus(iTel);///PI*180;
-      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescopeArray::GetFocus(iTel);///PI*180;
-      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
+      GetImageXYCoo(isipm0,ImageX,ImageY,-1,false);
 
       mx += ImageX*content;
       my += ImageY*content;
@@ -623,104 +685,541 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
    return true;
 }
 
-bool WFCTAEvent::GetCrossCoor(double x,double y,double &x0,double &y0){
-   if(!minimizer) return false;
-   double CC=minimizer->X()[2]/PI*180.;
-   double phi=minimizer->X()[3];
+bool WFCTAEvent::GetCrossCoor(double x,double y,double CC,double phi,double &x0,double &y0){
+   CC=CC/PI*180;
    x0=cos(phi)*(x*cos(phi)+y*sin(phi))-CC*sin(phi);
    y0=sin(phi)*(x*cos(phi)+y*sin(phi))+CC*cos(phi);
    return true;
 }
-TH1F* WFCTAEvent::GetLongDistribution(int itel,int type){
+bool WFCTAEvent::GetCrossCoor(double x,double y,double &x0,double &y0){
+   if(!minimizer) return false;
+   double CC=minimizer->X()[2];
+   double phi=minimizer->X()[3];
+   return GetCrossCoor(x,y,CC,phi,x0,y0);
+}
+
+int WFCTAEvent::IsInside(double xx,double yy){
+   double ImageX0,ImageY0;
+   double dcell=GetImageXYCoo(PIX/2,ImageX0,ImageY0);
+   int IndexY=-1,IndexX=-1;
+   for(int Yi=0;Yi<PIX;Yi++){
+      double ImageX,ImageY;
+      GetImageXYCoo(PIX/2+Yi*PIX,ImageX,ImageY);
+      double y1=ImageY-dcell/2;
+      double y2=ImageY+dcell/2;
+      if(yy>=y1&&yy<=y2){
+         IndexY=Yi;
+         break;
+      }
+   }
+   if(IndexY<0) return -1;
+   for(int Xi=0;Xi<PIX;Xi++){
+      double ImageX,ImageY;
+      GetImageXYCoo(Xi+IndexY*PIX,ImageX,ImageY);
+      double x1=ImageX-dcell/2;
+      double x2=ImageX+dcell/2;
+      if(xx>=x1&&xx<=x2){
+         IndexX=Xi;
+         break;
+      }
+   }
+   if(IndexX<0) return -1;
+   else return IndexY*PIX+IndexX;
+}
+bool WFCTAEvent::GetRange(double CC,double phi,double XY1[4],double XY2[4]){
+   if(jdebug>0) printf("WFCTAEvent::GetRange:input,CC=%lf phi=%lf\n",CC/PI*180,phi/PI*180);
+   CC*=180./PI;
+   double margin=1.0e-5;
+   if(fabs(phi)<(0.1/180.*PI)){
+      double yy=CC/cos(phi);
+      int IndexY=-1;
+      for(int Yi=0;Yi<PIX;Yi++){
+         double ImageX,ImageY;
+         double dcell=GetImageXYCoo(PIX/2+Yi*PIX,ImageX,ImageY);
+         double y1=ImageY-dcell/2;
+         double y2=ImageY+dcell/2;
+         //printf("Yi=%d y12={%lf,%lf}\n",Yi,y1,y2);
+         if(yy>=y1&&yy<=y2){
+            IndexY=Yi;
+            break;
+         }
+      }
+      //printf("yy=%lf IndexY=%d\n",yy,IndexY);
+      if(IndexY<0) return false;
+      XY1[1]=yy;
+      XY2[1]=yy;
+      double dcell=GetImageXYCoo(0+IndexY*PIX,XY1[0],yy);
+      XY1[0]-=dcell/2.;
+      XY1[2]=XY1[0]*cos(phi)+XY1[1]*sin(phi);
+      XY1[3]=1;
+      dcell=GetImageXYCoo((PIX-1)+IndexY*PIX,XY2[0],yy);
+      XY2[0]+=dcell/2.;
+      XY2[2]=XY2[0]*cos(phi)+XY2[1]*sin(phi);
+      XY2[3]=1;
+   }
+   else{
+      int exist=0;
+      int index=0;
+      while(index>=0&&index<PIX){
+         double ImageX,ImageY;
+         double dcell=GetImageXYCoo(PIX/2+index*PIX,ImageX,ImageY);
+         double y1=ImageY+dcell/2;
+         double y2=ImageY-dcell/2;
+         double x1=(y1*cos(phi)-CC)/sin(phi);
+         double x2=(y2*cos(phi)-CC)/sin(phi);
+         bool inside1=IsInside(x1,y1-margin)>=0;
+         bool inside2=IsInside(x2,y2+margin)>=0;
+         if(jdebug>1) printf("WFCTAEvent::GetRange: index=%d xy1={%lf,%lf} xy2={%lf,%lf} inside={%d,%d}\n",index,x1,y1,x2,y2,inside1,inside2);
+         if(inside1){
+            XY1[1]=y1;
+            XY1[0]=x1;
+            XY1[2]=XY1[0]*cos(phi)+XY1[1]*sin(phi);
+            XY1[3]=1;
+            exist=1;
+            /*if(!inside2) exist=1;
+            else{
+               XY2[1]=y2;
+               XY2[0]=x2;
+               XY2[2]=XY2[0]*cos(phi)+XY2[1]*sin(phi);
+               XY2[3]=1;
+               if(XY1[2]>XY2[2]){
+                  double nbuff[4]={XY2[0],XY2[1],XY2[2],XY2[3]};
+                  for(int ii=0;ii<4;ii++) XY2[ii]=XY1[ii];
+                  for(int ii=0;ii<4;ii++) XY1[ii]=nbuff[ii];
+               }
+               exist=2;
+            }*/
+            break;
+         }
+         else if(inside2){
+            dcell=GetImageXYCoo(((x1>0)?(PIX-1):0)+index*PIX,ImageX,ImageY);
+            XY1[0]=ImageX+((x1>0)?1:-1)*dcell/2;
+            XY1[1]=(XY1[0]*sin(phi)+CC)/cos(phi);
+            XY1[2]=XY1[0]*cos(phi)+XY1[1]*sin(phi);
+            XY1[3]=1;
+            exist=1;
+            break;
+         }
+         else if(x1*x2<0){
+            dcell=GetImageXYCoo(0+index*PIX,ImageX,ImageY);
+            XY1[0]=ImageX-dcell/2;
+            XY1[1]=(XY1[0]*sin(phi)+CC)/cos(phi);
+            XY1[2]=XY1[0]*cos(phi)+XY1[1]*sin(phi);
+            XY1[3]=1;
+            dcell=GetImageXYCoo(PIX-1+index*PIX,ImageX,ImageY);
+            XY2[0]=ImageX+dcell/2;
+            XY2[1]=(XY2[0]*sin(phi)+CC)/cos(phi);
+            XY2[2]=XY2[0]*cos(phi)+XY2[1]*sin(phi);
+            XY2[3]=1;
+            if(XY1[2]>XY2[2]){
+               double nbuff[4]={XY2[0],XY2[1],XY2[2],XY2[3]};
+               for(int ii=0;ii<4;ii++) XY2[ii]=XY1[ii];
+               for(int ii=0;ii<4;ii++) XY1[ii]=nbuff[ii];
+            }
+            exist=2;
+            break;
+         }
+         index++;
+      }
+      if(exist<=0) return false;
+      else if(exist>=2) return true;
+      index=PIX-1;
+      while(index>=0&&index<PIX){
+         double ImageX,ImageY;
+         double dcell=GetImageXYCoo(PIX/2+index*PIX,ImageX,ImageY);
+         double y1=ImageY-dcell/2;
+         double y2=ImageY+dcell/2;
+         double x1=(y1*cos(phi)-CC)/sin(phi);
+         double x2=(y2*cos(phi)-CC)/sin(phi);
+         bool inside1=IsInside(x1,y1+margin)>=0;
+         bool inside2=IsInside(x2,y2-margin)>=0;
+         if(inside1){
+            XY2[1]=y1;
+            XY2[0]=x1;
+            XY2[2]=XY2[0]*cos(phi)+XY2[1]*sin(phi);
+            XY2[3]=1;
+            exist=2;
+            break;
+         }
+         else if(inside2){
+            dcell=GetImageXYCoo(((x1>0)?(PIX-1):0)+index*PIX,ImageX,ImageY);
+            XY2[0]=ImageX+((x1>0)?1:-1)*dcell/2;
+            XY2[1]=(XY2[0]*sin(phi)+CC)/cos(phi);
+            XY2[2]=XY2[0]*cos(phi)+XY2[1]*sin(phi);
+            XY2[3]=1;
+            exist=2;
+            break;
+         }
+         else if(x1*x2<0){
+            dcell=GetImageXYCoo(0+index*PIX,ImageX,ImageY);
+            XY1[0]=ImageX-dcell/2;
+            XY1[1]=(XY1[0]*sin(phi)+CC)/cos(phi);
+            XY1[2]=XY1[0]*cos(phi)+XY1[1]*sin(phi);
+            XY1[3]=1;
+            dcell=GetImageXYCoo(PIX-1+index*PIX,ImageX,ImageY);
+            XY2[0]=ImageX+dcell/2;
+            XY2[1]=(XY2[0]*sin(phi)+CC)/cos(phi);
+            XY2[2]=XY2[0]*cos(phi)+XY2[1]*sin(phi);
+            XY2[3]=1;
+            if(XY1[2]>XY2[2]){
+               double nbuff[4]={XY2[0],XY2[1],XY2[2],XY2[3]};
+               for(int ii=0;ii<4;ii++) XY2[ii]=XY1[ii];
+               for(int ii=0;ii<4;ii++) XY1[ii]=nbuff[ii];
+            }
+            exist=2;
+            break;
+         }
+         index--;
+      }
+      if(exist<2) return false;
+
+      /*double ImageX,ImageY;
+      double dcell=GetImageXYCoo(PIX/2+0*PIX,ImageX,ImageY);
+      XY1[1]=ImageY+dcell/2;
+      XY1[0]=(XY1[1]*cos(phi)-CC)/sin(phi);
+      XY1[2]=XY1[0]*cos(phi)+XY1[1]*sin(phi);
+      XY1[3]=-1;
+      bool inside1=IsInside(XY1[0],XY1[1]-margin)>=0;
+      dcell=GetImageXYCoo(PIX/2+(PIX-1)*PIX,ImageX,ImageY);
+      XY2[1]=ImageY-dcell/2;
+      XY2[0]=(XY2[1]*cos(phi)-CC)/sin(phi);
+      XY2[2]=XY2[0]*cos(phi)+XY2[1]*sin(phi);
+      XY2[3]=-1;
+printf("XY1={%lf,%lf,%lf,%lf} XY2={%lf,%lf,%lf,%lf}\n",XY1[0],XY1[1],XY1[2],XY1[3],XY2[0],XY2[1],XY2[2],XY2[3]);
+      bool inside2=IsInside(XY2[0],XY2[1]+margin)>=0;
+      //printf("inside1=%d inside2=%d\n",inside1,inside2);
+      if((!inside1)&&(!inside2)) return false;
+      else if(inside1&&inside2){
+         ;
+      }
+      else{
+         bool useupper=(inside1&&(!inside2));
+         int index=useupper?(PIX-1):0;
+         while(index>=0&&index<PIX){
+            double ImageX,ImageY;
+            GetImageXYCoo(PIX/2+index*PIX,ImageX,ImageY);
+            double y1=ImageY+(useupper?-1:1)*dcell/2;
+            double x1=(y1*cos(phi)-CC)/sin(phi);
+            if(IsInside(x1,y1-(useupper?-1:1)*margin)>=0){
+               if(useupper){
+                  XY2[0]=x1;
+                  XY2[1]=y1;
+                  XY2[2]=XY2[0]*cos(phi)+XY2[1]*sin(phi);
+                  XY2[3]=1;
+               }
+               else{
+                  XY1[0]=x1;
+                  XY1[1]=y1;
+                  XY1[2]=XY1[0]*cos(phi)+XY1[1]*sin(phi);
+                  XY1[3]=1;
+               }
+               break;
+            }
+            double y2=ImageY-(useupper?-1:1)*dcell/2;
+            double x2=(y2*cos(phi)-CC)/sin(phi);
+            if(IsInside(x1,y1+(useupper?-1:1)*margin)>=0){
+               if(useupper){
+                  XY2[0]=x2;
+                  XY2[1]=y2;
+                  XY2[2]=XY2[0]*cos(phi)+XY2[1]*sin(phi);
+                  XY2[3]=1;
+               }
+               else{
+                  XY1[0]=x2;
+                  XY1[1]=y2;
+                  XY1[2]=XY1[0]*cos(phi)+XY1[1]*sin(phi);
+                  XY1[3]=1;
+               }
+               break;
+            }
+
+            if(useupper) index--;
+            else index++;
+         }
+      }*/
+   }
+   if(jdebug>0) printf("WFCTAEvent::GetRange:output,CC=%lf phi=%lf XY1={%lf,%lf} XY2={%lf,%lf}\n",CC,phi/PI*180,XY1[0],XY1[1],XY2[0],XY2[1]);
+   if(XY1[2]>XY2[2]){
+      double nbuff[4]={XY2[0],XY2[1],XY2[2],XY2[3]};
+      for(int ii=0;ii<4;ii++) XY2[ii]=XY1[ii];
+      for(int ii=0;ii<4;ii++) XY1[ii]=nbuff[ii];
+   }
+   return true;
+}
+TH1F* WFCTAEvent::GetDistribution(bool IsLong,int itel,int type,bool IsWidth,bool CleanEdge){
    itel=0;
    if(itel<0||itel>=WFTelescopeArray::CTNumber) return 0;
    if(!minimizer) return 0;
    double CC=minimizer->X()[2]/PI*180.;
    double phi=minimizer->X()[3];
+   double XY1[4],XY2[4];
+   bool inside=GetRange(CC/180.*PI,phi,XY1,XY2);
+   if(!inside) return 0;
    double margin=24.;
-   const int nbin=24;
-   TH1F* hh=new TH1F("longdis",";long dist [degree];Entries",nbin,-12.,12.);
+   const int nbin=48;
+   static int ihist=0;
+   TH1F* hh=new TH1F(Form("%sdis_%s%s_h%d",IsLong?"long":"short",(type>=5&&type<=6)?"time":"npe",IsWidth?"_width":"",ihist++),Form(";%s axis [degree];%s",IsLong?"Long":"Short",IsWidth?"Width [degree]":((type>=5&&type<=6)?"Time [ns]":"Npe [pe]")),IsWidth?24:nbin,IsLong?-12.:-6.,IsLong?12.:6.);
    double nfill[nbin];
-   for(int ii=0;ii<nbin;ii++) nfill[ii]=0;
+   //double nmark[nbin];
+   for(int ii=0;ii<nbin;ii++){
+      nfill[ii]=0;
+      //nmark[ii]=false;
+   }
 
    int size=iSiPM.size();
+
+   TH2F* h2d=new TH2F("h2d",";Long Axis [degree];Short Axis [degree]",24,-12.,12.,128,-8,8);
    for(int ii=0;ii<size;ii++){
       int isipm0=iSiPM.at(ii);
       if(!CleanImage(ii,itel,true)) continue;
       double ImageX,ImageY;
-      //ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS/PI*180;
-      //ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS/PI*180;
-      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
-      double dist=fabs(sin(phi)*ImageX-cos(phi)*ImageY+CC);
-      if(dist>margin) continue;
-      double x0,y0,xx,yy;
-      bool res1=GetCrossCoor(0.,0.,x0,y0);
-      bool res2=GetCrossCoor(ImageX,ImageY,xx,yy);
-      if((!res1)||(!res2)) continue;
-      double length=sqrt(pow(xx-x0,2)+pow(yy-y0,2));
-      int sign;
-      if(sin(phi)>sqrt(2.)/2) sign=(yy>y0)?1:(-1);
-      else sign=(xx>x0)?1:(-1);
-      int ibin=hh->GetXaxis()->FindBin(length*sign);
-      hh->SetBinContent(ibin,hh->GetBinContent(ibin)+GetContent(ii,itel,type,true));
-      hh->SetBinError(ibin,sqrt(pow(hh->GetBinError(ibin),2)+pow(GetContentError(ii,itel,type,true),2)));
-      nfill[ibin-1]+=1;
-      //printf("ii=%d ibin=%d length=%lf xy={%lf,%lf,%lf,%lf,%lf,%lf} sign=%d\n",ii,ibin,length,x0,y0,ImageX,ImageY,xx,yy,sign);
+      double dcell=GetImageXYCoo(isipm0,ImageX,ImageY);
+      double ImageX2=ImageX*cos(phi)+ImageY*sin(phi); //long axis
+      double ImageY2=-ImageX*sin(phi)+ImageY*cos(phi)-CC; //short axis
+      double content=GetContent(ii,itel,11,true);
+      double econtent=GetContentError(ii,itel,11,true);
+      int ibinx=h2d->GetXaxis()->FindBin(ImageX2);
+      int ibiny=h2d->GetYaxis()->FindBin(ImageY2);
+      h2d->SetBinContent(ibinx,ibiny,h2d->GetBinContent(ibinx,ibiny)+content);
+      h2d->SetBinError(ibinx,ibiny,sqrt(pow(h2d->GetBinError(ibinx,ibiny),2)+pow(econtent,2)));
    }
-   if(type==5){
-      for(int ibin=1;ibin<=nbin;ibin++) {if(nfill[ibin-1]>0) hh->SetBinContent(ibin,hh->GetBinContent(ibin)/nfill[ibin-1]);}
+   double sigm=-1;
+   for(int ibin=0;ibin<=h2d->GetNbinsX();ibin++){
+      TH1D* hbuff=0;
+      if(ibin==0) hbuff=h2d->ProjectionY("hbuff",1,h2d->GetNbinsX());
+      else hbuff=h2d->ProjectionY(Form("hbuff_bin%d",ibin),ibin,ibin);
+      double sigmi=-1;
+      if(hbuff->Integral()>50){
+         double allcont=hbuff->Integral();
+         int ibin0=hbuff->GetXaxis()->FindBin(0.);
+         double acccont=0;
+         for(int ibin=0;ibin<(hbuff->GetNbinsX()/2)+2;ibin++){
+            acccont+=hbuff->GetBinContent(ibin0+ibin);
+            if(ibin>0) acccont+=hbuff->GetBinContent(ibin0-ibin);
+            if(fabs(acccont/allcont)>0.99){
+               sigmi=hbuff->GetXaxis()->GetBinCenter(ibin0+ibin)-hbuff->GetXaxis()->GetBinCenter(ibin0);
+               break;
+            }
+         }
+         //hbuff->Fit("gaus","QS0");
+         //TF1* f1=hbuff->GetFunction("gaus");
+         //if(f1) sigmi=f1->GetParameter(2)*2;
+      }
+      delete hbuff;
+      if(ibin==0) sigm=sigmi;
+      if(IsWidth){
+         if(ibin>0&&sigmi>0){
+            hh->SetBinContent(ibin,sigmi);
+            hh->SetBinError(ibin,0);
+         }
+      }
+      else if(ibin==0){
+         break;
+      }
+   }
+   if(h2d) {delete h2d; h2d=0;}
+   if(sigm<=0){
+      delete hh;
+      return 0;
+   }
+   double LRange[2]={-30,30};
+   for(int ii=0;ii<3;ii++){
+      double xx=XY1[0];
+      double yy=XY1[1];
+      if(XY1[3]<0) xx=XY1[0]+sigm*(ii-1);
+      else yy=XY1[1]+sigm*(ii-1);
+      double LL=xx*cos(phi)+yy*sin(phi);
+      if(LL>LRange[0]) LRange[0]=LL;
+   }
+   for(int ii=0;ii<3;ii++){
+      double xx=XY2[0];
+      double yy=XY2[1];
+      if(XY2[3]<0) xx=XY2[0]+sigm*(ii-1);
+      else yy=XY2[1]+sigm*(ii-1);
+      double LL=xx*cos(phi)+yy*sin(phi);
+      if(LL<LRange[1]) LRange[1]=LL;
+   }
+   if(jdebug>0) printf("WFCTAEvent::GetDistribution: sigm=%lf LRange={%lf,%lf}\n",sigm,LRange[0],LRange[1]);
+   if(IsWidth){ //clean
+      for(int ibin=1;ibin<=hh->GetNbinsX();ibin++){
+         if(hh->GetBinContent(ibin)>0){
+            hh->SetBinContent(ibin,0);
+            hh->SetBinError(ibin,0);
+            break;
+         }
+      }
+      for(int ibin=hh->GetNbinsX();ibin>=1;ibin--){
+         if(hh->GetBinContent(ibin)>0){
+            hh->SetBinContent(ibin,0);
+            hh->SetBinError(ibin,0);
+            break;
+         }
+      }
+      for(int ibin=1;ibin<=hh->GetNbinsX();ibin++){
+         double xcenter=hh->GetXaxis()->GetBinCenter(ibin);
+         if(xcenter<=LRange[0]||xcenter>=LRange[1]){
+            hh->SetBinContent(ibin,0);
+            hh->SetBinError(ibin,0);
+         }
+      }
+      return hh;
+   }
+
+   bool IsTime=(type>=5&&type<=6);
+   const int ndivide=30;
+   for(int ii=0;ii<size;ii++){
+      int isipm0=iSiPM.at(ii);
+      if(!CleanImage(ii,itel,true)) continue;
+      double content=GetContent(ii,itel,type,true);
+      double econtent=GetContentError(ii,itel,type,true);
+      double norm=GetContent(ii,itel,11,true);
+      if(norm<=0) continue;
+      double ImageX,ImageY;
+      double dcell=GetImageXYCoo(isipm0,ImageX,ImageY);
+      bool isedge=WCamera::IsEdge(isipm0);
+      for(int idiv1=0;idiv1<ndivide;idiv1++){
+         double ImageXi=ImageX-dcell/2.+dcell/ndivide*(idiv1+0.5);
+         for(int idiv2=0;idiv2<ndivide;idiv2++){
+            double ImageYi=ImageY-dcell/2.+dcell/ndivide*(idiv2+0.5);
+            double ImageX2=ImageXi*cos(phi)+ImageYi*sin(phi); //long axis
+            double ImageY2=-ImageXi*sin(phi)+ImageYi*cos(phi)-CC; //short axis
+            if(IsLong&&fabs(ImageY2)>margin) continue;
+            if(CleanEdge) {if(ImageX2<=LRange[0]||ImageX2>=LRange[1]) continue;}
+            int ibin=hh->GetXaxis()->FindBin(IsLong?ImageX2:ImageY2);
+            if(ibin<1||ibin>nbin) continue;
+            if(IsTime){
+            hh->SetBinContent(ibin,hh->GetBinContent(ibin)+content*norm/(ndivide*ndivide));
+            hh->SetBinError(ibin,sqrt(pow(hh->GetBinError(ibin),2)+pow(econtent,2)*norm/(ndivide*ndivide)));
+            nfill[ibin-1]+=norm/(ndivide*ndivide);
+            //if(ImageX2>4) printf("isipm=%d idiv={%d,%d} cont={%lf,%lf,%lf}\n",ii,idiv1,idiv2,content,content*norm/(ndivide*ndivide),norm/(ndivide*ndivide));
+            }
+            else{
+            hh->SetBinContent(ibin,hh->GetBinContent(ibin)+content/(ndivide*ndivide));
+            hh->SetBinError(ibin,sqrt(pow(hh->GetBinError(ibin),2)+pow(econtent,2)/(ndivide*ndivide)));
+            }
+         }
+      }
+   }
+   if(IsTime){
+      for(int ibin=1;ibin<=nbin;ibin++){
+         if(nfill[ibin-1]<=0) continue;
+         hh->SetBinContent(ibin,hh->GetBinContent(ibin)/nfill[ibin-1]);
+         hh->SetBinError(ibin,hh->GetBinError(ibin)/nfill[ibin-1]);
+      }
+   }
+   //clean edge bins
+   if(CleanEdge){
+   for(int ibin=1;ibin<hh->GetNbinsX();ibin++){
+      //if(nmark[ibin-1]){
+      //   hh->SetBinContent(ibin,0);
+      //   hh->SetBinError(ibin,0);
+      //   printf("unused bin: %d %lf\n",ibin,hh->GetXaxis()->GetBinCenter(ibin));
+      //}
+      if(hh->GetBinContent(ibin)>0){
+         hh->SetBinContent(ibin,0);
+         hh->SetBinError(ibin,0);
+         break;
+      }
+   }
+   for(int ibin=hh->GetNbinsX();ibin>=1;ibin--){
+      if(hh->GetBinContent(ibin)>0){
+         hh->SetBinContent(ibin,0);
+         hh->SetBinError(ibin,0);
+         break;
+      }
+   }
    }
    if(hh->Integral()<=0){
       delete hh;
-      return 0;
+      hh=0;
    }
    return hh;
 }
-TH1F* WFCTAEvent::GetShortDistribution(int itel,int type){
-   itel=0;
-   if(itel<0||itel>=WFTelescopeArray::CTNumber) return 0;
-   if(!minimizer) return 0;
-   double CC=minimizer->X()[2]/PI*180.;
-   double phi=minimizer->X()[3];
-   const int nbin=24;
-   TH1F* hh=new TH1F("longdis",";long dist [degree];Entries",nbin,-6.,6.);
-   double nfill[nbin];
-   for(int ii=0;ii<nbin;ii++) nfill[ii]=0;
-
-   int size=iSiPM.size();
-   for(int ii=0;ii<size;ii++){
-      int isipm0=iSiPM.at(ii);
-      if(!CleanImage(ii,itel,true)) continue;
-      double ImageX,ImageY;
-      //ImageX=WCamera::GetSiPMX(isipm0)/WFTelescope::FOCUS/PI*180;
-      //ImageY=WCamera::GetSiPMY(isipm0)/WFTelescope::FOCUS/PI*180;
-      ImageX=WCamera::GetSiPMX(isipm0)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      ImageY=WCamera::GetSiPMY(isipm0)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
-      double dist=fabs(sin(phi)*ImageX-cos(phi)*ImageY+CC);
-      double xx,yy;
-      bool res=GetCrossCoor(ImageX,ImageY,xx,yy);
-      if(!res) continue;
-      int sign;
-      if(sin(phi)>sqrt(2.)/2) sign=(ImageX>xx)?1:(-1);
-      else sign=(ImageY>yy)?1:(-1);
-      int ibin=hh->GetXaxis()->FindBin(dist*sign);
-      hh->SetBinContent(ibin,hh->GetBinContent(ibin)+GetContent(ii,itel,type,true));
-      hh->SetBinError(ibin,sqrt(pow(hh->GetBinError(ibin),2)+pow(GetContentError(ii,itel,type,true),2)));
-      nfill[ibin-1]+=1;
+TH1F* WFCTAEvent::CorrTimeDist(TH1F* hist,int IsLaser,int IsMC){
+   if(IsLaser==0) IsLaser=(CheckLaser())?1:-1;
+   if(IsMC==0) IsMC=(CheckMC())?1:-1;
+   if(!hist) return hist;
+   double timeunit=IsMC?(CommonTools::timebinunit[IsLaser]):20.;
+   for(int ibin=0;ibin<=hist->GetNbinsX()+1;ibin++){
+      hist->SetBinContent(ibin,hist->GetBinContent(ibin)*timeunit);
+      hist->SetBinError(ibin,hist->GetBinError(ibin)*timeunit);
    }
-   if(type==5){
-      for(int ibin=1;ibin<=nbin;ibin++) {if(nfill[ibin-1]>0) hh->SetBinContent(ibin,hh->GetBinContent(ibin)/nfill[ibin-1]);}
-   }
-   if(hh->Integral()<=0){
-      delete hh;
-      return 0;
-   }
-   return hh;
+   return hist;
 }
 int WFCTAEvent::GetSign(bool IsLaser,bool IsMC){
+   if(!minimizer) return 0;
+   double CC=minimizer->X()[2]/PI*180.;
+   double phi=minimizer->X()[3];
+   TH1F* hwidth=GetDistribution(true,0,3,true);
+   TH1F* htime=GetDistribution(true,0,5,false);
+   if((!hwidth)||(!htime)){
+      printf("WFCTAEvent::GetSign: hwidth=%p htime=%p\n",hwidth,htime);
+      if(hwidth) delete hwidth;
+      if(htime) delete htime;
+      return 0;
+   }
+   //use the information from width
+   int maxbin=-1;
+   double maxcontent=0;
+   for(int ibin=1;ibin<hwidth->GetNbinsX();ibin++){
+      if(hwidth->GetBinContent(ibin)>maxcontent){
+          maxbin=ibin;
+          maxcontent=hwidth->GetBinContent(ibin);
+      }
+   }
+   if(maxbin<0){
+      if(!hwidth) delete hwidth;
+      if(!htime) delete htime;
+      return 0;
+   }
+   int nleft=0,nright=0;
+   double aveleft=0,averight=0;
+   for(int ibin=1;ibin<hwidth->GetNbinsX();ibin++){
+      if(hwidth->GetBinContent(ibin)<=0) continue;
+      if(ibin<maxbin){
+         nleft++;
+         aveleft+=fabs(hwidth->GetXaxis()->GetBinCenter(ibin)-hwidth->GetXaxis()->GetBinCenter(maxbin));
+      }
+      else if(ibin>maxbin){
+         nright++;
+         averight+=fabs(hwidth->GetXaxis()->GetBinCenter(ibin)-hwidth->GetXaxis()->GetBinCenter(maxbin));
+      }
+   }
+   if(nleft>0) aveleft/=nleft;
+   if(nright>0) averight/=nright;
+   //use the information from time
+   htime->Fit("pol1","QS0");
+   TF1* f1=htime->GetFunction("pol1");
+   double slope=f1?(f1->GetParameter(1)):0;
+   if(true){
+      if(!hwidth) delete hwidth;
+      if(!htime) delete htime;
+   }
+
+   //the sign of A is determined by the time sequence,because:
+   //dL=pow((y_obs*cos(theta)+sin(theta))/sin(PHI)/sin(PHI),2)/(A*nz2)*dPHI
+   //and also it can be determined by the Image itself, because the image is not symmetric before and after Xmax
+   double slope0=0.1,avedL0=1.;
+   int sign_shape,sign_time;
+   int dLdt1=(fabs(slope)<slope0)?0:(slope>0?1:-1);
+   int dLdt2=(fabs(aveleft-averight)<avedL0)?0:(aveleft<averight?1:-1);
+   int dPHIdt=IsLaser?1:(-1);
+   sign_time=dLdt1/dPHIdt;
+   sign_shape=dLdt1/dPHIdt;
+
+   //printf("slope=%lf ave={%lf,%lf} sign={%lf,%lf}\n",slope,aveleft,averight,sign_time,sign_shape);
+
+   //use time information
+   if(IsLaser){
+      if(fabs(sign_time)<0.5) return sign_shape;
+      else return sign_time;
+   }
+   else{ //use image information
+      if(fabs(sign_shape)<0.5) return sign_time;
+      else return sign_shape;
+   }
+}
+/*int WFCTAEvent::GetSign(bool IsLaser,bool IsMC){
    int itel=0;
    //check wheather the time is increasing when x/y is increasing, and the sign of A parameter
    if(!minimizer) return 0;
@@ -745,11 +1244,7 @@ int WFCTAEvent::GetSign(bool IsLaser,bool IsMC){
       int isipm=iSiPM.at(ii);
       if(!CleanImage(ii,itel,true)) continue;
       double ImageX,ImageY;
-      //ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS/PI*180;
-      //ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS/PI*180;
-      ImageX=WCamera::GetSiPMX(isipm)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      ImageY=WCamera::GetSiPMY(isipm)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+      GetImageXYCoo(isipm,ImageX,ImageY);
       double x0,y0,xx,yy;
       bool res1=GetCrossCoor(0.,0.,x0,y0);
       bool res2=GetCrossCoor(ImageX,ImageY,xx,yy);
@@ -855,6 +1350,12 @@ int WFCTAEvent::GetSign(bool IsLaser,bool IsMC){
       if(fabs(res2)<0.5) return res1;
       else return res2;
    }
+}*/
+int WFCTAEvent::GetSign(double zenith,double azimuth,double planephi,double nz){
+   double Anz;
+   double AA=GetApar(Anz,zenith,azimuth,planephi,nz);
+   if(AA==0) return 0;
+   else return (AA>0)?1:-1;
 }
 double WFCTAEvent::GetApar(double CC,double phi,double zenith,double azimuth){ //A is a very important parameter
    //A*A=(sin(phi)*sin(phi)+pow(CC*cos(theta)+sin(theta)*cos(phi),2))
@@ -1074,96 +1575,205 @@ bool WFCTAEvent::GetPlane(double xyzdir[3][3],double exyzdir[3][3],int itel,int 
    return true;
 }
 
-int WFCTAEvent::CalTelDir(double CC,double phi,double* lasercoo,double* laserdir,double &elevation,double &azimuth){
-   //zdir should be (m,n,l)
-   double dist=sqrt(pow(lasercoo[0],2)+pow(lasercoo[1],2));
-   if(dist<=0) return -1;
-   double planephi=acos(lasercoo[0]/dist);
-   if(lasercoo[1]<0) planephi=2*PI-planephi;
-   double zdir[3];
-   zdir[0]=sin(planephi)*cos(laserdir[0]);
-   zdir[1]=-cos(planephi)*cos(laserdir[0]);
-   zdir[2]=sin(laserdir[0])*sin(laserdir[1]-planephi);
-
-   double margin=1.0e-6;
-   int signA=GetSign(CheckLaser(),CheckMC())>=0?1:-1;
-   //calculate elevation
-   //when phi=PI/2,CC=0(or theta=0,planephi=azimuth), then we can't measure the elevation of telescope in this situation, but we can measure the planephi quite precisely
-   double nz=zdir[2]/cos(laserdir[0]);
-   double Anz;
-   if(cos(laserdir[0])==0){ //nz is infinite
-      if(fabs(CC)<fabs(cos(phi))) Anz=(-cos(phi)>=0)?sqrt(1+CC*CC):(-sqrt(1+CC*CC));
-      else Anz=(CC>=0)?sqrt(1+CC*CC):(-sqrt(1+CC*CC));
+void WFCTAEvent::CooCorr(double incoo[3],double indir[2],double outcoo[3]){
+   double margin=1.0e-5;
+   double dirout[3]={sin(indir[0])*cos(indir[1]),sin(indir[0])*sin(indir[1]),cos(indir[0])};
+   if(fabs(incoo[2])>margin&&fabs(dirout[2])>margin){
+      double dz=(0-incoo[2])/dirout[2];
+      outcoo[0]=incoo[0]+dirout[0]*dz;
+      outcoo[1]=incoo[1]+dirout[1]*dz;
+      outcoo[2]=0;
    }
    else{
-      Anz=fabs(nz)>1/margin?sqrt(1./(1+1./nz/nz)):sqrt(nz*nz/(1+nz*nz));
-      Anz*=sqrt(1+CC*CC);
-      int signnz=nz>=0?1:-1;
-      Anz*=(signA*signnz);
+      outcoo[0]=incoo[0];
+      outcoo[1]=incoo[1];
+      outcoo[2]=incoo[2];
    }
+}
+//void WFCTAEvent::CooCorr(double incoo[3],double indir[3],double outcoo[3]){
+//   double margin=1.0e-5;
+//   if(fabs(incoo[2])>margin&&fabs(indir[2])>margin){
+//      double dz=(0-incoo[2])/indir[2];
+//      outcoo[0]=incoo[0]+indir[0]*dz;
+//      outcoo[1]=incoo[1]+indir[1]*dz;
+//      outcoo[2]=0;
+//   }
+//   else{
+//      outcoo[0]=incoo[0];
+//      outcoo[1]=incoo[1];
+//      outcoo[2]=incoo[2];
+//   }
+//}
+int WFCTAEvent::CalTelDir(double CC,double phi,double planephi,double nz,int &nsol,double ele_out[4],double azi_out[4],int signA[4],double ele_in,double azi_in){
+   nsol=0;
+   bool finitenz=isfinite(nz);
 
-   double p1=-cos(phi);
-   double p2=CC;
-   double norm=sqrt(p1*p1+p2*p2);
-   if(norm==0){
-      if(nz==0){
-         printf("WFCTAEvent::CalTelDir: any theta is correct. Set theta to 90 degree\n");
-         elevation=90;
-         azimuth=CommonTools::ProcessAngle(planephi+signA>=0?0:PI)/PI*180;
-         return 1;
-      }
-      else{
+   double margin=1.0e-6;
+   //calculate elevation
+   //when phi=PI/2,CC=0(or theta=0,planephi=azimuth), then we can't measure the elevation of telescope in this situation, but we can measure the planephi quite precisely
+   if(!finitenz){ //nz is infinite
+      if(fabs(sin(phi))>margin){
          printf("WFCTAEvent::CalTelDir: error of the input CC=%lf and phi=%lf when nz=%lf\n",CC/PI*180,phi/PI*180,nz);
          return -2;
       }
-   }
-   else if(fabs(norm)<fabs(Anz)){
-      printf("WFCTAEvent::CalTelDir: no theta is correct (Anz=%lf norm=%lf). Exiting...\n",Anz,norm);
-      return -3;
+      else{
+         printf("WFCTAEvent::CalTelDir: any azimuth is correct. Set azimuth to 8*PI degree\n");
+         double p1=CC;
+         double p2=cos(phi);
+         double norm=sqrt(p1*p1+p2*p2);
+         double angle_ref=acos(p1/norm);
+         if(p2<0) angle_ref=2*PI-angle_ref;
+         int result=-1;
+         nsol=2;
+         azi_out[0]=8*PI;
+         ele_out[0]=CommonTools::ProcessAngle(angle_ref+PI/2);
+         azi_out[1]=8*PI;
+         ele_out[1]=CommonTools::ProcessAngle(angle_ref-PI/2);
+         double maxcos=-1;
+         for(int ii=0;ii<nsol;ii++){
+            if(cos(ele_out[ii]-ele_in)>maxcos){
+               result=ii;
+               maxcos=cos(ele_out[ii]-ele_in);
+            }
+            double var=CC*sin(ele_out[ii])-cos(ele_out[ii])*cos(phi);
+            int signnz=(signbit(nz))?-1:1;
+            signA[ii]=(var/signnz>=0)?1:-1;
+         }
+         return result;
+      }
    }
    else{
-      double theta_ref=acos(p1/norm);
-      if(p2<0) theta_ref=2*PI-theta_ref;
-      double sol1=CommonTools::ProcessAngle(theta_ref+acos(Anz/norm));
-      double sol2=CommonTools::ProcessAngle(theta_ref+2*PI-acos(Anz/norm));
-      if(fabs(sol1-PI/4)<fabs(sol2-PI/4)) elevation=sol1/PI*180;
-      else elevation=sol2/PI*180;
+      double p2=CC;
+      double p1=-cos(phi);
+      double norm=sqrt(p1*p1+p2*p2);
+      double absAnz=sqrt((1+CC*CC)/(1+nz*nz))*fabs(nz);
+      if(norm<absAnz){
+         printf("WFCTAEvent::CalTelDir: no theta is correct (abs(Anz)=%lf norm=%lf). Exiting...\n",absAnz,norm);
+         return -3;
+      }
+      else if(norm<margin){
+         printf("WFCTAEvent::CalTelDir: any theta is correct. Set theta to PI/2+8*PI degree\n");
+         int result=-1;
+         nsol=2;
+         ele_out[0]=PI/2+8*PI;
+         azi_out[0]=CommonTools::ProcessAngle(planephi+0);
+         signA[0]=1;
+         ele_out[1]=PI/2+8*PI;
+         azi_out[1]=CommonTools::ProcessAngle(planephi+PI);
+         signA[1]=-1;
+         double maxcos=-1;
+         for(int ii=0;ii<nsol;ii++){
+            if(cos(azi_out[ii]-azi_in)>maxcos){
+               result=ii;
+               maxcos=cos(azi_out[ii]-azi_in);
+            }
+         }
+         return result;
+      }
+      else{
+         double angle_ref=acos(p1/norm);
+         if(p2<0) angle_ref=2*PI-angle_ref;
+         int signnz=(nz>=0)?1:-1;
+         int result=-1;
+         nsol=0;
+         double maxcos=-1;
+         for(int ii=0;ii<4;ii++){
+            signA[nsol]=(ii/2<1)?1:-1;
+            ele_out[nsol]=CommonTools::ProcessAngle(angle_ref+(((ii%2)==0)?1:-1)*acos(signA[nsol]*signnz*absAnz/norm));
+            //calculate azimuth
+            //when m=0 and n=0, then we can't measure the azimuth angle of telescope
+            double p11=-(CC*cos(ele_out[nsol])+sin(ele_out[nsol])*cos(phi));
+            double p22=sin(phi);
+            double AA=signA[nsol]*sqrt(p11*p11+p22*p22);
+            if(fabs(AA)<margin){
+               printf("WFCTAEvent::CalTelDir: any azimuth is correct. Set azimuth to 0 degree\n");
+               azi_out[nsol]=0;
+            }
+            else{
+               double azi_ref=acos(p22/AA);
+               if(p11/AA<0) azi_ref=2*PI-azi_ref;
+               azi_out[ii]=CommonTools::ProcessAngle(planephi+azi_ref);
+            }
+            if(cos(ele_out[nsol]-ele_in)>maxcos){
+               result=nsol;
+               maxcos=cos(ele_out[nsol]-ele_in);
+            }
+            //printf("test: nsol=%d iele=%lf iazi=%lf isignA=%d maxcos=%lf result=%d\n",nsol,ele_out[ii]/PI*180,azi_out[ii]/PI*180,signA[ii],maxcos,result);
+            nsol++;
+         }
+         return result;
+      }
    }
-
-   //calculate azimuth
-   //when m=0 and n=0, then we can't measure the azimuth angle of telescope
-   double p11=-(CC*cos(elevation)+sin(elevation)*cos(phi));
-   double p22=sin(phi);
-   double AA=signA*sqrt(p11*p11+p22*p22);
-   if(AA==0){
-      printf("WFCTAEvent::CalTelDir: any azimuth is correct. Set azimuth to 0 degree\n");
-      azimuth=0;
+}
+int WFCTAEvent::CalTelDir(double CC,double phi,double* lasercoo,double* laserdir,int &nsol,double ele_out[4],double azi_out[4],int signA[4],double ele_in,double azi_in){
+   double incoo[3];
+   CooCorr(lasercoo,laserdir,incoo);
+   double dist=sqrt(pow(incoo[0],2)+pow(incoo[1],2));
+   if(dist<=0) return -1;
+   double planephi=acos(incoo[0]/dist);
+   if(incoo[1]<0) planephi=2*PI-planephi;
+   double nz=(sin(laserdir[0])*sin(laserdir[1]-planephi))/cos(laserdir[0]);
+   return CalTelDir(CC,phi,planephi,nz,nsol,ele_out,azi_out,signA,ele_in,azi_in);
+}
+int WFCTAEvent::CalTelDir(double CC,double phi,double planephi,double nz,double &elevation,double &azimuth,double ele_in,double azi_in){
+   int nsol=0;
+   double ele_out[4],azi_out[4];
+   int signA[4];
+   int result=CalTelDir(CC,phi,planephi,nz,nsol,ele_out,azi_out,signA,ele_in,azi_in);
+   if(result<0) return result;
+   int signA0=GetSign(CheckLaser(),CheckMC())>=0?1:-1;
+   int signAnz=(signA0*nz>=0)?1:-1;
+   int result2=-10;
+   double maxcos=-1;
+   double maxchi=-1;
+   bool Isele=true;
+   for(int ii=0;ii<nsol;ii++){
+      if(fabs(azi_out[ii])>7*PI) {Isele=false; break;}
+   }
+   for(int ii=0;ii<nsol;ii++){
+      int signA1=(signA[ii]>=0)?1:-1;
+      if(signA0!=signA1) continue;
+      //printf("Sign: ii=%d signA=%d(%d) signA0=%d result={%d,%d}\n",ii,signA[ii],signA1,signA0,result,result2);
+      if(result==ii) {result2=ii; break;}
+      else{
+         /*double icos=(Isele)?cos(ele_out[ii]-ele_in):cos(azi_out[ii]-azi_in);
+         if(icos>maxcos){
+            result2=ii;
+            maxcos=icos;
+         }*/
+         //
+      }
+   }
+   //printf("result2=%d nsol=%d result=%d\n",result2,nsol,result);
+   if(result2<0) return result2;
+   else{
+      elevation=ele_out[result2]/PI*180;
+      azimuth=azi_out[result2]/PI*180;
       return 1;
    }
-   else{
-      double azi_ref=acos(p22/AA);
-      if(p11/AA<0) azi_ref=2*PI-azi_ref;
-      azimuth=CommonTools::ProcessAngle(planephi-azi_ref)/PI*180;
-   }
-
-   return 1;
 }
-int WFCTAEvent::GetTelDir(double &elevation,double &errel,double &azimuth,double &erraz){
+int WFCTAEvent::CalTelDir(double CC,double phi,double* lasercoo,double* laserdir,double &elevation,double &azimuth,double ele_in,double azi_in){
+   double incoo[3];
+   CooCorr(lasercoo,laserdir,incoo);
+   double dist=sqrt(pow(incoo[0],2)+pow(incoo[1],2));
+   if(dist<=0) return -1;
+   double planephi=acos(incoo[0]/dist);
+   if(incoo[1]<0) planephi=2*PI-planephi;
+   double nz=(sin(laserdir[0])*sin(laserdir[1]-planephi))/cos(laserdir[0]);
+   return CalTelDir(CC,phi,planephi,nz,elevation,azimuth,ele_in,azi_in);
+}
+int WFCTAEvent::GetTelDir(double &elevation,double &errel,double &azimuth,double &erraz,double ele_in,double azi_in){
    if(!minimizer) return -1;
    double lasercoo[3]={laserevent.LaserCoo[0],laserevent.LaserCoo[1],laserevent.LaserCoo[2]};
-   double xdir[3]={lasercoo[0]-0,lasercoo[1]-0,lasercoo[2]-0};
    double lasertheta=laserevent.LaserDir[0]/180.*PI;
    double laserphi=laserevent.LaserDir[1]/180.*PI;
-   if(xdir[2]!=0){
-      double dz=-xdir[2]/cos(lasertheta);
-      xdir[0]+=(sin(lasertheta)*cos(laserphi))*dz;
-      xdir[1]+=(sin(lasertheta)*sin(laserphi))*dz;
-      xdir[2]=0;
-   }
    double laserdir[2]={lasertheta,laserphi};
+   double xdir[3];
+   CooCorr(lasercoo,laserdir,xdir);
+
    double phi=minimizer->X()[3];
    double CC=minimizer->X()[2];
-   int res=CalTelDir(CC,phi,xdir,laserdir,elevation,azimuth);
+   int res=CalTelDir(CC,phi,xdir,laserdir,elevation,azimuth,ele_in,azi_in);
    if(res<=0) return res;
 
    double Cov[3]={minimizer->CovMatrix(2,2),minimizer->CovMatrix(2,3),minimizer->CovMatrix(3,3)};
@@ -1203,7 +1813,7 @@ int WFCTAEvent::GetTelDir(double &elevation,double &errel,double &azimuth,double
          delta=laserdir1[1]-laserdir[1];
       }
       double elevation1,azimuth1;
-      int res1=CalTelDir(CC1,phi1,lasercoo1,laserdir1,elevation1,azimuth1);
+      int res1=CalTelDir(CC1,phi1,lasercoo1,laserdir1,elevation1,azimuth1,ele_in,azi_in);
       if(fabs(azimuth1-azimuth)>300){
          azimuth1+=(azimuth1>azimuth)?(-360):(360);
       }
@@ -1221,9 +1831,19 @@ int WFCTAEvent::GetTelDir(double &elevation,double &errel,double &azimuth,double
    errel=sqrt(errel);
    erraz=sqrt(erraz);
    //printf("WFCTAEvent::GetTelDir: CC={%lf,%lf} phi={%lf,%lf}\n",CC,sqrt(Cov[0]),phi,sqrt(Cov[2]));
+   return 1;
 }
 
-void WFCTAEvent::Getnz(double incoo[3],double indir[2],double &planephi,double &nz,double &nz1,double &nz2){
+void WFCTAEvent::Getnz(double nz,double &nz1,double &nz2){
+   nz1=nz/sqrt(1+nz);
+   nz2=1./sqrt(1+nz);
+   if(isinf(nz)){
+      if(signbit(nz)) nz1=-1;
+      else nz1=1;
+      nz2=0;
+   }
+}
+void WFCTAEvent::Getnz(double incoo[3],double indir[2],double &planephi,double &nz){
    double xdir[3]={incoo[0]-0,incoo[1]-0,incoo[2]-0};
    double intheta=indir[0];
    double inphi=indir[1];
@@ -1239,15 +1859,11 @@ void WFCTAEvent::Getnz(double incoo[3],double indir[2],double &planephi,double &
       planephi=acos(xdir[0]/dist);
       if(incoo[1]<0) planephi=2*PI-planephi;
    }
-   double nz00=sin(indir[0])*sin(indir[1]-planephi);
-   nz=nz00/cos(indir[0]);
-   nz1=nz00/sqrt(cos(indir[0])*cos(indir[0])+nz00*nz00);
-   nz2=cos(indir[0])/sqrt(cos(indir[0])*cos(indir[0])+nz00*nz00);
+   nz=sin(indir[0])*sin(indir[1]-planephi)/cos(indir[0]);
 }
 void WFCTAEvent::GetCCphi(double zenith,double azimuth,double planephi,double nz,double &CC,double &phi){
    double theta=PI/2-zenith;
    double phi0=azimuth;
-   bool finitenz=isfinite(nz);
    double Anz;
    double AA=GetApar(Anz,zenith,azimuth,planephi,nz);
    CC=Anz*sin(theta)-AA*cos(theta)*sin(phi0-planephi);
@@ -1256,14 +1872,16 @@ void WFCTAEvent::GetCCphi(double zenith,double azimuth,double planephi,double nz
    //if(jdebug>0) printf("zen=%lf azi=%lf planephi=%lf nz=%lf AA=%lf Anz=%lf CC=%lf,phi=%lf\n",zenith/PI*180,azimuth/PI*180,planephi/PI*180,nz,AA,Anz,CC/PI*180,phi/PI*180);
 }
 void WFCTAEvent::GetCCphi(double zenith,double azimuth,double incoo[3],double indir[2],double &CC,double &phi){
-   double planephi,nz,nz1,nz2;
-   Getnz(incoo,indir,planephi,nz,nz1,nz2);
+   double planephi,nz;
+   Getnz(incoo,indir,planephi,nz);
    return GetCCphi(zenith,azimuth,planephi,nz,CC,phi);
 }
-bool WFCTAEvent::CalPHIRange0(double zenith,double azimuth,double planephi,double nz1,double nz2,double PHI_in,double* PHIRange){
+bool WFCTAEvent::CalPHIRange0(double zenith,double azimuth,double planephi,double nz,double PHI_in,double* PHIRange){
    //the PHI range to have image ((x*cos(phi0)+y*sin(phi0))*cos(theta)+z*sin(theta)>=0)
    double theta=PI/2-zenith;
    double phi0=azimuth;
+   double nz1,nz2;
+   Getnz(nz,nz1,nz2);
    double p21=cos(theta)*cos(phi0-planephi);
    double p22=nz1*sin(phi0-planephi)*cos(theta)+nz2*sin(theta);
    double norm2=sqrt(p21*p21+p22*p22);
@@ -1282,11 +1900,13 @@ bool WFCTAEvent::CalPHIRange0(double zenith,double azimuth,double planephi,doubl
    }
 }
 
-bool WFCTAEvent::GetImageXYCoo(double zenith,double azimuth,double planephi,double nz1,double nz2,double PHI_in,double &xx,double &yy){
+bool WFCTAEvent::GetImageXYCoo(double zenith,double azimuth,double planephi,double nz,double PHI_in,double &xx,double &yy){
    double PHIRange[2];
-   if(!CalPHIRange0(zenith,azimuth,planephi,nz1,nz2,PHI_in,PHIRange)) return false;
+   if(!CalPHIRange0(zenith,azimuth,planephi,nz,PHI_in,PHIRange)) return false;
    double theta=PI/2-zenith;
    double phi0=azimuth;
+   double nz1,nz2;
+   Getnz(nz,nz1,nz2);
    double denum=(cos(PHI_in)*cos(phi0-planephi)+nz1*sin(PHI_in)*sin(phi0-planephi))*cos(theta)+nz2*sin(PHI_in)*sin(theta);
    double x2=-( (cos(PHI_in)*cos(phi0-planephi)+nz1*sin(PHI_in)*sin(phi0-planephi))*sin(theta)-nz2*sin(PHI_in)*cos(theta) )/denum;
    double y2=-( -cos(PHI_in)*sin(phi0-planephi)+nz1*sin(PHI_in)*cos(phi0-planephi) )/denum;
@@ -1297,9 +1917,9 @@ bool WFCTAEvent::GetImageXYCoo(double zenith,double azimuth,double planephi,doub
 bool WFCTAEvent::GetImageXYCoo(double zenith,double azimuth,double* incoo,double* indir,double PHI_in,double &xx,double &yy){
    double theta=PI/2-zenith;
    double phi0=azimuth;
-   double planephi,nz,nz1,nz2;
-   Getnz(incoo,indir,planephi,nz,nz1,nz2);
-   bool res=GetImageXYCoo(zenith,azimuth,planephi,nz1,nz2,PHI_in,xx,yy);
+   double planephi,nz;
+   Getnz(incoo,indir,planephi,nz);
+   bool res=GetImageXYCoo(zenith,azimuth,planephi,nz,PHI_in,xx,yy);
    //printf("zenith=%lf azi=%lf PHI=%lf indir={%lf,%lf} planephi=%lf nz=%lf xy={%lf,%lf}\n",zenith/PI*180,azimuth/PI*180,PHI_in/PI*180,indir[0]/PI*180,indir[1]/PI*180,planephi/PI*180,nz,xx/PI*180,yy/PI*180);
    return res;
 
@@ -1321,20 +1941,30 @@ bool WFCTAEvent::GetImageXYCoo(double zenith,double azimuth,double* incoo,double
    //xx=y2;
    //yy=x2;
 }
-void WFCTAEvent::GetPHI(double zenith,double azimuth,double planephi,double nz1,double nz2,double* ImageCoo,double &PHI_in){
+void WFCTAEvent::GetPHI(double zenith,double azimuth,double planephi,double nz,double* ImageCoo,double &PHI_in){
    double theta=PI/2-zenith;
    double phi0=azimuth;
+   double nz1,nz2;
+   Getnz(nz,nz1,nz2);
+   double CC,phi;
+   GetCCphi(zenith,azimuth,planephi,nz,CC,phi);
 
+   //new method
    double x2=ImageCoo[1];
+   double y2=ImageCoo[0];
+   double dirx[3]={sin(theta)*cos(planephi-phi0),sin(planephi-phi0),cos(theta)*cos(planephi-phi0)};
+   double diry[3]={-nz1*sin(theta)*sin(planephi-phi0)-nz2*cos(theta),nz1*cos(planephi-phi0),-nz1*cos(theta)*sin(planephi-phi0)+nz2*sin(theta)};
+   double cosPHI=(-dirx[0]*x2-dirx[1]*y2+dirx[2])/sqrt(1+x2*x2+y2*y2);
+   PHI_in=acos(cosPHI);
+   if(-diry[0]*x2-diry[1]*y2+diry[2]<0) PHI_in=2*PI-PHI_in;
+
+   /*double x2=ImageCoo[1];
    double y2=ImageCoo[0];
    double px1=(x2*cos(theta)+sin(theta))*cos(phi0-planephi);
    double px2=((x2*cos(theta)+sin(theta))*sin(phi0-planephi)*nz1+nz2*(x2*sin(theta)-cos(theta)));
    double py1=y2*cos(theta)*cos(phi0-planephi)-sin(phi0-planephi);
    double py2=(y2*cos(theta)*sin(phi0-planephi)+cos(phi0-planephi))*nz1+nz2*y2*sin(theta);
 
-   double nz=nz1/nz2;
-   double CC,phi;
-   GetCCphi(zenith,azimuth,planephi,nz,CC,phi);
    double norm=0;
    if(fabs(sin(phi))<sqrt(2.)/2){ //use x to eval PHI
       norm=sqrt(px1*px1+px2*px2);
@@ -1369,28 +1999,18 @@ void WFCTAEvent::GetPHI(double zenith,double azimuth,double planephi,double nz1,
          else PHI_in=PHI2;
          return;
       }
-   }
+   }*/
 }
 void WFCTAEvent::GetPHI(double zenith,double azimuth,double incoo[3],double indir[2],double* ImageCoo,double &PHI_in){
-   double planephi,nz,nz1,nz2;
-   Getnz(incoo,indir,planephi,nz,nz1,nz2);
-   return GetPHI(zenith,azimuth,planephi,nz1,nz2,ImageCoo,PHI_in);
+   double planephi,nz;
+   Getnz(incoo,indir,planephi,nz);
+   return GetPHI(zenith,azimuth,planephi,nz,ImageCoo,PHI_in);
 }
-void WFCTAEvent::GetPHI(double zenith,double azimuth,double CC,double phi,double* ImageCoo,double &PHI_in){
+void WFCTAEvent::GetPHI2(double zenith,double azimuth,double CC,double phi,double* ImageCoo,double &PHI_in){
    double planephi,nz;
    int signnz;
    CalPlane(CC,phi,zenith,azimuth,planephi,nz,signnz);
-   double nz1,nz2;
-   bool finitenz=isfinite(nz);
-   if(finitenz){
-      nz1=nz/sqrt(1+nz*nz);
-      nz2=1./sqrt(1+nz*nz);
-   }
-   else{
-      nz1=signnz>=0?1:-1;
-      nz2=0;
-   }
-   return  GetPHI(zenith,azimuth,planephi,nz1,nz2,ImageCoo,PHI_in);
+   return  GetPHI(zenith,azimuth,planephi,nz,ImageCoo,PHI_in);
 
    //double theta=PI/2-zenith;
    //double phi0=azimuth;
@@ -1425,11 +2045,12 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
    double phi0=azimuth;
    bool IsLaser;
    double margin=1.0e-5;
-   double nz1,nz2;
+   double nz,nz1,nz2;
    double CC,phi;
    double normdir=sqrt(dirin[0]*dirin[0]+dirin[1]*dirin[1]+dirin[2]*dirin[2]);
    double cosPHIL;
    bool UsePhi=(normdir<=0)&&(planephi==0);
+   //printf("UsePhi=%d\n",UsePhi);
    if(UsePhi){
       bool useclosephi=true; //to determine the planephi, otherwise it need to be determined by the time information
       //use phiin and CCin as input parameter
@@ -1451,6 +2072,7 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
          planephi=phi0;
          nz2=0;
          nz1=p3>=0?1:-1;
+         nz=nz1/nz2;
       }
       else{
          double phi_ref=acos(p2/norm1);
@@ -1463,9 +2085,8 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
          bool usephi1=useclosephi?(fabs(planephi1-phi00)<fabs(planephi2-phi00)):(fabs(planephi1-phi00)>fabs(planephi2-phi00));
          planephi=usephi1?planephi1:planephi2;
          double Apre=fabs(p1)<fabs(p2)?(p2/cos(planephi-phi0)):(p1/sin(planephi-phi0));
-         double nz=p3/Apre;
-         nz1=nz/sqrt(1+nz*nz);
-         nz2=1./sqrt(1+nz*nz);
+         nz=p3/Apre;
+         Getnz(nz,nz1,nz2);
       }
    }
    else{
@@ -1488,8 +2109,10 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
 
       double incoo[3]={cos(planephi)*1000,sin(planephi)*1000,0};
       GetCCphi(zenith,azimuth,incoo,dir,CC,phi);
-      double nz,planephi0;
-      Getnz(incoo,dir,planephi0,nz,nz1,nz2);
+      double planephi0;
+      Getnz(incoo,dir,planephi0,nz);
+      Getnz(nz,nz1,nz2);
+      //printf("CC=%lf phi=%lf incoo={%lf,%lf,%lf} indir={%lf,%lf} zenith=%lf azimuth=%lf\n",CC/PI*180,phi/PI*180,incoo[0],incoo[1],incoo[2],dir[0]/PI*180,dir[1]/PI*180,zenith/PI*180,azimuth/PI*180);
       /*//calculate phi and CC
       double p1=sin(dir[0])*cos(theta)*sin(dir[1]-planephi)+sin(theta)*cos(dir[0])*sin(phi0-planephi);
       double p2=cos(dir[0])*cos(phi0-planephi);
@@ -1529,7 +2152,7 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
    double PHI1,PHI2;
 
    //make sure the image is inside the field view of telescope
-   double boundary=8.5/180.*PI;
+   /*double boundary=8.5/180.*PI;
    double xysol[4][2];
    int index1=-1,index2=-1;
    for(int iline=0;iline<4;iline++){
@@ -1569,13 +2192,21 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
       if(jdebug>0) printf("WFCTAEvent::GetXYRange: return=-4, Image is not in the field of view of telescope CC=%lf phi=%lf\n",CC/PI*180,phi/PI*180);
       return -4;
    }
-   double xyboun[2][2]={{xysol[index1][1],xysol[index1][0]},{xysol[index2][1],xysol[index2][0]}};
+   double xyboun[2][2]={{xysol[index1][1],xysol[index1][0]},{xysol[index2][1],xysol[index2][0]}};*/
+
+   double xyboundary[2][4];
+   bool inside=GetRange(CC,phi,xyboundary[0],xyboundary[1]);
+   if(!inside){
+      if(jdebug>0) printf("WFCTAEvent::GetXYRange: return=-4, Image is not in the field of view of telescope CC=%lf phi=%lf\n",CC/PI*180,phi/PI*180);
+      return -4;
+   }
+   double xyboun[2][2]={{xyboundary[0][1]/180*PI,xyboundary[0][0]/180*PI},{xyboundary[1][1]/180*PI,xyboundary[1][0]/180*PI}};
 
    //from xy coor to PHI
    for(int ip=0;ip<2;ip++){
       double ImageCoo[2]={xyboun[ip][1],xyboun[ip][0]};
       double PHI_in;
-      GetPHI(zenith,azimuth,planephi,nz1,nz2,ImageCoo,PHI_in);
+      GetPHI(zenith,azimuth,planephi,nz,ImageCoo,PHI_in);
       if(ip==0) PHI1=PHI_in;
       else PHI2=PHI_in;
       /*double x0=xyboun[ip][0];
@@ -1609,6 +2240,8 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
       PHI1=PHI2;
       PHI2=buff;
    }
+   //printf("xyboun={%lf,%lf} {%lf,%lf}\n",xyboun[0][1],xyboun[0][0],xyboun[1][1],xyboun[1][0]);
+   if(jdebug>0) printf("WFCTAEvent::GetRange: PHI1=%lf PHI2=%lf PHIL=%lf\n",PHI1/PI*180,PHI2/PI*180,acos(cosPHIL)/PI*180);
    PHI1=TMath::Max(0.,PHI1);
    PHI2=TMath::Min(UsePhi?PI:acos(cosPHIL),PHI2);
    if(PHI2<=PHI1){
@@ -1618,8 +2251,8 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
 
    //the PHI range to have image ((x*cos(phi0)+y*sin(phi0))*cos(theta)+z*sin(theta)>=0)
    double PHIRange[2];
-   bool inside1=CalPHIRange0(zenith,azimuth,planephi,nz1,nz2,PHI1,PHIRange);
-   bool inside2=CalPHIRange0(zenith,azimuth,planephi,nz1,nz2,PHI2,PHIRange);
+   bool inside1=CalPHIRange0(zenith,azimuth,planephi,nz,PHI1,PHIRange);
+   bool inside2=CalPHIRange0(zenith,azimuth,planephi,nz,PHI2,PHIRange);
    if((!inside1)&&(!inside2)){
       if(jdebug>0) printf("WFCTAEvent::GetXYRange: return=-7, error between the input parameters, because of PHI12={%lf,%lf} PHIRange={%lf,%lf}\n",PHI1/PI*180,PHI2/PI*180,PHIRange[0]/PI*180,PHIRange[1]/PI*180);
       return -7;
@@ -1664,8 +2297,8 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
    PHI[1]=PHI_hig;
 
    //from PHI to coor
-   bool res1=GetImageXYCoo(zenith,azimuth,planephi,nz1,nz2,PHI[0],XX[0],YY[0]);
-   bool res2=GetImageXYCoo(zenith,azimuth,planephi,nz1,nz2,PHI[1],XX[1],YY[1]);
+   bool res1=GetImageXYCoo(zenith,azimuth,planephi,nz,PHI[0],XX[0],YY[0]);
+   bool res2=GetImageXYCoo(zenith,azimuth,planephi,nz,PHI[1],XX[1],YY[1]);
 
    /*double coox[2]={cos(PHI_low)*cos(planephi)-nz1*sin(PHI_low)*sin(planephi),cos(PHI_hig)*cos(planephi)-nz1*sin(PHI_hig)*sin(planephi)};
    double cooy[2]={cos(PHI_low)*sin(planephi)+nz1*sin(PHI_low)*cos(planephi),cos(PHI_hig)*sin(planephi)+nz1*sin(PHI_hig)*cos(planephi)};
@@ -1680,6 +2313,153 @@ int WFCTAEvent::GetRange(double zenith,double azimuth,double planephi,double dir
    index=1;
    XX[index]=-( -coox[index]*sin(phi0)+cooy[index]*cos(phi0) )/( (coox[index]*cos(phi0)+cooy[index]*sin(phi0))*cos(theta)+cooz[index]*sin(theta) );*/
    return 1;
+}
+bool WFCTAEvent::CalRotateZeroPos(double ele_rotate,double azi_rotate,double ele_ref,double azi_ref,double &ele0,double &azi0){
+   double sintheta0=cos(ele_ref)*cos(azi_ref-azi_rotate)*cos(ele_rotate)+sin(ele_ref)*sin(ele_rotate);
+   ele0=asin(sintheta0);
+
+   double p1=cos(ele_ref)*cos(azi_ref-azi_rotate)*sin(ele_rotate)-sin(ele_ref)*cos(ele_rotate);
+   double p2=cos(ele_ref)*sin(azi_ref-azi_rotate);
+   double norm=sqrt(p1*p1+p2*p2);
+   double margin=1.0e-5;
+   if(fabs(norm)<margin){
+      azi0=0.;
+   }
+   else{
+      azi0=acos(p1/norm);
+      if(p2<0) azi0=2*PI-azi0;
+   }
+   return true;
+}
+bool WFCTAEvent::CalDir_out(double ele_rotate,double azi_rotate,double ele_ref,double azi_ref,double ele_in,double azi_in,double &ele_out,double &azi_out){
+   double ele0,azi0;
+   if(!CalRotateZeroPos(ele_rotate,azi_rotate,ele_ref,azi_ref,ele0,azi0)) return false;
+   double p1=cos(ele0+ele_in)*cos(azi0+azi_in)*sin(ele_rotate)+sin(ele0+ele_in)*cos(ele_rotate);
+   double p2=cos(ele0+ele_in)*sin(azi0+azi_in);
+   double xx=p1*cos(azi_rotate)-p2*sin(azi_rotate);
+   double yy=p1*sin(azi_rotate)+p2*cos(azi_rotate);
+   double zz=-cos(ele0+ele_in)*cos(azi0+azi_in)*cos(ele_rotate)+sin(ele0+ele_in)*sin(ele_rotate);
+   double norm=sqrt(xx*xx+yy*yy+zz*zz);
+   ele_out=asin(zz/norm);
+   azi_out=acos(xx/sqrt(xx*xx+yy*yy));
+   if(yy<0) azi_out=2*PI-azi_out;
+   return true;
+}
+bool WFCTAEvent::Calnz_phiL(double planephi,double indir[2],double &nz,double &PHIL){
+   double incoo[3]={cos(planephi),sin(planephi),0};
+   Getnz(incoo,indir,planephi,nz);
+   PHIL=acos(sin(indir[0])*cos(indir[1]-planephi));
+   return true;
+}
+double WFCTAEvent::CalTime(double ele_tel,double azi_tel,double incoo[3],double indir[2],double ImageCooXY[2],double time0){
+   double planephi,nz;
+   Getnz(incoo,indir,planephi,nz);
+   double PHIL;
+   Calnz_phiL(planephi,indir,nz,PHIL);
+   double nz1,nz2;
+   Getnz(nz,nz1,nz2);
+   double xdir[3]={sin(ele_tel)*cos(planephi-azi_tel),sin(planephi-azi_tel),cos(ele_tel)*cos(planephi-azi_tel)};
+   double ydir[3]={-nz1*sin(ele_tel)*sin(planephi-azi_tel)-nz2*cos(ele_tel),nz1*cos(planephi-azi_tel),-nz1*cos(ele_tel)*sin(planephi-azi_tel)+nz2*sin(ele_tel)};
+   double norm=sqrt(1+ImageCooXY[0]*ImageCooXY[0]+ImageCooXY[1]*ImageCooXY[1]);
+   double dir0[3]={-ImageCooXY[0]/norm,-ImageCooXY[1]/norm,1./norm};
+   double cosPHI=dir0[0]*xdir[0]+dir0[1]*xdir[1]+dir0[2]*xdir[2];
+   double sinPHI=dir0[0]*ydir[0]+dir0[1]*ydir[1]+dir0[2]*ydir[2];
+   double PHI=acos(cosPHI);
+   if(sinPHI<0) PHI=2*PI-PHI;
+   if(PHI>=PHIL) return -1;
+   double length=sqrt(incoo[0]*incoo[0]+incoo[1]*incoo[1]+incoo[2]*incoo[2]);
+   double result=(sinPHI+sin(PHIL))/(sin(PHIL)*cosPHI-sinPHI*cos(PHIL));
+   return time0+(length/vlight*1.0e9)*result; //in ns
+}
+//double WFCTAEvent::CalTime(double ele_tel,double azi_tel,double incoo[3],double indir[2],double Llong,double time0){
+//   double CC,phi;
+//   GetCCphi(PI/2-ele_tel,azi_tel,incoo,indir,CC,phi);
+//   double ImageCooXY[2];
+//   return CalTime();
+//}
+double WFCTAEvent::CalTime(double CC,double phi,double incoo[3],double nz,double PHIL,double ImageCooXY[2],double time0,double ele_in,double azi_in){
+   double lengthxy=sqrt(incoo[0]*incoo[0]+incoo[1]*incoo[1]);
+   double planephi=acos(incoo[0]/lengthxy);
+   if(incoo[1]<0) planephi=2*PI-planephi;
+   double xdir[3]={cos(planephi),sin(planephi),0};
+   double nz1,nz2;
+   Getnz(nz,nz1,nz2);
+   double ydir[3]={-sin(planephi)*nz1,cos(planephi)*nz1,nz2};
+   double dir0[3];
+   for(int ii=0;ii<3;ii++) dir0[ii]=cos(PHIL)*xdir[ii]+sin(PHIL)*ydir[ii];
+   double laserdir[2];
+   laserdir[0]=acos(dir0[2]/sqrt(dir0[0]*dir0[0]+dir0[1]*dir0[1]+dir0[2]*dir0[2]));
+   laserdir[1]=acos(dir0[0]/sqrt(dir0[0]*dir0[0]+dir0[1]*dir0[1]));
+   if(dir0[1]<0) laserdir[1]=2*PI-laserdir[1];
+
+   double incoo2[3];
+   CooCorr(incoo,laserdir,incoo2);
+
+   double ele_tel,azi_tel;
+   int nsol;
+   double ele_out[4],azi_out[4];
+   int signA[4];
+   int isol=CalTelDir(CC,phi,planephi,nz,nsol,ele_out,azi_out,signA,ele_in,azi_in);
+   if(isol<0) return -2;
+   else{
+       ele_tel=ele_out[isol];
+       azi_tel=azi_out[isol];
+   }
+   double time=CalTime(ele_tel,azi_tel,incoo,laserdir,ImageCooXY,time0);
+   return time;
+}
+TGraph* WFCTAEvent::DrawTimeLine(double CC,double phi,double incoo[3],double nz,double PHIL,double time0,double ele_in,double azi_in){
+   double x0,y0;
+   GetCrossCoor(0.,0.,CC,phi,x0,y0);
+   TGraph* gr=new TGraph();
+   int np=100;
+   for(int ii=0;ii<np;ii++){
+      double ll=-10.+(10.+10.)/np*ii;
+      double xx=x0+ll*sin(phi);
+      double yy=y0+ll*cos(phi);
+      double ImageCooXY[2]={xx,yy};
+      double time=CalTime(CC,phi,incoo,nz,PHIL,ImageCooXY,time0,ele_in,azi_in);
+      if(time<0) continue;
+      gr->SetPoint(gr->GetN(),ll,time);
+   }
+   gr->SetTitle(";Coordinate [degree];Time [ns]");
+   gr->SetLineColor(4);
+   gr->SetLineWidth(3);
+   if(DoDraw) gr->Draw("l");
+   return gr;
+}
+TGraph* WFCTAEvent::DrawTimeLine(double ele_rotate,double azi_rotate,double ele_ref,double azi_ref,double ele_in,double azi_in,double ele_tel,double azi_tel,double incoo[3],double time0){
+   double ele_out,azi_out;
+   if(!CalDir_out(ele_rotate,azi_rotate,ele_ref,azi_ref,ele_in,azi_in,ele_out,azi_out)) return 0;
+   double indir[2]={PI/2-ele_out,azi_out};
+   double dir0[3]={sin(indir[0])*cos(indir[1]),sin(indir[0])*sin(indir[1]),cos(indir[0])};
+   double incoo0[3]={incoo[0],incoo[1],incoo[2]};
+   if(fabs(incoo[2])>1.0e-5&&fabs(dir0[2])>1.0e-5){
+      double dl=(0-incoo[2])/dir0[2];
+      incoo0[0]=incoo[0]+dir0[0]*dl;
+      incoo0[1]=incoo[1]+dir0[1]*dl;
+      incoo0[2]=0;
+   }
+   DoFit(0,3);
+   double phi=minimizer->X()[3];
+   double CC=minimizer->X()[2];
+   TGraph* gr=new TGraph();
+   int np=100;
+   for(int ii=0;ii<np;ii++){
+      double ll=-10.+(10.+10.)/np*ii;
+      double xx=ll*sin(phi)+CC/PI*180*cos(phi);
+      double yy=ll*cos(phi)-CC/PI*180*sin(phi);
+      double ImageCooXY[2]={xx,yy};
+      double time=CalTime(ele_tel,azi_tel,incoo0,indir,ImageCooXY,time0);
+      if(time<0) continue;
+      gr->SetPoint(gr->GetN(),ll,time);
+   }
+   gr->SetTitle(";Coordinate [degree];Time [ns]");
+   gr->SetLineColor(4);
+   gr->SetLineWidth(3);
+   graphlist.push_back(gr);
+   if(DoDraw) gr->Draw("l");
+   return gr;
 }
 
 TGraph* WFCTAEvent::DrawCorePos(double* corepos,int itel,int type){
@@ -1736,7 +2516,6 @@ TGraph* WFCTAEvent::DrawImageLine(double zenith,double azimuth,double incoo[3],d
 
    double CC,phi;
    GetCCphi(zenith,azimuth,incoo,indir,CC,phi);
-   printf("CC=%lf phi=%lf\n",CC/PI*180,phi/PI*180);
 
    int np=100;
    TGraph* gr=new TGraph();
@@ -1751,7 +2530,6 @@ TGraph* WFCTAEvent::DrawImageLine(double zenith,double azimuth,double incoo[3],d
    gr->SetLineColor(1);
    gr->SetLineWidth(4);
    gr->Draw("l");
-   //graphlist.push_back(gr);
    return gr;
 }
 TGraph* WFCTAEvent::DrawImageLine(int itel){
@@ -1820,11 +2598,7 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold
    image->SetTitle(Form("iTel=%d iEvent=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d);X [degree];Y [degree]",iTel,iEvent,rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6)));
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
-      //ImageX=-WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
-      //ImageY= WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
-      ImageX=-WCamera::GetSiPMX(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      ImageY= WCamera::GetSiPMY(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
+      GetImageXYCoo(ii,ImageX,ImageY);
       image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
       //printf("WFCTAEvent::Draw: SiPM=%d ImageX=%lf ImageY=%lf\n",ii,ImageX,ImageY);
    }
@@ -1850,8 +2624,8 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold
    }
    image->Draw(opt);
    DrawFit();
-   //TGraph* gr=DrawImageLine(0);
-   //graphlist.push_back(gr);
+   TGraph* gr=DrawImageLine(0);
+   if(!tlist) tlist=new TList();
    tlist->Add(image);
    return image;
 }
@@ -1905,11 +2679,7 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,bool DoClean,double thr
    double yrange[2]={1.0e5,-1.0e5};
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
-      //ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
-      //ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
-      ImageX=WCamera::GetSiPMX(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      ImageY=WCamera::GetSiPMY(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
+      GetImageXYCoo(ii,ImageX,ImageY);
 
       double theta0[5],phi0[5];
       for(int i2=0;i2<4;i2++){
@@ -1952,6 +2722,7 @@ TH2Poly* WFCTAEvent::DrawGlobal(int type,const char* opt,bool DoClean,double thr
    if(DoDraw) image->Draw(opt);
    image->GetXaxis()->SetRangeUser(xrange[0]-2.,xrange[1]+2.);
    image->GetYaxis()->SetRangeUser(yrange[0]-2.,yrange[1]+2.);
+   if(!tlist) tlist=new TList();
    tlist->Add(image);
    return image;
 }
@@ -1972,11 +2743,7 @@ TH2Poly* WFCTAEvent::DrawCloudFormat(int type,const char* opt,bool DoClean,doubl
    double yrange[2]={1.0e5,-1.0e5};
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
-      //ImageX=WCamera::GetSiPMX(ii)/WFTelescope::FOCUS/PI*180;
-      //ImageY=WCamera::GetSiPMY(ii)/WFTelescope::FOCUS/PI*180;
-      ImageX=WCamera::GetSiPMX(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      ImageY=WCamera::GetSiPMY(ii)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-      if(iTel==5&&rabbitTime<15706800000) {ImageX*=-1; ImageY*=-1;}
+      GetImageXYCoo(ii,ImageX,ImageY);
 
       double x0[5],y0[5];
       for(int i2=0;i2<4;i2++){
@@ -2023,6 +2790,7 @@ TH2Poly* WFCTAEvent::DrawCloudFormat(int type,const char* opt,bool DoClean,doubl
    image->GetYaxis()->SetRangeUser(yrange[0]-2.,yrange[1]+2.);
    //image->GetXaxis()->SetRangeUser(-90.,90.);
    //image->GetYaxis()->SetRangeUser(-90.,90.);
+   if(!tlist) tlist=new TList();
    tlist->Add(image);
    return image;
 }
@@ -2037,11 +2805,7 @@ TGraph2D* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int ViewO
 		int isipm=iSiPM.at(ii);
 		if(!CleanImage(ii,iTel,true)) continue;
 		double ImageX,ImageY;
-		//ImageX=WCamera::GetSiPMX(isipm)/WFTelescope::FOCUS/PI*180;
-		//ImageY=WCamera::GetSiPMY(isipm)/WFTelescope::FOCUS/PI*180;
-		ImageX=WCamera::GetSiPMX(isipm)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-		ImageY=WCamera::GetSiPMY(isipm)/WFTelescopeArray::GetFocus(iTel)/PI*180;
-		if(iTel==5&&rabbitTime<1570680000) {ImageX*=-1; ImageY*=-1;}
+                GetImageXYCoo(isipm,ImageX,ImageY);
 		double content=GetContent(ii,iTel,type,true);
 		if(type==0&&ii<ADC_Cut.size()) content=content>adccuttrigger?1.:0.;
 		array->SetPoint(array->GetN(),ImageX,ImageY,content);
@@ -2100,7 +2864,8 @@ TGraph2D* WFCTAEvent::Draw3D(int type,const char* opt,double threshold,int ViewO
 	else if(ViewOpt==2) view->Side();
 	else if(ViewOpt==3) view->Top();
 	cc->SetView(view);
-	
+
+	if(!tlist) tlist=new TList();
 	tlist->Add(cc);
 	graphlist.push_back((TGraph*)array);
 	if(DoDraw) array->Draw(opt);
@@ -2160,8 +2925,8 @@ void WFCTAEvent::CalInfo(double result[100]){
          if(npe>value[icut]){
             Num[icut]++;
             Sum[icut]+=npe;
-            double ImageXi=WCamera::GetSiPMX(iSiPM.at(ii))/WFTelescope::FOCUS/PI*180;
-            double ImageYi=WCamera::GetSiPMY(iSiPM.at(ii))/WFTelescope::FOCUS/PI*180;
+            double ImageXi,ImageYi;
+            GetImageXYCoo(iSiPM.at(ii),ImageXi,ImageYi);
             SumX[icut]+=ImageXi*npe;
             SumY[icut]+=ImageYi*npe;
             SumX2[icut]+=ImageXi*ImageXi*npe;

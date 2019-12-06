@@ -24,6 +24,7 @@ HEADERS  += $(INCDIR)/StatusDB.h
 HEADERS  += $(INCDIR)/ReadTrack.h
 HEADERS  += $(INCDIR)/ShowerPlot.h
 HEADERS  += $(INCDIR)/astro.h
+HEADERS  += $(INCDIR)/RotateDB.h
 
 SOURCES  := $(SRCDIR)/common.C
 SOURCES  += $(SRCDIR)/CorsikaIO.C $(SRCDIR)/CorsikaChain.C $(SRCDIR)/CorsikaEvent.C 
@@ -42,6 +43,7 @@ SOURCES  += $(SRCDIR)/StatusDB.C
 SOURCES  += $(SRCDIR)/ReadTrack.C
 SOURCES  += $(SRCDIR)/ShowerPlot.C
 SOURCES  += $(SRCDIR)/astro.C
+SOURCES  += $(SRCDIR)/RotateDB.C
 SOURCES  += event.C
 SOURCES  += eventSort.C
 SOURCES  += eventSortMerge.C
@@ -70,6 +72,7 @@ OBJS     += $(OBJDIR)/StatusDB.o
 OBJS     += $(OBJDIR)/ReadTrack.o
 OBJS     += $(OBJDIR)/ShowerPlot.o
 OBJS     += $(OBJDIR)/astro.o
+OBJS     += $(OBJDIR)/RotateDB.o
 OBJS     += $(OBJDIR)/dictionary.o
 
 DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) -Islalib/include `root-config --cflags`
@@ -83,7 +86,7 @@ LDFLAGS  := `root-config --libs`
 # -lRGL -lEve -lGeom -lMinuit -lTMVA -lXMLIO -lMLP -lTreePlayer -lXrdClient -lGpad -lNet -lHist -lHistPainter -lGraf -lMatrix -lRooFit
 LDFLAGS  += -L/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/slalib/lib -lsla
 
-all:event.exe eventSort.exe eventSortMerge.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe $(LIBDIR)/lib.so
+all:event.exe eventSort.exe eventSortMerge.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe TelDir.exe $(LIBDIR)/lib.so
 
 event.exe: $(OBJDIR)/event.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)

@@ -369,7 +369,7 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
       double xx=(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az);
       double yy=(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az);
       double unit=180/PI;
-      printf("time=%.0lf(%d-%02d-%02d %02d:%02d:%02d) dir={%lf,%lf} {%lf,%lf}\n",time0,CommonTools::TimeFlag((int)time0,1),CommonTools::TimeFlag((int)time0,2),CommonTools::TimeFlag((int)time0,3),CommonTools::TimeFlag((int)time0,4),CommonTools::TimeFlag((int)time0,5),CommonTools::TimeFlag((int)time0,6),el*unit,az*unit,xx,yy);
+      //printf("time=%.0lf(%d-%02d-%02d %02d:%02d:%02d) dir={%lf,%lf} {%lf,%lf}\n",time0,CommonTools::TimeFlag((int)time0,1),CommonTools::TimeFlag((int)time0,2),CommonTools::TimeFlag((int)time0,3),CommonTools::TimeFlag((int)time0,4),CommonTools::TimeFlag((int)time0,5),CommonTools::TimeFlag((int)time0,6),el*unit,az*unit,xx,yy);
       if(fabs(xx)>90||fabs(yy)>90) break;
       gm->SetPoint(gm->GetN(),xx,yy);
       }

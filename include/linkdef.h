@@ -39,4 +39,6 @@
 
 #pragma link C++ class ReadTrack+;
 #pragma link C++ class ShowerPlot+;
+
+#pragma link C++ class RotateDB+;
 #endif

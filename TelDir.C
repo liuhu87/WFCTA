@@ -14,13 +14,13 @@ int main(int argc, char**argv)
    WCamera::SetSiPMMAP();
    const int maxdir=110;
    int ndir=0;
-   double lasercoo[maxdir][2];
+   double lasercoo0[maxdir][2];
    double laserdir[maxdir][2];
    double CCphi[maxdir][2];
    double eCCphi[maxdir][3];
    for(int ii=0;ii<maxdir;ii++){
-      lasercoo[ii][0]=0;
-      lasercoo[ii][1]=0;
+      lasercoo0[ii][0]=0;
+      lasercoo0[ii][1]=0;
       laserdir[ii][0]=0;
       laserdir[ii][1]=0;
       CCphi[ii][0]=0;
@@ -30,7 +30,8 @@ int main(int argc, char**argv)
       eCCphi[ii][2]=0;
    }
 
-   WFTelescopeArray* pct=WFTelescopeArray::GetHead(Form("%s/default.inp",getenv("WFCTADataDir")));
+   //WFTelescopeArray* pct=WFTelescopeArray::GetHead(Form("%s/default.inp",getenv("WFCTADataDir")));
+   WFTelescopeArray* pct=WFTelescopeArray::GetHead(Form("%s/default.inp","/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA"));
    if(!pct) return 0;
    WFTelescope* pt=pct->pct[0];
    if(!pt) return 0;
@@ -55,9 +56,9 @@ int main(int argc, char**argv)
       double corepos[3]={pev->laserevent.LaserCoo[0]-pt->Telx_,pev->laserevent.LaserCoo[1]-pt->Tely_,pev->laserevent.LaserCoo[2]-pt->Telz_};
       laserdir[ndir][0]=lasertheta;
       laserdir[ndir][1]=laserphi;
-      lasercoo[ndir][0]=corepos[0];
-      lasercoo[ndir][1]=corepos[1];
-      lasercoo[ndir][2]=corepos[2];
+      lasercoo0[ndir][0]=corepos[0];
+      lasercoo0[ndir][1]=corepos[1];
+      lasercoo0[ndir][2]=corepos[2];
 
       double maxdist=1.0e6;
       //for(int ii=0;ii<2;ii++){
@@ -65,7 +66,7 @@ int main(int argc, char**argv)
       //   if(idist<maxdist) maxdist=idist;
       //}
       for(int ii=0;ii<2;ii++){
-         double idist=fabs(lasercoo[ndir][ii]-vpre[ii]);
+         double idist=fabs(lasercoo0[ndir][ii]-vpre[ii]);
          //printf("entry=%d ii=%d idist=%lf\n",ientry,ii,idist);
          if(idist<maxdist) maxdist=idist;
       }
@@ -84,12 +85,10 @@ int main(int argc, char**argv)
          double theta0=lasertheta;//+prandom->Gaus(0,Laser::LaserZenErr);
          double phi0=laserphi;//+prandom->Gaus(0,Laser::LaserAziErr);
          double dir1[3]={sin(theta0)*cos(phi0),sin(theta0)*sin(phi0),cos(theta0)};
-         double dir0[3]={lasercoo[ndir][0],lasercoo[ndir][1],lasercoo[ndir][2]};
-         //for(int icoo=0;icoo<3;icoo++) dir0[icoo]+=prandom->Gaus(0,Laser::LaserCooErr);
-         double dz=(lasercoo[ndir][2]==0)?0:(-lasercoo[ndir][2]/dir1[2]);
-         for(int icoo=0;icoo<3;icoo++) lasercoo[ndir][icoo]+=dz*dir1[icoo];
-         double laserphi0=acos(lasercoo[ndir][0]/sqrt(pow(lasercoo[ndir][0],2)+pow(lasercoo[ndir][1],2)));
-         if(lasercoo[ndir][1]<0) laserphi0=2*PI-laserphi0;
+         double lasercoo[3];
+         WFCTAEvent::CooCorr(lasercoo0[ndir],dir1,lasercoo);
+         double laserphi0=acos(lasercoo[0]/sqrt(pow(lasercoo[0],2)+pow(lasercoo[1],2)));
+         if(lasercoo[1]<0) laserphi0=2*PI-laserphi0;
          laserphi0*=180./PI;
 
          double planephi,eplanephi,nz,enz;
@@ -109,7 +108,7 @@ int main(int argc, char**argv)
          gr2->SetPoint(ndir,laserphi0,telaz);
          gr2->SetPointError(ndir,0,etelaz);
       }
-      for(int ii=0;ii<3;ii++) vpre[ii]=lasercoo[ndir][ii];
+      for(int ii=0;ii<3;ii++) vpre[ii]=lasercoo0[ndir][ii];
       ndir++;
    }
 

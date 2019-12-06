@@ -6,10 +6,10 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
-//#include <sys/types.h>
-//#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 //#include "/cvmfs/lhaaso.ihep.ac.cn/anysw/slc5_ia64_gcc73/external/root/6.14.00/etc/cling/lib/clang/5.0.0/include/bits/stat.h"
-//#include <dirent.h>
+#include <dirent.h>
 #include <time.h>
 #include "TH1F.h"
 using namespace std;
@@ -39,6 +39,7 @@ class CommonTools {
    static int TimeFlag(int time,int type);
    static int GetFirstLastLine(const char* filename,char* firstline,char * lastline);
    static int GetTimeFromFileName(const char* filename,int start,int length);
+   static bool GetStatusFile(char* statusfile,char* eventfile);
    static int GetBins(int start,int end,double step,double bins[100000]);
    static int GetTelIndex(const char* filename,int start,int length);
    static int get_file_size_time(const char* filename);

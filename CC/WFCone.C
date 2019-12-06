@@ -154,7 +154,7 @@ void SquareCone::SquareRaytracing()
       mini_distance=distance[i]; 
     }
     // judge which surface the photon hits
-    for(i=0;i<8;i++)
+    for(i=0;i<6;i++)
     {
       if(distance[i]==mini_distance) surfnum=i;
     }

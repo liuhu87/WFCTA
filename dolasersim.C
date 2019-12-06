@@ -50,7 +50,7 @@ int main(int argc, char**argv)
    Laser::scale=1.0e-8;
    //Laser::Doigen=9632;
    Laser::DoPlot=false;
-   Laser::jdebug=3;
+   Laser::jdebug=0;
    Laser::IniRange[0][0]=-1.e3;
    Laser::IniRange[0][1]=2.0e5;
    Laser::IniRange[1][0]=-1.e4;

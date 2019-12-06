@@ -237,6 +237,7 @@ bool CorsikaEvent::DoWFCTASim(int iuse){
          wave=wavelength.at(icer);
          int res=pct->RayTrace(x0,y0,z0,m1,n1,l1,weight,wave,whichtel,t,itube,icell);
          if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(res);
+         pwfc->iTel=whichtel>=0?pct->pct[whichtel]->TelIndex_:-1;
          (pwfc->mcevent).hRayTrace->Fill(res,weight);
          (pwfc->mcevent).Ngen+=weight;
 

@@ -54,6 +54,7 @@ class WCamera
   //void SetCTNumber(int ctnumber);
   static int GetCone(double clusterx, double clustery); 
   static int GetTube(double clusterx, double clustery);
+  static bool IsEdge(int isipm);
   void Init();
   void ReSet();
   //void ReSet(int ict);

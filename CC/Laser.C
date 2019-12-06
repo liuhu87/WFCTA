@@ -8,6 +8,7 @@
 #include "WFCTAEvent.h"
 #include "TAxis3D.h"
 #include "Readparam.h"
+#include <TSystem.h>
 using namespace std;
 
 double Atmosphere::aod_air = 0;
@@ -1501,6 +1502,7 @@ bool Laser::DoWFCTASim(){
          }
          else vosipm.push_back(-1);
          //printf("pushing back tracing il=%d whichtel=%d res=%d\n",il,whichtel,res);
+         pwfc->iTel=(whichtel>=0)?pct->pct[whichtel]->TelIndex_:-1;
       }
       if(pwfc){
          if(jdebug>1) printf("Laser::DoWFCTASim: Filling the event %d\n",ievent_gen);
