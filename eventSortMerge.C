@@ -20,11 +20,12 @@ using namespace std;
 
 int main(int argc, char**argv)
 {
-	if(argc!=3)
+	if(argc<3)
 	{
 		printf("Use %s iptpath/inputfile outpath/outfile\n",argv[0]);
 		return 0;
 	}
+        int nmaxevt=argc>=4?atoi(argv[3]):-1;
 
 	FILE *fp;
 	uint8_t *buf = NULL;// = new uint8_t[BUF_LEN];
@@ -58,6 +59,7 @@ int main(int argc, char**argv)
 	rb_time->clear();
 	pack_pos->clear();
 	pack_len->clear();
+	int ncount=0;
 	while(true)
 	{
 		buf = new uint8_t[40];
@@ -84,6 +86,7 @@ int main(int argc, char**argv)
 					pack_pos->push_back( FEEPos + packStart );
 					pack_len->push_back( wfctaDecode->bigpackLen() );
 					packStart = wfctaDecode->PackSize();
+					ncount++;
 				}
 				else
 				{
@@ -97,6 +100,7 @@ int main(int argc, char**argv)
 			delete[] buf;
 			fseek(fp,-size_of_read+20,1);
 		}
+		if(nmaxevt>0&&ncount>nmaxevt) break;
 	}
 	fclose(fp);
 

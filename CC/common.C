@@ -125,6 +125,42 @@ int CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * la
    strcpy(lastline,buff);
    return res;
 }
+int CommonTools::GetTimeFromFileName(const char* filename){
+   int strlength=strlen(filename);
+   int ncount=0,nchar=0;
+   char buff0[300];
+   bool exist=false;
+   for(int ii=strlength;ii>=0;ii--){
+      //printf("ii=%d(%d) ss=%c\n",ii,strlength,filename[ii]);
+      if(filename[ii]=='.'||filename[ii]=='_'){
+         ncount++;
+         if(ncount>1) buff0[nchar++]='\0';
+         bool istime=true;
+         int nnum=0;
+         for(int jj=nchar-2;jj>=0;jj--){
+            int index=(buff0[jj]-'0');
+            //printf("jj=%d char=%c index=%d\n",jj,buff0[jj],index);
+            if(index<0||index>9) {istime=false; break;}
+            nnum++;
+         }
+         istime=istime&&(nnum>=12);
+         //printf("ncount=%d buff0=%s istime=%d(%d)\n",ncount,buff0,istime,nnum);
+         if(istime){
+            exist=true;
+            break;
+         }
+         nchar=0; continue;
+      }
+      buff0[nchar++]=filename[ii];
+   }
+   if(!exist) return 0;
+   char timebuff[300];
+   for(int ii=nchar-2;ii>=0;ii--) timebuff[(nchar-2)-ii]=buff0[ii];
+   for(int ii=nchar-1;ii<=14;ii++){
+      timebuff[ii]=(ii<14)?'0':'\0';
+   }
+   return Convert(atol(timebuff));
+}
 int CommonTools::GetTimeFromFileName(const char* filename,int start,int length){
    int strlength=strlen(filename);
    if(start<0) return 0;

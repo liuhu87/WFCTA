@@ -474,7 +474,7 @@ bool RotateDB::GetEleAzi(int time_in,int Li_in){
 
    double margin=0.02;
    int ncount1=0,ncount2=0;
-   for(int itime=-1;itime>=-35;itime--){
+   for(int itime=-1;itime>=-(60*100);itime--){
       int timei=time_in+itime;
       if(!LoadData(timei,Li_in)) break;
       ProcessAll();
@@ -484,7 +484,7 @@ bool RotateDB::GetEleAzi(int time_in,int Li_in){
       if(fabs(azi0-azii)>margin) break;
       ncount1++;
    }
-   for(int itime=1;itime<=35;itime++){
+   for(int itime=1;itime<=(60*100);itime++){
       int timei=time_in+itime;
       if(!LoadData(timei,Li_in)) break;
       ProcessAll();
@@ -509,7 +509,7 @@ bool RotateDB::GetEleAzi(int time_in,int Li_in){
    int nside2=((ncount%2)==0)?((ncount/2)-13):(((ncount-1)/2)-13);
    if(jdebug>0) printf("RotateDB::GetEleAzi: ncount={%d,%d} nside={%d,%d}\n",ncount1,ncount2,nside1,nside2);
 
-   if(ncount<30) return false;
-   if(ncount1<=nside1||ncount2<=nside2) return false;
+   if(ncount<10) return false;
+   if(ncount1<=3||ncount2<=3) return false;
    else return true;
 }

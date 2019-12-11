@@ -2599,7 +2599,7 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
       GetImageXYCoo(ii,ImageX,ImageY);
-      image->AddBin(ImageX-0.25,ImageY-0.25,ImageX+0.25,ImageY+0.25);
+      image->AddBin(-ImageX-0.25,ImageY-0.25,-ImageX+0.25,ImageY+0.25);
       //printf("WFCTAEvent::Draw: SiPM=%d ImageX=%lf ImageY=%lf\n",ii,ImageX,ImageY);
    }
    int ncontent=0;

@@ -38,6 +38,7 @@ class CommonTools {
    static int TimeFlag(double time,int type);
    static int TimeFlag(int time,int type);
    static int GetFirstLastLine(const char* filename,char* firstline,char * lastline);
+   static int GetTimeFromFileName(const char* filename);
    static int GetTimeFromFileName(const char* filename,int start,int length);
    static bool GetStatusFile(char* statusfile,char* eventfile);
    static int GetBins(int start,int end,double step,double bins[100000]);
