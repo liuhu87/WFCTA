@@ -107,9 +107,11 @@ int CommonTools::TimeFlag(int time,int type){
    return TimeFlag(time0,type);
 }
 int CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * lastline){
+   if(!filename) return 0;
    const int maxlen=300;
    char buff[maxlen];
-   char timebuff[13];
+   char buff2[maxlen];
+   /*char timebuff[13];
    long pos0,pos1,pos2;
    ifstream fbuff(filename,std::ios::in);
    fbuff.seekg(ios::beg);
@@ -118,19 +120,30 @@ int CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * la
    pos1=fbuff.tellg();
    int length=strlen(buff);
    strcpy(firstline,buff);
-   //fbuff.seekg(pos0-pos1,ios::end);
-   //fbuff.getline(buff,maxlen);
-   //pos2=fbuff.tellg();
-   //int res=(pos1>pos0)?(pos2-pos0)/(pos1-pos0):0;
-   //strcpy(lastline,buff);
-   //return res;
-
    fbuff.seekg(3*(pos0-pos1)/2,ios::end);
    fbuff.getline(buff,maxlen);
    fbuff.getline(buff,maxlen);
    pos2=fbuff.tellg();
    strcpy(lastline,buff);
-   return (pos1>pos0)?(pos2-pos0)/(pos1-pos0):0;
+   return (pos1>pos0)?(pos2-pos0)/(pos1-pos0):0;*/
+
+   int count=0;
+   ifstream fbuff(filename,std::ios::in);
+   if(!fbuff.is_open()) return 0;
+   do{
+      if(count==1) strcpy(firstline,buff);
+      for(int ii=0;ii<maxlen;ii++){
+         buff2[ii]=buff[ii];
+         if(buff[ii]=='\0'||buff[ii]=='\n') break;
+      }
+      fbuff.getline(buff,maxlen);
+      count++;
+   }
+   while(fbuff.good());
+   fbuff.close();
+   if(count==1) return 0;
+   else strcpy(lastline,buff2);
+   return count-1;
 }
 int CommonTools::GetTimeFromFileName(const char* filename){
    int strlength=strlen(filename);
