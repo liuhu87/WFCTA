@@ -32,7 +32,7 @@ class RotateDB {
    RotateDB() {Init();}
    ~RotateDB() {Release();}
    static RotateDB* GetHead();
-   bool LocateFirst(ifstream* fin);
+   static bool LocateFirst(ifstream* fin);
    bool LoadData(int time_in,int Li_in);
    int ProcessTime();
    void ProcessAll();

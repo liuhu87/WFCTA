@@ -118,12 +118,19 @@ int CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * la
    pos1=fbuff.tellg();
    int length=strlen(buff);
    strcpy(firstline,buff);
-   fbuff.seekg(pos0-pos1,ios::end);
+   //fbuff.seekg(pos0-pos1,ios::end);
+   //fbuff.getline(buff,maxlen);
+   //pos2=fbuff.tellg();
+   //int res=(pos1>pos0)?(pos2-pos0)/(pos1-pos0):0;
+   //strcpy(lastline,buff);
+   //return res;
+
+   fbuff.seekg(3*(pos0-pos1)/2,ios::end);
+   fbuff.getline(buff,maxlen);
    fbuff.getline(buff,maxlen);
    pos2=fbuff.tellg();
-   int res=(pos1>pos0)?(pos2-pos0)/(pos1-pos0):0;
    strcpy(lastline,buff);
-   return res;
+   return (pos1>pos0)?(pos2-pos0)/(pos1-pos0):0;
 }
 int CommonTools::GetTimeFromFileName(const char* filename){
    int strlength=strlen(filename);
