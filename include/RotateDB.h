@@ -11,6 +11,8 @@ class RotateDB {
    public:
    static int jdebug;
    static int timedelay;
+   static int ntotmin;
+   static int nsidemin;
    char buff[500];
    //Li
    int Li;

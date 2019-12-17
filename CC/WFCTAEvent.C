@@ -2887,6 +2887,10 @@ bool WFCTAEvent::IsLaser(){
 }
 void WFCTAEvent::CalInfo(double result[100]){
    double MAX=0;
+   double TNum=0;
+   double TSum=0;
+   double TSum2=0;
+   double Tvariance=0;
    const int ncut=9;
    double value[ncut];
    double Num[ncut];
@@ -2903,8 +2907,15 @@ void WFCTAEvent::CalInfo(double result[100]){
    int size=iSiPM.size();
    for(int ii=0;ii<size;ii++){
       double npe=GetContent(ii,0,11,true);
+      double ntime=GetContent(ii,0,5,true);
       if(npe>MAX) MAX=npe;
+      if(npe>0){
+         TNum++;
+         TSum+=ntime;
+         TSum2+=ntime*ntime;
+      }
    }
+   if(TNum>0) Tvariance=sqrt(TSum2/TNum-pow(TSum/TNum,2));
    int np=0;
    result[np++]=MAX;
    result[np++]=ncut;
@@ -2946,15 +2957,33 @@ void WFCTAEvent::CalInfo(double result[100]){
       result[np++]=SXvariance[icut];
       result[np++]=SYvariance[icut];
    }
+   result[np++]=Tvariance;
 }
-bool WFCTAEvent::IsNoise(int p0,double p1,int p2,double p3) {
+bool WFCTAEvent::IsNoise(double* pars) {
    double result[100];
    CalInfo(result);
    if(result[0]>400) return false;
+   int p0=(int)(pars[0]+0.5);
+   int p2=(int)(pars[2]+0.5);
+   double p1=pars[1];
+   double p3=pars[3];
    double num=result[2+p0*6+1];
    double xvar=sqrt(result[2+p2*6+4]);
    double yvar=sqrt(result[2+p2*6+5]);
    return (num>p1)&&(xvar>=p3&&yvar>=p3);
+}
+bool WFCTAEvent::IsCR(double* pars) {
+   double result[100];
+   CalInfo(result);
+   if(result[0]>400) return false;
+   int p0=(int)(pars[0]+0.5);
+   int p2=(int)(pars[2]+0.5);
+   double p1=pars[1];
+   double p3=pars[3];
+   double num=result[2+p0*6+1];
+   double xvar=sqrt(result[2+p2*6+4]);
+   double yvar=sqrt(result[2+p2*6+5]);
+   return (num<p1)&&(xvar<=p3&&yvar<=p3);
 }
 
 /******************************************

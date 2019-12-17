@@ -5,6 +5,8 @@
 RotateDB* RotateDB::_Head=0;
 int RotateDB::jdebug=0;
 int RotateDB::timedelay=35;
+int RotateDB::ntotmin=10;
+int RotateDB::nsidemin=3;
 void RotateDB::Init(){
    Reset();
 }
@@ -498,18 +500,18 @@ bool RotateDB::GetEleAzi(int time_in,int Li_in){
    LoadData(time_in,Li_in);
    ProcessAll();
 
-   double type0[4][2]={{40,42},{40,29},{40,19},{40,4}};
-   bool Istype0=false;
-   for(int ii=0;ii<4;ii++){
-      if(fabs(ele0-type0[ii][0])<margin&&fabs(azi0-type0[ii][1])<margin) Istype0=true;
-   }
+   //double type0[4][2]={{40,42},{40,29},{40,19},{40,4}};
+   //bool Istype0=false;
+   //for(int ii=0;ii<4;ii++){
+   //   if(fabs(ele0-type0[ii][0])<margin&&fabs(azi0-type0[ii][1])<margin) Istype0=true;
+   //}
 
-   int ncount=ncount1+ncount2;
-   int nside1=((ncount%2)==0)?((ncount/2)-13):(((ncount-1)/2)-12);
-   int nside2=((ncount%2)==0)?((ncount/2)-13):(((ncount-1)/2)-13);
-   if(jdebug>0) printf("RotateDB::GetEleAzi: ncount={%d,%d} nside={%d,%d}\n",ncount1,ncount2,nside1,nside2);
+   int ncount=ncount1+ncount2+1;
+   //int nside1=((ncount%2)==0)?((ncount/2)-13):(((ncount-1)/2)-12);
+   //int nside2=((ncount%2)==0)?((ncount/2)-13):(((ncount-1)/2)-13);
+   //if(jdebug>0) printf("RotateDB::GetEleAzi: ncount={%d,%d} nside={%d,%d}\n",ncount1,ncount2,nside1,nside2);
 
-   if(ncount<10) return false;
-   if(ncount1<=3||ncount2<=3) return false;
+   if(ncount<ntotmin) return false;
+   if(ncount1<=nsidemin||ncount2<=nsidemin) return false;
    else return true;
 }
