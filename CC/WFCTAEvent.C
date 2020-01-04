@@ -2545,7 +2545,7 @@ TGraph* WFCTAEvent::DrawImageLine(int itel){
    double intheta=laserevent.LaserDir[0]/180.*PI;
    double inphi=laserevent.LaserDir[1]/180.*PI;
    double indir[2]={intheta,inphi};
-   if(jdebug>-1) printf("WFCTAEvent::DrawImageLine: zenith=%lf azimuth=%lf incoo={%lf,%lf,%lf} indir={%lf,%lf}\n",zenith/PI*180,azimuth/PI*180,incoo[0],incoo[1],incoo[2],indir[0]/PI*180,indir[1]/PI*180);
+   if(jdebug>0) printf("WFCTAEvent::DrawImageLine: zenith=%lf azimuth=%lf incoo={%lf,%lf,%lf} indir={%lf,%lf}\n",zenith/PI*180,azimuth/PI*180,incoo[0],incoo[1],incoo[2],indir[0]/PI*180,indir[1]/PI*180);
    return DrawImageLine(zenith,azimuth,incoo,indir);
 }
 
