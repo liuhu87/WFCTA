@@ -564,8 +564,8 @@ double RotateDB::GetAng(){
 }
 
 int RotateDB::IsFineAngle(double ele_in,double azi_in,int iTel,int &index){
-   const int nrot=1;
-   int rotindex[nrot]={2};
+   const int nrot=2;
+   int rotindex[nrot]={2,3};
    int irot=-1;
    for(int ii=0;ii<nrot;ii++){
       if(Li==rotindex[ii]) {irot=ii; break;}
@@ -589,6 +589,7 @@ int RotateDB::IsFineAngle(double ele_in,double azi_in,int iTel,int &index){
    AngleList1[3][0]=40; AngleList1[3][1]=4;
    for(int ii=0;ii<nangle1;ii++){
       if(fabs(ele_in-AngleList1[ii][0])<margin&&fabs(azi_in-AngleList1[ii][1])<margin){
+         if(Li!=2) return 0;
          bool isfine=false;
          if(ii==0&&(telindex[itel]==5||telindex[itel]==6)) isfine=true;
          if(ii==1&&(telindex[itel]==4||telindex[itel]==5)) isfine=true;
@@ -599,17 +600,23 @@ int RotateDB::IsFineAngle(double ele_in,double azi_in,int iTel,int &index){
       }
    }
 
-   const int nangle2=6;
-   double elelist[nangle2]={10,20,30,40,50,55};
-   double azilist[ntel][nangle2]={{23.7,19,15,10,1,-5},
-                                  {23.7,17,11,0,-12,-18},
-                                  {24.5,22,19,15,10,3},
-                                  {27,26,26,26,25,24},
-                                  {30.5,33,35,38,42,44},
-                                  {32,38,43,47,54,61}
-                                 };
+   const int nangle2=7;
+   double elelist[nangle2]={10,20,30,40,50,55,60};
+   double azilist[nrot][ntel][nangle2]={{{23.7,19,15,10,1,-5,-1000},
+                                         {23.7,17,11,0,-12,-18,-1000},
+                                         {24.5,22,19,15,10,3,-1000},
+                                         {27,26,26,26,25,24,-1000},
+                                         {30.5,33,35,38,42,44,-1000},
+                                         {32,38,43,47,54,61,-1000}},
+                                        {{-71,-67,-63,-57,-52,-42,-37},
+                                         {-74,-72,-72,-69,-67,-66,-65},
+                                         {-69,-64,-57,-47,-37,-27,-17},
+                                         {-67,-62,-54,-47,-32,-17,-2},
+                                         {-68,-63,-57,-48,-32,-13,3},
+                                         {-71,-67,-62,-57,-52,-42,-37}}
+                                       };
    for(int ii=0;ii<nangle2;ii++){
-      if(fabs(ele_in-elelist[ii])<margin&&fabs(azi_in-azilist[itel][ii])<margin){
+      if(fabs(ele_in-elelist[ii])<margin&&fabs(azi_in-azilist[irot][itel][ii])<margin){
          index=ii;
          return 2;
       }
