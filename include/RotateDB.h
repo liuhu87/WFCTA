@@ -5,6 +5,7 @@
 
 #include "common.h"
 
+class WFCTAEvent;
 class RotateDB {
    private:
    static RotateDB* _Head;
@@ -13,6 +14,10 @@ class RotateDB {
    static int timedelay;
    static int ntotmin;
    static int nsidemin;
+   static int nrot;
+   static int rotindex[10];
+   static int ntel;
+   static int telindex[20];
    char buff[500];
    //Li
    int Li;
@@ -56,6 +61,7 @@ class RotateDB {
    double GetAng();
    int IsFineAngle(double ele_in,double azi_in,int iTel,int &index);
    int GetEleAzi(int time_in,int Li_in,int iTel=-1);
+   static bool IsFineImage(WFCTAEvent* pev,int Li_in,int EleAziIndex);
 };
 
 #endif

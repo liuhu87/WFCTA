@@ -1,5 +1,6 @@
 #include "RotateDB.h"
 #include "stdlib.h"
+#include "WFCTAEvent.h"
 #include <fstream>
 #include <string>
 RotateDB* RotateDB::_Head=0;
@@ -7,6 +8,10 @@ int RotateDB::jdebug=0;
 int RotateDB::timedelay=35;
 int RotateDB::ntotmin=10;
 int RotateDB::nsidemin=3;
+int RotateDB::nrot=2;
+int RotateDB::rotindex[10]={2,3,0,0,0,0,0,0,0,0};
+int RotateDB::ntel=6;
+int RotateDB::telindex[20]={1,2,3,4,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 RotateDB::RotateDB(RotateDB* pr_in){
    Copy(pr_in);
 }
@@ -564,20 +569,16 @@ double RotateDB::GetAng(){
 }
 
 int RotateDB::IsFineAngle(double ele_in,double azi_in,int iTel,int &index){
-   const int nrot=2;
-   int rotindex[nrot]={2,3};
    int irot=-1;
    for(int ii=0;ii<nrot;ii++){
       if(Li==rotindex[ii]) {irot=ii; break;}
    }
-   if(irot<0) return 0;
-   const int ntel=6;
-   int telindex[ntel]={1,2,3,4,5,6};
+   if(irot<0||irot>=2) return 0;
    int itel=-1;
    for(int ii=0;ii<ntel;ii++){
       if(iTel==telindex[ii]) {itel=ii; break;}
    }
-   if(itel<0) return 0;
+   if(itel<0||itel>=6) return 0;
 
    double margin=0.02;
 
@@ -602,19 +603,19 @@ int RotateDB::IsFineAngle(double ele_in,double azi_in,int iTel,int &index){
 
    const int nangle2=7;
    double elelist[nangle2]={10,20,30,40,50,55,60};
-   double azilist[nrot][ntel][nangle2]={{{23.7,19,15,10,1,-5,-1000},
-                                         {23.7,17,11,0,-12,-18,-1000},
-                                         {24.5,22,19,15,10,3,-1000},
-                                         {27,26,26,26,25,24,-1000},
-                                         {30.5,33,35,38,42,44,-1000},
-                                         {32,38,43,47,54,61,-1000}},
-                                        {{-71,-67,-63,-57,-52,-42,-37},
-                                         {-74,-72,-72,-69,-67,-66,-65},
-                                         {-69,-64,-57,-47,-37,-27,-17},
-                                         {-67,-62,-54,-47,-32,-17,-2},
-                                         {-68,-63,-57,-48,-32,-13,3},
-                                         {-71,-67,-62,-57,-52,-42,-37}}
-                                       };
+   double azilist[2][6][nangle2]={{{23.7,19,15,10,1,-5,-1000},
+                                   {23.7,17,11,0,-12,-18,-1000},
+                                   {24.5,22,19,15,10,3,-1000},
+                                   {27,26,26,26,25,24,-1000},
+                                   {30.5,33,35,38,42,44,-1000},
+                                   {32,38,43,47,54,61,-1000}},
+                                  {{-71,-67,-63,-57,-52,-42,-37},
+                                   {-74,-72,-72,-69,-67,-66,-65},
+                                   {-69,-64,-57,-47,-37,-27,-17},
+                                   {-67,-62,-54,-47,-32,-17,-2},
+                                   {-68,-63,-57,-48,-32,-13,3},
+                                   {-71,-67,-62,-57,-52,-42,-37}}
+                                 };
    for(int ii=0;ii<nangle2;ii++){
       if(fabs(ele_in-elelist[ii])<margin&&fabs(azi_in-azilist[irot][itel][ii])<margin){
          index=ii;
@@ -700,3 +701,80 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
       return retval*10+index;
    }
 }
+bool RotateDB::IsFineImage(WFCTAEvent* pev,int Li_in,int EleAziIndex){
+   if(!pev) return false;
+   if(!pev->minimizer) return false;
+   double kk=pev->minimizer->X()[3]/PI*180;
+   double cc=pev->minimizer->X()[2]/PI*180;
+
+   int irot=-1;
+   for(int ii=0;ii<nrot;ii++){
+      if(Li_in==rotindex[ii]) {irot=ii; break;}
+   }
+   if(irot<0||irot>=2) return false;
+   int itel=-1;
+   for(int ii=0;ii<ntel;ii++){
+      if(pev->iTel==telindex[ii]) {itel=ii; break;}
+   }
+   if(itel<0||itel>=6) return false;
+
+   if(EleAziIndex<=0) return false;
+   int itype=EleAziIndex/10;
+   int index=EleAziIndex%10;
+
+   double kmargin=5.,cmargin=0.5;
+   if(itype==1){
+      const int nangle1=4;
+      if(index<0||index>=nangle1) return false;
+      double kk1[6][nangle1];
+      double cc1[6][nangle1];
+      for(int ii=0;ii<6;ii++){
+         for(int jj=0;jj<nangle1;jj++){
+            kk1[ii][jj]=-1000;
+            cc1[ii][jj]=-1000;
+         }
+      }
+      kk1[5][0]=179.82;
+      cc1[5][0]=1;
+      bool kkfine=fabs(kk-kk1[itel][index])<kmargin||(fabs(kk-180-kk1[itel][index])<kmargin||fabs(kk+180-kk1[itel][index])<kmargin);
+      return kkfine&&fabs(cc-cc1[itel][index])<cmargin;
+   }
+   else if(itype==2){
+      const int nangle2=7;
+      if(index<0||index>=nangle2) return false;
+      double kk2[2][6][nangle2]={{{27.97,27.40,27.08,26.44,26.77,26.64,-1000},
+                                  {3.00,3.17,3.16,3.13,3.16,3.07,-1000},
+                                  {49.29,50.43,51.88,51.91,51.83,50.56,-1000},
+                                  {75.00,78.46,79.76,80.80,80.78,80.40,-1000},
+                                  {111.32,111.31,110.69,110.68,110.56,110.94,-1000},
+                                  {135.70,137.83,137.27,136.46,136.46,136.62,-1000}
+                                 },
+                                 {{134.08,134.34,133.91,134.05,133.69,133.19,-1000},
+                                  {106.63,105.91,104.02,105.04,104.61,-1000,-1000},
+                                  {156.15,157.01,157.54,158.09,157.82,157.85,-1000},
+                                  {0.00,0.09,0.15,179.82,0.10,179.63,-1000},
+                                  {24.68,24.19,24.13,23.95,23.50,22.61,-1000},
+                                  {48.75,48.35,48.50,48.62,49.40,48.29,-1000}
+                                 }
+                                };
+      double cc2[2][6][nangle2]={{{-1.99,0.11,2.81,4.13,3.34,3.15,-1000},
+                                  {3.88,0.90,2.01,0.70,-0.20,1.23,-1000},
+                                  {-2.45,0.94,2.00,2.04,2.37,0.17,-1000},
+                                  {-1.11,-0.65,1.30,2.34,2.12,1.82,-1000},
+                                  {0.95,2.31,1.66,1.99,2.23,1.86,-1000},
+                                  {-2.52,2.98,2.37,-0.09,-0.54,0.59,-1000}
+                                 },
+                                 {{-0.75,-0.14,-0.84,-0.46,-2.24,0.56,-1000},
+                                  {-1.10,0.98,-1.79,-0.01,-0.37,-1000,-1000},
+                                  {-0.99,-2.01,-0.69,0.77,-0.81,-0.50,-1000},
+                                  {-2.71,1.45,0.19,-2.36,1.25,-0.03,-1000},
+                                  {-1.01,1.37,1.88,0.99,-0.90,-3.19,-1000},
+                                  {1.16,-0.21,-1.11,-0.39,1.36,-1.30,-1000}
+                                 }
+                                };
+      bool kkfine=fabs(kk-kk2[irot][itel][index])<kmargin||(fabs(kk-180-kk2[irot][itel][index])<kmargin||fabs(kk+180-kk2[irot][itel][index])<kmargin);
+      return kkfine&&fabs(cc-cc2[irot][itel][index])<cmargin;
+   }
+   else return false;
+}
+
