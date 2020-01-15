@@ -60,10 +60,15 @@ class RotateDB {
    double GetElevation();
    double GetAzimuth();
    double GetAng();
-   int IsFineAngle(double ele_in,double azi_in,int iTel,int &index);
-   int GetEleAzi(int time_in,int Li_in,int iTel=-1);
+   int GetLi();
+   static int GetLi(int Li_in);
    static int GetLi(double rabbittime);
-   static bool IsFineImage(WFCTAEvent* pev,int Li_in,int EleAziIndex);
+   static int GetTi(int Tindex);
+   static int IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel,int &index);
+   int GetEleAzi(int time_in,int Li_in,int iTel=-1);
+   int GetEleAzi(WFCTAEvent* pev);
+   static bool IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in=0);
+   bool LaserIsFine(WFCTAEvent* pev);
 };
 
 #endif

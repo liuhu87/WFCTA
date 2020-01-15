@@ -569,16 +569,35 @@ double RotateDB::GetAng(){
    return angle[2];
 }
 
-int RotateDB::IsFineAngle(double ele_in,double azi_in,int iTel,int &index){
-   int irot=-1;
-   for(int ii=0;ii<nrot;ii++){
-      if(Li==rotindex[ii]) {irot=ii; break;}
+int RotateDB::GetLi(){
+   int Li_in=Li;
+   return GetLi(Li_in);
+}
+int RotateDB::GetLi(int Li_in){
+   int result=-1;
+   for(int irot=0;irot<nrot;irot++){
+      if(Li_in==rotindex[irot]) {result=irot; break;}
    }
+   return result;
+}
+int RotateDB::GetLi(double rabbittime){
+   int result=-1;
+   for(int irot=0;irot<nrot;irot++){
+      if(fabs(rabbittime*20-rottime[irot])<1600*20) {result=irot; break;}
+   }
+   return result;
+}
+int RotateDB::GetTi(int Tindex){
+   int result=-1;
+   for(int itel=0;itel<ntel;itel++){
+      if(Tindex==telindex[itel]) {result=itel; break;}
+   }
+   return result;
+}
+int RotateDB::IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel,int &index){
+   int irot=GetLi(Li_in);
    if(irot<0||irot>=2) return 0;
-   int itel=-1;
-   for(int ii=0;ii<ntel;ii++){
-      if(iTel==telindex[ii]) {itel=ii; break;}
-   }
+   int itel=GetTi(iTel);
    if(itel<0||itel>=6) return 0;
 
    double margin=0.02;
@@ -591,7 +610,7 @@ int RotateDB::IsFineAngle(double ele_in,double azi_in,int iTel,int &index){
    AngleList1[3][0]=40; AngleList1[3][1]=4;
    for(int ii=0;ii<nangle1;ii++){
       if(fabs(ele_in-AngleList1[ii][0])<margin&&fabs(azi_in-AngleList1[ii][1])<margin){
-         if(Li!=2) return 0;
+         if(rotindex[irot]!=2) return 0;
          bool isfine=false;
          if(ii==0&&(telindex[itel]==5||telindex[itel]==6)) isfine=true;
          if(ii==1&&(telindex[itel]==4||telindex[itel]==5)) isfine=true;
@@ -637,7 +656,7 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
    int index=-1;
    int retval=-1;
    if(iTel>0){
-      retval=IsFineAngle(ele0,azi0,iTel,index);
+      retval=IsFineAngle(ele0,azi0,Li_in,iTel,index);
       if(retval<=0){
          if(jdebug>0) printf("RotateDB::GetEleAzi: IsFineAngle=%d Index=%d\n",retval,index);
          return -2;
@@ -702,28 +721,23 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
       return retval*10+index;
    }
 }
-int RotateDB::GetLi(double rabbittime){
-   int result=-1;
-   for(int irot=0;irot<nrot;irot++){
-      if(fabs(rabbittime*20-rottime[irot])<1600*20) {result=rotindex[irot]; break;}
-   }
-   return result;
+int RotateDB::GetEleAzi(WFCTAEvent* pev){
+   if(!pev) return -5;
+   int time_in=pev->rabbitTime;
+   int Liindex=GetLi((double)pev->rabbittime);
+   if(Liindex<0) return -6;
+   int Li_in=rotindex[Liindex];
+   return GetEleAzi(time_in,Li_in,pev->iTel);
 }
-bool RotateDB::IsFineImage(WFCTAEvent* pev,int Li_in,int EleAziIndex){
+bool RotateDB::IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in){
    if(!pev) return false;
    if(!pev->minimizer) return false;
    double kk=pev->minimizer->X()[3]/PI*180;
    double cc=pev->minimizer->X()[2]/PI*180;
 
-   int irot=-1;
-   for(int ii=0;ii<nrot;ii++){
-      if(Li_in==rotindex[ii]) {irot=ii; break;}
-   }
+   int irot=Li_in>0?GetLi(Li_in):GetLi((double)pev->rabbittime);
    if(irot<0||irot>=2) return false;
-   int itel=-1;
-   for(int ii=0;ii<ntel;ii++){
-      if(pev->iTel==telindex[ii]) {itel=ii; break;}
-   }
+   int itel=GetTi(pev->iTel);
    if(itel<0||itel>=6) return false;
 
    if(EleAziIndex<=0) return false;
@@ -785,4 +799,12 @@ bool RotateDB::IsFineImage(WFCTAEvent* pev,int Li_in,int EleAziIndex){
    }
    else return false;
 }
+bool RotateDB::LaserIsFine(WFCTAEvent* pev){
+   if(!pev) return false;
+   
+   int EleAziIndex=GetEleAzi(pev);
+   if(EleAziIndex<0) return false;
 
+   pev->DoFit(0,3);
+   return IsFineImage(pev,EleAziIndex);
+}
