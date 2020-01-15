@@ -10,6 +10,7 @@ int RotateDB::ntotmin=10;
 int RotateDB::nsidemin=3;
 int RotateDB::nrot=2;
 int RotateDB::rotindex[10]={2,3,0,0,0,0,0,0,0,0};
+double RotateDB::rottime[10]={990016000,990845000,0,0,0,0,0,0,0,0};
 int RotateDB::ntel=6;
 int RotateDB::telindex[20]={1,2,3,4,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 RotateDB::RotateDB(RotateDB* pr_in){
@@ -700,6 +701,13 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
    else{
       return retval*10+index;
    }
+}
+int RotateDB::GetLi(double rabbittime){
+   int result=-1;
+   for(int irot=0;irot<nrot;irot++){
+      if(fabs(rabbittime*20-rottime[irot])<1600*20) {result=rotindex[irot]; break;}
+   }
+   return result;
 }
 bool RotateDB::IsFineImage(WFCTAEvent* pev,int Li_in,int EleAziIndex){
    if(!pev) return false;

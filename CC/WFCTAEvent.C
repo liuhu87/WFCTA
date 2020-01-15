@@ -12,6 +12,7 @@
 #include "TF1.h"
 #include "Laser.h"
 #include "slalib.h"
+#include "RotateDB.h"
 
 using namespace std;
 
@@ -2595,7 +2596,7 @@ void WFCTAEvent::DrawFit(){
 TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold){
    TH2Poly* image=new TH2Poly();
    image->SetName("DrawPlot");
-   image->SetTitle(Form("iTel=%d iEvent=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d);X [degree];Y [degree]",iTel,iEvent,rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6)));
+   image->SetTitle(Form("iTel=%d iEvent=%d Li=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d);X [degree];Y [degree]",iTel,iEvent,RotateDB::GetLi(rabbittime),rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6)));
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
       GetImageXYCoo(ii,ImageX,ImageY);

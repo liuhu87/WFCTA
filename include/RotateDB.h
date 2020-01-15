@@ -16,6 +16,7 @@ class RotateDB {
    static int nsidemin;
    static int nrot;
    static int rotindex[10];
+   static double rottime[10];
    static int ntel;
    static int telindex[20];
    char buff[500];
@@ -61,6 +62,7 @@ class RotateDB {
    double GetAng();
    int IsFineAngle(double ele_in,double azi_in,int iTel,int &index);
    int GetEleAzi(int time_in,int Li_in,int iTel=-1);
+   static int GetLi(double rabbittime);
    static bool IsFineImage(WFCTAEvent* pev,int Li_in,int EleAziIndex);
 };
 
