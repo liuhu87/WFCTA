@@ -11,11 +11,11 @@ class RotateDB {
    static RotateDB* _Head;
    public:
    static int jdebug;
-   static int timedelay;
    static int ntotmin;
    static int nsidemin;
    static int nrot;
    static int rotindex[10];
+   static int timedelay[10];
    static double rottime[10];
    static int ntel;
    static int telindex[20];
@@ -68,7 +68,7 @@ class RotateDB {
    int GetEleAzi(int time_in,int Li_in,int iTel=-1);
    int GetEleAzi(WFCTAEvent* pev);
    static bool IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in=0);
-   bool LaserIsFine(WFCTAEvent* pev);
+   int LaserIsFine(WFCTAEvent* pev);
 };
 
 #endif

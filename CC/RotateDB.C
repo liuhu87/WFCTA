@@ -5,11 +5,11 @@
 #include <string>
 RotateDB* RotateDB::_Head=0;
 int RotateDB::jdebug=0;
-int RotateDB::timedelay=35;
 int RotateDB::ntotmin=10;
 int RotateDB::nsidemin=3;
 int RotateDB::nrot=2;
 int RotateDB::rotindex[10]={2,3,0,0,0,0,0,0,0,0};
+int RotateDB::timedelay[10]={35,37,0,0,0,0,0,0,0,0};
 double RotateDB::rottime[10]={990016000,990845000,0,0,0,0,0,0,0,0};
 int RotateDB::ntel=6;
 int RotateDB::telindex[20]={1,2,3,4,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -71,7 +71,10 @@ bool RotateDB::LocateFirst(ifstream* fin){
    else return false;
 }
 long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpos){
-   int time_new=time_in-timedelay;
+   int Liindex=GetLi(Li_in);
+   if(Liindex<0) return -5;
+   int pLiindex=GetLi(pLi);
+   int time_new=time_in-timedelay[Liindex];
    int year=CommonTools::TimeFlag(time_new,1);
    year=2000+(year%100);
    int month=CommonTools::TimeFlag(time_new,2);
@@ -84,8 +87,8 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    strcat(filename,namebuff);
    if(jdebug>0) printf("RotateDB::LoadData: filename=%s\n",filename);
    bool sameday=false;
-   if(ptime>0&&pLi>0){
-      int ptime_new=ptime-timedelay;
+   if(ptime>0&&pLi>0&&pLiindex>=0){
+      int ptime_new=ptime-timedelay[pLiindex];
       int pyear=CommonTools::TimeFlag(ptime_new,1);
       pyear=2000+(pyear%100);
       int pmonth=CommonTools::TimeFlag(ptime_new,2);
@@ -799,12 +802,10 @@ bool RotateDB::IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in){
    }
    else return false;
 }
-bool RotateDB::LaserIsFine(WFCTAEvent* pev){
-   if(!pev) return false;
-   
+int RotateDB::LaserIsFine(WFCTAEvent* pev){
    int EleAziIndex=GetEleAzi(pev);
-   if(EleAziIndex<0) return false;
+   if(EleAziIndex<=0) return EleAziIndex;
 
    pev->DoFit(0,3);
-   return IsFineImage(pev,EleAziIndex);
+   return IsFineImage(pev,EleAziIndex)?EleAziIndex:-10;
 }
