@@ -559,6 +559,7 @@ double WFCTAEvent::Interface(const double* par){
    }
    double chi2=0;
    int ndof=0;
+   //printf("\n");
    for(int ii=0;ii<size&&(allcontent>0);ii++){
       int isipm=iSiPM.at(ii);
       double ImageX,ImageY;
@@ -566,9 +567,11 @@ double WFCTAEvent::Interface(const double* par){
       if(dcell<0) continue;
       double distance=(ImageX*sin(par[3])-ImageY*cos(par[3])+par[2]);
       double probi=content[ii]/allcontent;
+      //printf("isipm=%d dcell=%.2lf XY={%.2lf,%.2lf} dist=%.2lf prob=%.2e\n",isipm,dcell/PI*180,ImageX/PI*180,ImageY/PI*180,distance/PI*180,probi);
       chi2+=probi*pow(distance/(dcell/2.),2);
       ndof++;
    }
+   //printf("chi2=%.2e(par=%.2lf,%.2lf)\n\n",chi2,par[3]/PI*180,par[2]/PI*180);
    ////for test
    //for(int ii=0;ii<9;ii++){
    //   chi2+=pow(((ii-4)*sin(par[3])-1.*cos(par[3])+par[2])/1.,2)*1;
@@ -674,14 +677,16 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
    minimizer->SetFixedVariable(1,"Type",3);
    //minimizer->SetLimitedVariable(2,"bb",b,fabs(0.01*b),-1.e6,1.e6);
    //minimizer->SetLimitedVariable(3,"kk",a,fabs(0.01*a),-1.e6,1.e6);
-   minimizer->SetLimitedVariable(2,"cc",b/sqrt(1+a*a),0.5/180.*PI,-25./180.*PI,25./180.*PI);
-   minimizer->SetLimitedVariable(3,"phi",a>=0?atan(a):(PI+atan(a)),fabs(1./180.*PI),0,0.999*PI);
+   double cc0=a>=0?b/sqrt(1+a*a):-b/sqrt(1+a*a);
+   double phi0=a>=0?atan(a):(PI+atan(a));
+   minimizer->SetLimitedVariable(2,"cc",cc0,0.5/180.*PI,-12./180.*PI,12./180.*PI);
+   minimizer->SetLimitedVariable(3,"phi",phi0,fabs(1./180.*PI),0,0.999*PI);
    //minimizer->SetLimitedVariable(2,"cc",1,0.01,-5,5);
    //minimizer->SetLimitedVariable(3,"phi",0,fabs(0.1/180.*PI),-PI/2,PI/2);
    //minimizer->SetFixedVariable(3,"phi",0.);
    minimizer->Minimize();
    minimizer->Hesse();
-   //printf("LinearFit: kk=%lf bb=%lf cc={%lf,%lf} phi={%lf,%lf}\n",a,b,b/sqrt(1+a*a),minimizer->X()[2],(a>=0?atan(a):(PI+atan(a)))/PI*180,minimizer->X()[3]/PI*180.);
+   //printf("LinearFit: kk=%lf bb=%lf cc={%lf,%lf} phi={%lf,%lf}\n",a,b/PI*180,cc0/PI*180,minimizer->X()[2]/PI*180,phi0/PI*180,minimizer->X()[3]/PI*180.);
    //printf("LinearFit: phi={%lf,%lf} CC={%lf,%lf}\n",minimizer->X()[3],minimizer->Errors()[3],minimizer->X()[2],minimizer->Errors()[2]);
    return true;
 }
@@ -2596,7 +2601,8 @@ void WFCTAEvent::DrawFit(){
 TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold){
    TH2Poly* image=new TH2Poly();
    image->SetName("DrawPlot");
-   image->SetTitle(Form("iTel=%d iEvent=%d Li=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d);X [degree];Y [degree]",iTel,iEvent,RotateDB::GetLi(rabbittime),rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6)));
+   int Liindex=RotateDB::GetLi((double)rabbittime);
+   image->SetTitle(Form("iTel=%d iEvent=%d Li=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d);X [degree];Y [degree]",iTel,iEvent,Liindex<0?Liindex:RotateDB::rotindex[Liindex],rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6)));
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
       GetImageXYCoo(ii,ImageX,ImageY);

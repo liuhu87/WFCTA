@@ -13,6 +13,9 @@ int RotateDB::timedelay[10]={35,37,0,0,0,0,0,0,0,0};
 double RotateDB::rottime[10]={990016000,990845000,0,0,0,0,0,0,0,0};
 int RotateDB::ntel=6;
 int RotateDB::telindex[20]={1,2,3,4,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+double RotateDB::aglmargin=0.02;
+double RotateDB::phimargin=10.;
+double RotateDB::ccmargin=1.;
 RotateDB::RotateDB(RotateDB* pr_in){
    Copy(pr_in);
 }
@@ -71,10 +74,10 @@ bool RotateDB::LocateFirst(ifstream* fin){
    else return false;
 }
 long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpos){
-   int Liindex=GetLi(Li_in);
-   if(Liindex<0) return -5;
-   int pLiindex=GetLi(pLi);
-   int time_new=time_in-timedelay[Liindex];
+   int irot=GetLi(Li_in);
+   if(irot<0) return -5;
+   int pirot=GetLi(pLi);
+   int time_new=time_in-timedelay[irot];
    int year=CommonTools::TimeFlag(time_new,1);
    year=2000+(year%100);
    int month=CommonTools::TimeFlag(time_new,2);
@@ -87,8 +90,8 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    strcat(filename,namebuff);
    if(jdebug>0) printf("RotateDB::LoadData: filename=%s\n",filename);
    bool sameday=false;
-   if(ptime>0&&pLi>0&&pLiindex>=0){
-      int ptime_new=ptime-timedelay[pLiindex];
+   if(ptime>0&&pLi>0&&pirot>=0){
+      int ptime_new=ptime-timedelay[pirot];
       int pyear=CommonTools::TimeFlag(ptime_new,1);
       pyear=2000+(pyear%100);
       int pmonth=CommonTools::TimeFlag(ptime_new,2);
@@ -597,33 +600,39 @@ int RotateDB::GetTi(int Tindex){
    }
    return result;
 }
-int RotateDB::IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel,int &index){
-   int irot=GetLi(Li_in);
-   if(irot<0||irot>=2) return 0;
-   int itel=GetTi(iTel);
-   if(itel<0||itel>=6) return 0;
+double RotateDB::GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,double &minele,double &minazi,int &index){
+   index=-1;
+   minele=1000;
+   minazi=1000;
+   double result=TMath::Max(minele,minazi);
+   if(irot<0||irot>=2) return result;
+   if(itel<0||itel>=6) return result;
 
-   double margin=0.02;
-
-   const int nangle1=4;
-   double AngleList1[nangle1][2];
-   AngleList1[0][0]=40; AngleList1[0][1]=42;
-   AngleList1[1][0]=40; AngleList1[1][1]=29;
-   AngleList1[2][0]=40; AngleList1[2][1]=19;
-   AngleList1[3][0]=40; AngleList1[3][1]=4;
-   for(int ii=0;ii<nangle1;ii++){
-      if(fabs(ele_in-AngleList1[ii][0])<margin&&fabs(azi_in-AngleList1[ii][1])<margin){
-         if(rotindex[irot]!=2) return 0;
+   if(rotindex[irot]==2){
+      const int nangle1=4;
+      double AngleList1[nangle1][2];
+      AngleList1[0][0]=40; AngleList1[0][1]=42;
+      AngleList1[1][0]=40; AngleList1[1][1]=29;
+      AngleList1[2][0]=40; AngleList1[2][1]=19;
+      AngleList1[3][0]=40; AngleList1[3][1]=4;
+      for(int ii=0;ii<nangle1;ii++){
          bool isfine=false;
          if(ii==0&&(telindex[itel]==5||telindex[itel]==6)) isfine=true;
          if(ii==1&&(telindex[itel]==4||telindex[itel]==5)) isfine=true;
          if(ii==2&&(telindex[itel]==3||telindex[itel]==4)) isfine=true;
          if(ii==3&&(telindex[itel]==1||telindex[itel]==2||telindex[itel]==3)) isfine=true;
-         if(isfine) {index=ii; return 1;}
-         else {index=-1; return 0;}
+         if(!isfine) continue;
+         double dist1=fabs(ele_in-AngleList1[ii][0]);
+         double dist2=fabs(azi_in-AngleList1[ii][1]);
+         double dist=TMath::Max(dist1,dist2);
+         if(dist<result){
+            minele=dist1;
+            minazi=dist2;
+            result=dist;
+            index=1*10+ii;
+         }
       }
    }
-
    const int nangle2=7;
    double elelist[nangle2]={10,20,30,40,50,55,60};
    double azilist[2][6][nangle2]={{{23.7,19,15,10,1,-5,-1000},
@@ -640,12 +649,26 @@ int RotateDB::IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel,int &in
                                    {-71,-67,-62,-57,-52,-42,-37}}
                                  };
    for(int ii=0;ii<nangle2;ii++){
-      if(fabs(ele_in-elelist[ii])<margin&&fabs(azi_in-azilist[irot][itel][ii])<margin){
-         index=ii;
-         return 2;
+      double dist1=fabs(ele_in-elelist[ii]);
+      double dist2=fabs(azi_in-azilist[irot][itel][ii]);
+      double dist=TMath::Max(dist1,dist2);
+      if(dist<result){
+         minele=dist1;
+         minazi=dist2;
+         result=dist;
+         index=2*10+ii;
       }
    }
-   return 0;
+   return result;
+}
+int RotateDB::IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel){
+   int irot=GetLi(Li_in);
+   int itel=GetTi(iTel);
+   int index;
+   double mindistele,mindistazi;
+   double mindist=GetMinDistEleAzi(ele_in,azi_in,irot,itel,mindistele,mindistazi,index);
+   if(mindist<aglmargin) return index;
+   else return -1;
 }
 int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
    if(jdebug>0) printf("RotateDB::GetEleAzi: timein=%d Lin=%d iTel=%d\n",time_in,Li_in,iTel);
@@ -656,22 +679,23 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
    double ele0=GetElevation();
    double azi0=GetAzimuth();
    if(jdebug>0) printf("RotateDB::GetEleAzi: findtimelog ele=%lf azi=%lf\n",ele0,azi0);
-   int index=-1;
    int retval=-1;
    if(iTel>0){
-      retval=IsFineAngle(ele0,azi0,Li_in,iTel,index);
+      retval=IsFineAngle(ele0,azi0,Li_in,iTel);
       if(retval<=0){
-         if(jdebug>0) printf("RotateDB::GetEleAzi: IsFineAngle=%d Index=%d\n",retval,index);
+         if(jdebug>0) printf("RotateDB::GetEleAzi: IsFineAngle=%d\n",retval);
          return -2;
       }
    }
-   if(jdebug>0) printf("RotateDB::GetEleAzi: IsFineAngle=%d Index=%d\n",retval,index);
+   else{
+      printf("RotateDB::GetEleAzi: wrong iTel=%d\n",iTel);
+      return -3;
+   }
 
    int pLi=rotbuff.Li;
    int ctime=rotbuff.time;
    long int cpos=rotbuff.currpos;
 
-   double margin=0.02;
    int ncount1=0,ncount2=0;
    for(int itime=-1;itime>=-(60*100);itime--){
       int timei=time_in+itime;
@@ -682,8 +706,8 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
       cpos=currpos;
       double elei=GetElevation();
       double azii=GetAzimuth();
-      if(fabs(ele0-elei)>margin) break;
-      if(fabs(azi0-azii)>margin) break;
+      if(fabs(ele0-elei)>aglmargin) break;
+      if(fabs(azi0-azii)>aglmargin) break;
       ncount1++;
    }
    pLi=rotbuff.Li;
@@ -698,8 +722,8 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
       cpos=currpos;
       double elei=GetElevation();
       double azii=GetAzimuth();
-      if(fabs(ele0-elei)>margin) break;
-      if(fabs(azi0-azii)>margin) break;
+      if(fabs(ele0-elei)>aglmargin) break;
+      if(fabs(azi0-azii)>aglmargin) break;
       ncount2++;
    }
 
@@ -710,7 +734,7 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
    //double type0[4][2]={{40,42},{40,29},{40,19},{40,4}};
    //bool Istype0=false;
    //for(int ii=0;ii<4;ii++){
-   //   if(fabs(ele0-type0[ii][0])<margin&&fabs(azi0-type0[ii][1])<margin) Istype0=true;
+   //   if(fabs(ele0-type0[ii][0])<aglmargin&&fabs(azi0-type0[ii][1])<aglmargin) Istype0=true;
    //}
 
    int ncount=ncount1+ncount2+1;
@@ -718,89 +742,133 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
    //int nside2=((ncount%2)==0)?((ncount/2)-13):(((ncount-1)/2)-13);
    //if(jdebug>0) printf("RotateDB::GetEleAzi: ncount={%d,%d} nside={%d,%d}\n",ncount1,ncount2,nside1,nside2);
 
-   if(ncount<ntotmin) return -3;
-   if(ncount1<=nsidemin||ncount2<=nsidemin) return -4;
-   else{
-      return retval*10+index;
-   }
+   if(ncount<ntotmin) return -4;
+   if(ncount1<=nsidemin||ncount2<=nsidemin) return -5;
+   else return retval;
 }
 int RotateDB::GetEleAzi(WFCTAEvent* pev){
-   if(!pev) return -5;
+   if(!pev) return -6;
    int time_in=pev->rabbitTime;
-   int Liindex=GetLi((double)pev->rabbittime);
-   if(Liindex<0) return -6;
-   int Li_in=rotindex[Liindex];
+   int irot=GetLi((double)pev->rabbittime);
+   if(irot<0) return -7;
+   int Li_in=rotindex[irot];
    return GetEleAzi(time_in,Li_in,pev->iTel);
 }
-bool RotateDB::IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in){
-   if(!pev) return false;
-   if(!pev->minimizer) return false;
-   double kk=pev->minimizer->X()[3]/PI*180;
+void RotateDB::GetMinDistFit(WFCTAEvent* pev,int EleAziIndex,int Li_in,double &minphi,double &mincc){
+   minphi=1000;
+   mincc=1000;
+   if(!pev) return;
+   if(!pev->minimizer) return;
+   double phi=pev->minimizer->X()[3]/PI*180;
    double cc=pev->minimizer->X()[2]/PI*180;
 
    int irot=Li_in>0?GetLi(Li_in):GetLi((double)pev->rabbittime);
-   if(irot<0||irot>=2) return false;
+   if(irot<0||irot>=2) return;
    int itel=GetTi(pev->iTel);
-   if(itel<0||itel>=6) return false;
-
-   if(EleAziIndex<=0) return false;
+   if(itel<0||itel>=6) return;
+   
+   if(EleAziIndex<=0) return;
    int itype=EleAziIndex/10;
    int index=EleAziIndex%10;
 
-   double kmargin=5.,cmargin=0.5;
-   if(itype==1){
+   if(itype==1&&rotindex[irot]==2){
       const int nangle1=4;
-      if(index<0||index>=nangle1) return false;
-      double kk1[6][nangle1];
+      if(index<0||index>=nangle1) return;
+      double phi1[6][nangle1];
       double cc1[6][nangle1];
-      for(int ii=0;ii<6;ii++){
-         for(int jj=0;jj<nangle1;jj++){
-            kk1[ii][jj]=-1000;
-            cc1[ii][jj]=-1000;
+      for(int ii=0;ii<nangle1;ii++){
+         for(int jj=0;jj<6;jj++){
+            phi1[jj][ii]=-10000;
+            cc1[jj][ii]=-10000;
+            if(ii==0&&telindex[jj]==6){
+               phi1[jj][ii]=134.93;
+               cc1[jj][ii]=-5.55;
+            }
+            if(ii==0&&telindex[jj]==5){
+               phi1[jj][ii]=110.89;
+               cc1[jj][ii]=6.30;
+            }
+            if(ii==1&&telindex[jj]==5){
+               phi1[jj][ii]=100.29;
+               cc1[jj][ii]=-8.20;
+            }
+            if(ii==1&&telindex[jj]==4){
+               phi1[jj][ii]=82.93;
+               cc1[jj][ii]=5.92;
+            }
+            if(ii==2&&telindex[jj]==4){
+               phi1[jj][ii]=76.82;
+               cc1[jj][ii]=-5.72;
+            }
+            if(ii==2&&telindex[jj]==3){
+               phi1[jj][ii]=54.42;
+               cc1[jj][ii]=6.61;
+            }
+            if(ii==3&&telindex[jj]==3){
+               phi1[jj][ii]=49.25;
+               cc1[jj][ii]=-8.80;
+            }
+            if(ii==3&&telindex[jj]==2){
+               phi1[jj][ii]=3.00;
+               cc1[jj][ii]=3.03;
+            }
+            if(ii==3&&telindex[jj]==1){
+               phi1[jj][ii]=26.04;
+               cc1[jj][ii]=-1.72;
+            }
          }
       }
-      kk1[5][0]=179.82;
-      cc1[5][0]=1;
-      bool kkfine=fabs(kk-kk1[itel][index])<kmargin||(fabs(kk-180-kk1[itel][index])<kmargin||fabs(kk+180-kk1[itel][index])<kmargin);
-      return kkfine&&fabs(cc-cc1[itel][index])<cmargin;
+
+      double dist1=TMath::Min(fabs(phi-phi1[itel][index]),fabs(phi+180-phi1[itel][index]));
+      dist1=TMath::Min(dist1,fabs(phi-180-phi1[itel][index]));
+      double dist2=fabs(cc-cc1[itel][index]);
+      if(dist1<minphi) minphi=dist1;
+      if(dist2<mincc) mincc=dist2;
    }
    else if(itype==2){
       const int nangle2=7;
-      if(index<0||index>=nangle2) return false;
-      double kk2[2][6][nangle2]={{{27.97,27.40,27.08,26.44,26.77,26.64,-1000},
-                                  {3.00,3.17,3.16,3.13,3.16,3.07,-1000},
-                                  {49.29,50.43,51.88,51.91,51.83,50.56,-1000},
-                                  {75.00,78.46,79.76,80.80,80.78,80.40,-1000},
-                                  {111.32,111.31,110.69,110.68,110.56,110.94,-1000},
-                                  {135.70,137.83,137.27,136.46,136.46,136.62,-1000}
+      if(index<0||index>=nangle2) return;
+      double phi2[2][6][nangle2]={{{27.97,27.40,27.08,26.44,26.77,26.64,-10000},
+                                  {3.00,3.17,3.16,3.13,3.16,3.07,-10000},
+                                  {49.29,50.43,51.88,51.91,51.83,50.56,-10000},
+                                  {75.00,78.46,79.76,80.80,80.78,80.40,-10000},
+                                  {111.32,111.31,110.69,110.68,110.56,110.94,-10000},
+                                  {135.70,137.83,137.27,136.46,136.46,136.62,-10000}
                                  },
-                                 {{134.08,134.34,133.91,134.05,133.69,133.19,-1000},
-                                  {106.63,105.91,104.02,105.04,104.61,-1000,-1000},
-                                  {156.15,157.01,157.54,158.09,157.82,157.85,-1000},
-                                  {0.00,0.09,0.15,179.82,0.10,179.63,-1000},
-                                  {24.68,24.19,24.13,23.95,23.50,22.61,-1000},
-                                  {48.75,48.35,48.50,48.62,49.40,48.29,-1000}
+                                 {{134.08,134.34,133.91,134.05,133.69,133.19,-10000},
+                                  {106.63,105.91,104.02,105.04,104.61,-1000,-10000},
+                                  {156.15,157.01,157.54,158.09,157.82,157.85,-10000},
+                                  {0.00,0.09,0.15,179.82,0.10,179.63,-10000},
+                                  {24.68,24.19,24.13,23.95,23.50,22.61,-10000},
+                                  {48.75,48.35,48.50,48.62,49.40,48.29,-10000}
                                  }
                                 };
-      double cc2[2][6][nangle2]={{{-1.99,0.11,2.81,4.13,3.34,3.15,-1000},
-                                  {3.88,0.90,2.01,0.70,-0.20,1.23,-1000},
-                                  {-2.45,0.94,2.00,2.04,2.37,0.17,-1000},
-                                  {-1.11,-0.65,1.30,2.34,2.12,1.82,-1000},
-                                  {0.95,2.31,1.66,1.99,2.23,1.86,-1000},
-                                  {-2.52,2.98,2.37,-0.09,-0.54,0.59,-1000}
+      double cc2[2][6][nangle2]={{{-1.99,0.11,2.81,4.13,3.34,3.15,-10000},
+                                  {3.88,0.90,2.01,0.70,-0.20,1.23,-10000},
+                                  {-2.45,0.94,2.00,2.04,2.37,0.17,-10000},
+                                  {-1.11,-0.65,1.30,2.34,2.12,1.82,-10000},
+                                  {0.95,2.31,1.66,1.99,2.23,1.86,-10000},
+                                  {-2.52,2.98,2.37,-0.09,-0.54,0.59,-10000}
                                  },
-                                 {{-0.75,-0.14,-0.84,-0.46,-2.24,0.56,-1000},
-                                  {-1.10,0.98,-1.79,-0.01,-0.37,-1000,-1000},
-                                  {-0.99,-2.01,-0.69,0.77,-0.81,-0.50,-1000},
-                                  {-2.71,1.45,0.19,-2.36,1.25,-0.03,-1000},
-                                  {-1.01,1.37,1.88,0.99,-0.90,-3.19,-1000},
-                                  {1.16,-0.21,-1.11,-0.39,1.36,-1.30,-1000}
+                                 {{-0.75,-0.14,-0.84,-0.46,-2.24,0.56,-10000},
+                                  {-1.10,0.98,-1.79,-0.01,-0.37,-1000,-10000},
+                                  {-0.99,-2.01,-0.69,0.77,-0.81,-0.50,-10000},
+                                  {-2.71,1.45,0.19,-2.36,1.25,-0.03,-10000},
+                                  {-1.01,1.37,1.88,0.99,-0.90,-3.19,-10000},
+                                  {1.16,-0.21,-1.11,-0.39,1.36,-1.30,-10000}
                                  }
                                 };
-      bool kkfine=fabs(kk-kk2[irot][itel][index])<kmargin||(fabs(kk-180-kk2[irot][itel][index])<kmargin||fabs(kk+180-kk2[irot][itel][index])<kmargin);
-      return kkfine&&fabs(cc-cc2[irot][itel][index])<cmargin;
+      double dist1=TMath::Min(fabs(phi-phi2[irot][itel][index]),fabs(phi+180-phi2[irot][itel][index]));
+      dist1=TMath::Min(dist1,fabs(phi-180-phi2[irot][itel][index]));
+      double dist2=fabs(cc-cc2[irot][itel][index]);
+      if(dist1<minphi) minphi=dist1;
+      if(dist2<mincc) mincc=dist2;
    }
-   else return false;
+}
+bool RotateDB::IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in){
+   double minphi,mincc;
+   GetMinDistFit(pev,EleAziIndex,Li_in,minphi,mincc);
+   return (minphi<phimargin&&mincc<ccmargin);
 }
 int RotateDB::LaserIsFine(WFCTAEvent* pev){
    int EleAziIndex=GetEleAzi(pev);

@@ -19,6 +19,10 @@ class RotateDB {
    static double rottime[10];
    static int ntel;
    static int telindex[20];
+   static double aglmargin;
+   static double phimargin;
+   static double ccmargin;
+
    char buff[500];
    //Li
    int Li;
@@ -64,9 +68,11 @@ class RotateDB {
    static int GetLi(int Li_in);
    static int GetLi(double rabbittime);
    static int GetTi(int Tindex);
-   static int IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel,int &index);
+   static double GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,double &minele,double &minazi,int &index);
+   static int IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel);
    int GetEleAzi(int time_in,int Li_in,int iTel=-1);
    int GetEleAzi(WFCTAEvent* pev);
+   static void GetMinDistFit(WFCTAEvent* pev,int EleAziIndex,int Li_in,double &minphi,double &mincc);
    static bool IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in=0);
    int LaserIsFine(WFCTAEvent* pev);
 };
