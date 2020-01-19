@@ -5,8 +5,8 @@
 #include <string>
 RotateDB* RotateDB::_Head=0;
 int RotateDB::jdebug=0;
-int RotateDB::ntotmin=10;
-int RotateDB::nsidemin=3;
+int RotateDB::ntotmin=5;
+int RotateDB::nsidemin=2;
 int RotateDB::nrot=2;
 int RotateDB::rotindex[10]={2,3,0,0,0,0,0,0,0,0};
 int RotateDB::timedelay[10]={35,37,0,0,0,0,0,0,0,0};
