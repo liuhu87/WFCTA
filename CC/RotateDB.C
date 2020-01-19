@@ -744,7 +744,7 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
 
    if(ncount<ntotmin) return -4;
    if(ncount1<=nsidemin||ncount2<=nsidemin) return -5;
-   else return retval;
+   else return (Li_in*100+retval);
 }
 int RotateDB::GetEleAzi(WFCTAEvent* pev){
    if(!pev) return -6;
