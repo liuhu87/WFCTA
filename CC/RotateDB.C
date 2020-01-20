@@ -768,7 +768,7 @@ void RotateDB::GetMinDistFit(WFCTAEvent* pev,int EleAziIndex,int Li_in,double &m
    if(itel<0||itel>=6) return;
    
    if(EleAziIndex<=0) return;
-   int itype=EleAziIndex/10;
+   int itype=(EleAziIndex%100)/10;
    int index=EleAziIndex%10;
 
    if(itype==1&&rotindex[irot]==2){
