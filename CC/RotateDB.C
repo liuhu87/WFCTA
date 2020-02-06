@@ -502,6 +502,7 @@ void RotateDB::ProcessAll(){
    //for(int ii=0;ii<NVALUE;ii++) printf("%s,",vars[ii]);
    //printf("\n\n");
    for(int ii=0;ii<NVALUE;ii++) varinfo[ii]=atof(vars[ii]);
+   if(jdebug>1) printf("RotateDB::ProcessAll: Ele=%.2lf Ai=%.2lf\n",varinfo[9],varinfo[10]);
 
    //some changes due to the change of slow control software
    if(time<1573541100){
