@@ -20,30 +20,62 @@ RotateDB::RotateDB(RotateDB* pr_in){
    Copy(pr_in);
 }
 void RotateDB::Init(){
+   version=0;
+   for(int ii=0;ii<500;ii++){
+      buff[ii]='\0';
+      buff2[0][ii]='\0';
+      buff2[1][ii]='\0';
+   }
    Li=0;
+   Li2=0;
    time=0;
+   time2[0]=0;
+   time2[1]=0;
    currpos=-1;
+   currpos2=-1;
    Reset();
 }
 void RotateDB::Reset(){
-   for(int ii=0;ii<500;ii++){
-      buff[ii]='\0';
-   }
    latitude=0;
    longitude=0;
    altitude=0;
    for(int ii=0;ii<NSWITH;ii++) allswith[ii]=false;
    for(int ii=0;ii<NVALUE;ii++) varinfo[ii]=0;
 }
+void RotateDB::CleanLog(int ilog){
+   if(ilog<0||(ilog&0x1)>0){
+      for(int ii=0;ii<500;ii++){
+         buff[ii]='\0';
+      }
+      Li=0;
+      time=0;
+      currpos=-1;
+   }
+   if(ilog<0||(ilog&0x2)>0){
+      for(int ii=0;ii<500;ii++){
+         buff2[0][ii]='\0';
+      }
+      Li2=0;
+      time2[0]=0;
+      time2[1]=0;
+      currpos2=-1;
+   }
+}
 void RotateDB::Release(){
    Init();
 }
 void RotateDB::Copy(RotateDB* pr_in){
+   version=pr_in->version;
    for(int ii=0;ii<500;ii++){
       buff[ii]=pr_in->buff[ii];
+      buff2[0][ii]=pr_in->buff2[0][ii];
+      buff2[1][ii]=pr_in->buff2[1][ii];
    }
    Li=pr_in->Li;
+   Li2=pr_in->Li2;
    time=pr_in->time;
+   time2[0]=pr_in->time2[0];
+   time2[1]=pr_in->time2[1];
    currpos=pr_in->currpos;
    latitude=pr_in->latitude;
    longitude=pr_in->longitude;
@@ -103,7 +135,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    ifstream fin;
    fin.open(filename,std::ios::in);
    if(!fin.is_open()){
-      Reset();
+      //Reset();
       return -1;
    }
    fin.seekg(0,std::ios::beg);
@@ -126,29 +158,39 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
       else located=true;
    }
    if(!located){
+      int time_first=abs(ProcessTime());
+      if(time_first>time_new){
+         //Reset();
+         fin.close();
+         return -3;
+      }
+      fin.seekg(-10,std::ios::end);
+      int time_last;
+      if(!LocateFirst(&fin)){
+         //Reset();
+         fin.close();
+         return -2;
+      }
+      else{
+         fin.getline(buff,500);
+         time_last=abs(ProcessTime());
+         if(time_last<time_new){
+            //Reset();
+            fin.close();
+            return -3;
+         }
+      }
+
       if(hour<12){
-         long int posi=(hour*3600+min*60+sec)*linelength;
+         long int posi=(hour*3600+min*60+sec-time_first)*linelength;
          if(poss+posi>=pose){
             fin.seekg(-10,std::ios::end);
          }
          else{
-            fin.seekg((hour*3600+min*60+sec)*linelength,std::ios::beg);
+            fin.seekg(posi,std::ios::beg);
          }
       }
       else{
-         fin.seekg(-10,std::ios::end);
-         if(!LocateFirst(&fin)){
-            Reset();
-            fin.close();
-            return -2;
-         }
-         fin.getline(buff,500);
-         int time_last=ProcessTime();
-         if(time_last<time_new){
-            Reset();
-            fin.close();
-            return -3;
-         }
          long int posi=pose-(time_last-time_new)*linelength;
          if(posi<poss){
             fin.seekg(0,std::ios::beg);
@@ -163,14 +205,14 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    if(jdebug>0) printf("RotateDB::LoadData: initial position located. pos=%ld(%d)\n",fin.tellg(),located);
    fin.getline(buff,500);
    long int posc=fin.tellg();
-   int timei=ProcessTime();
+   int timei=abs(ProcessTime());
    if(jdebug>0) printf("RotateDB::LoadData: time_in=%d time_loop0=%d buff_loop0=%s\n",time_new,timei,buff);
    bool godown=timei<time_new;
    int nloop=0;
    while(timei!=time_new){
       if(godown){
          fin.getline(buff,500);
-         timei=ProcessTime();
+         timei=abs(ProcessTime());
          if(!(fin.good())) break;
          if(timei>=time_new) break;
       }
@@ -180,7 +222,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
             fin.seekg(-(long int)(1.5*linelength),std::ios::cur);
             LocateFirst(&fin);
             fin.getline(buff,500);
-            timei=ProcessTime();
+            timei=abs(ProcessTime());
             if(timei<=time_new) break;
          }
          else break;
@@ -194,6 +236,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
       fin.seekg(-(long int)(0.5*linelength),std::ios::cur);
       LocateFirst(&fin);
       long int pos0=fin.tellg();
+      version=1;
       Li=Li_in;
       time=time_in;
       currpos=pos0;
@@ -202,7 +245,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
       return currpos;
    }
    else{
-      Reset();
+      //Reset();
       fin.close();
       return -4;
    }
@@ -213,7 +256,7 @@ int RotateDB::ProcessTime(){
 
    int count;
    int nchar1,nchar2,nchar3;
-   //Get Time information
+   //Get GPS Time information
    char hour[10],min[10],sec[10];
    for(int i1=0;i1<10;i1++){
       hour[i1]='\0';
@@ -280,7 +323,7 @@ int RotateDB::ProcessTime(){
 
    double time0=atoi(year)*10000000000+atoi(month)*100000000+atoi(day)*1000000+atoi(hour)*10000+atoi(min)*100+atoi(sec);
    int result=CommonTools::Convert(time0);
-   return result;
+   return (index_time1>125)?result:(-result);
 }
 void RotateDB::ProcessAll(){
    if(time<=0) return;
@@ -516,6 +559,578 @@ void RotateDB::ProcessAll(){
 
    return;
 }
+bool RotateDB::IsLogFine(char* buffer,bool IsRotate){
+   if(!buffer) return false;
+   char tokens[5][20]={"","","","",""};
+   sscanf(buffer,"%s %s %s %s %s",tokens[0],tokens[1],tokens[2],tokens[3],tokens[4]);
+   return (strcmp(tokens[0],"Rotate")==0);
+}
+bool RotateDB::IsLogFine(bool IsRotate){
+   char tokens1[5][20]={"","","","",""};
+   sscanf(buff2[0],"%s %s %s %s %s",tokens1[0],tokens1[1],tokens1[2],tokens1[3],tokens1[4]);
+   char tokens2[5][20]={"","","","",""};
+   sscanf(buff2[1],"%s %s %s %s %s",tokens2[0],tokens2[1],tokens2[2],tokens2[3],tokens2[4]);
+   bool result;
+   if(IsRotate) result=( (strcmp(tokens1[0],"Rotate")==0&&strcmp(tokens2[0],"Rotate")==0) && (strcmp(tokens1[4],"O")==0&&strcmp(tokens2[4],"O")==0) );
+   else result=true;
+   if(jdebug>2) printf("RotateDB::IsLogFine: token1=%s token2=%s res=%d\n",tokens1[4],tokens2[4]);
+   return result;
+}
+int RotateDB::ReadData(ifstream* fin,bool godown,bool IsRotate){
+   int result=0;
+   if(!fin) return result;
+   if(!LocateFirst(fin)) return result;
+   long int pos0=fin->tellg();
+   if(pos0<0) return result;
+   long int posres=pos0;
+   fin->seekg(0,std::ios::beg);
+   long int poss=fin->tellg();
+   fin->seekg(0,std::ios::end);
+   long int pose=fin->tellg();
+   char buffer[200];
+   char target[20];
+   strcpy(target,IsRotate?"Rotate":"GPS");
+   long int posp,posc;
+   long int linelength=IsRotate?64:52;
+   if(godown){
+      fin->seekg(pos0,std::ios::beg);
+      posp=fin->tellg();
+      posres=posp;
+      if(posp<0||posp>=pose){
+         fin->seekg(posres,std::ios::beg);
+         return result;
+      }
+      fin->getline(buff2[0],500);
+      posc=fin->tellg();
+      strcpy(buffer,buff2[0]);
+      if(jdebug>1) printf("RotateDB::ReadData: item0 pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",posp,posc,poss,pose,buff2[0]);
+      while(!IsLogFine(buffer,IsRotate)){
+         posp=fin->tellg();
+         if(posp<0||posp>=pose) break;
+         fin->getline(buff2[0],500);
+         strcpy(buffer,buff2[0]);
+         posc=fin->tellg();
+         if(jdebug>1) printf("RotateDB::ReadData: itemi pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",posp,posc,poss,pose,buff2[0]);
+      }
+      if(IsLogFine(buffer,IsRotate)){
+         linelength=posc-posp;
+         result=(result|0x1);
+      }
+      posres=posc;
+      if(posc<0||posc>=pose){
+         fin->seekg(posres,std::ios::beg);
+         return result;
+      }
+      fin->getline(buff2[1],500);
+      strcpy(buffer,buff2[1]);
+      posc=fin->tellg();
+      while(!IsLogFine(buffer,IsRotate)){
+         posp=fin->tellg();
+         if(posp<0||posp>=pose) break;
+         fin->getline(buff2[1],500);
+         strcpy(buffer,buff2[1]);
+         posc=fin->tellg();
+      }
+      if(IsLogFine(buffer,IsRotate)){
+         result=(result|0x2);
+      }
+      else{
+         if(result|0x1) posres=posc;
+      }
+      fin->seekg(posres,std::ios::beg);
+      return result;
+   }
+   else{
+      fin->seekg(pos0,std::ios::beg);
+      posp=fin->tellg();
+      posres=posp;
+      if(posp-0.5*linelength<poss){
+         fin->seekg(posres,std::ios::beg);
+         return result;
+      }
+      fin->seekg(posp-0.5*linelength,std::ios::beg);
+      LocateFirst(fin);
+      posp=fin->tellg();
+      fin->getline(buff2[1],500);
+      posc=fin->tellg();
+      strcpy(buffer,buff2[1]);
+      if(jdebug>1) printf("RotateDB::ReadData: item0 pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",posp,posc,poss,pose,buff2[1]);
+      while(!IsLogFine(buffer,IsRotate)){
+         if(posp<0||posp-0.5*linelength<poss) break;
+         fin->seekg(posp-0.5*linelength,std::ios::beg);
+         LocateFirst(fin);
+         posp=fin->tellg();
+         fin->getline(buff2[1],500);
+         strcpy(buffer,buff2[1]);
+         posc=fin->tellg();
+         if(jdebug>1) printf("RotateDB::ReadData: itemi pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",posp,posc,poss,pose,buff2[1]);
+      }
+      if(IsLogFine(buffer,IsRotate)){
+         linelength=posc-posp;
+         result=(result|0x1);
+      }
+      posres=posp;
+      if(posp<0||posp-0.5*linelength<poss){
+         fin->seekg(posres,std::ios::beg);
+         return result;
+      }
+      fin->seekg(posp-0.5*linelength,std::ios::beg);
+      LocateFirst(fin);
+      posp=fin->tellg();
+      fin->getline(buff2[0],500);
+      strcpy(buffer,buff2[0]);
+      while(!IsLogFine(buffer,IsRotate)){
+         if(posp<0||posp-0.5*linelength<poss) break;
+         fin->seekg(posp-0.5*linelength,std::ios::beg);
+         LocateFirst(fin);
+         posp=fin->tellg();
+         fin->getline(buff2[0],500);
+         strcpy(buffer,buff2[0]);
+      }
+      if(IsLogFine(buffer,IsRotate)){
+         result=(result|0x2);
+      }
+      else{
+         if(result|0x1) posres=posp;
+      }
+      fin->seekg(posres,std::ios::beg);
+      return result;
+   }
+   return result;
+}
+int RotateDB::ReadData2(ifstream* fin,bool godown,bool IsRotate,int Li_in){
+   char buffer0[2][500]={"",""};
+   strcpy(buffer0[0],buff2[0]);
+   strcpy(buffer0[1],buff2[1]);
+   int res=ReadData(fin,godown,IsRotate);
+   if(res<=0){
+      strcpy(buff2[0],buffer0[0]);
+      strcpy(buff2[1],buffer0[1]);
+      return res;
+   }
+   else if((res&0x1)==0){ //should not exist
+      strcpy(buff2[0],buffer0[0]);
+      strcpy(buff2[1],buffer0[1]);
+      return 0;
+   }
+   else if((res&0x2)==0){ //should read the first or last from another file
+      if(godown){
+         int timei=abs(ProcessTime2(0));
+         int nyear=CommonTools::TimeFlag(timei+24*3600,1);
+         nyear=2000+(nyear%100);
+         int nmonth=CommonTools::TimeFlag(timei+24*3600,2);
+         int nday=CommonTools::TimeFlag(timei+24*3600,3);
+         char nfilename[150]="/eos/user/h/hliu/rotate_log/";
+         strcat(nfilename,Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,nyear,nmonth,nmonth,nday));
+         ifstream fin2;
+         fin2.open(nfilename,std::ios::in);
+         char buffer1[500];
+         strcpy(buffer1,buff2[0]);
+         int res2=ReadData(&fin2,godown,IsRotate);
+         fin2.close();
+         if((res2&0x1)==0){
+            strcpy(buff2[0],buffer0[0]);
+            strcpy(buff2[1],buffer0[1]);
+            return 0;
+         }
+         else{
+            int timei2=abs(ProcessTime2(0));
+            if(abs(timei2-timei)>3600){
+               strcpy(buff2[0],buffer0[0]);
+               strcpy(buff2[1],buffer0[1]);
+               return 0;
+            }
+            else{
+               strcpy(buff2[1],buff2[0]);
+               strcpy(buff2[0],buffer1);
+               return (res|0x2);
+            }
+         }
+      }
+      else{
+         int timei=abs(ProcessTime2(1));
+         int pyear=CommonTools::TimeFlag(timei-24*3600,1);
+         pyear=2000+(pyear%100);
+         int pmonth=CommonTools::TimeFlag(timei-24*3600,2);
+         int pday=CommonTools::TimeFlag(timei-24*3600,3);
+         char pfilename[150]="/eos/user/h/hliu/rotate_log/";
+         strcat(pfilename,Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,pyear,pmonth,pmonth,pday));
+         ifstream fin2;
+         fin2.open(pfilename,std::ios::in);
+         char buffer1[500];
+         strcpy(buffer1,buff2[0]);
+         int res2=ReadData(&fin2,godown,IsRotate);
+         fin2.close();
+         if((res2&0x2)==0){
+            strcpy(buff2[0],buffer0[0]);
+            strcpy(buff2[1],buffer0[1]);
+            return 0;
+         }
+         else{
+            int timei2=abs(ProcessTime2(1));
+            if(abs(timei2-timei)>3600){
+               strcpy(buff2[0],buffer0[0]);
+               strcpy(buff2[1],buffer0[1]);
+               return 0;
+            }
+            else{
+               strcpy(buff2[0],buff2[1]);
+               strcpy(buff2[1],buffer1);
+               return (res|0x2);
+            }
+         }
+      }
+      return (res|0x2);
+   }
+   else return res;
+}
+long int RotateDB::LoadData2(int time_in,int Li_in,int pLi,int ptime1,int ptime2,long int cpos){
+   int ptime[2]={ptime1,ptime2};
+   int irot=GetLi(Li_in);
+   if(irot<0) return -5;
+   if(Li_in==pLi&&(ptime[0]>=0&&ptime[1]>=0)&&(time_in>=ptime[0]&&time_in<=ptime[1])){
+      if(cpos>=0) return cpos;
+   }
+   int pirot=GetLi(pLi);
+   int time_new=time_in-timedelay[irot];
+   int year=CommonTools::TimeFlag(time_new,1);
+   year=2000+(year%100);
+   int month=CommonTools::TimeFlag(time_new,2);
+   int day=CommonTools::TimeFlag(time_new,3);
+   int hour=CommonTools::TimeFlag(time_new,4);
+   int min=CommonTools::TimeFlag(time_new,5);
+   int sec=CommonTools::TimeFlag(time_new,6);
+
+   char filename[150]="/eos/user/h/hliu/rotate_log/";
+   char* namebuff=Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,year,month,month,day);
+   strcat(filename,namebuff);
+   if(jdebug>0) printf("RotateDB::LoadData2: filename=%s\n",filename);
+   bool sameday=false;
+   if((ptime[0]>0&&ptime[1]>0)&&pLi>0&&pirot>=0){
+      int ptime_new=(ptime[0]+ptime[1])/2-timedelay[pirot];
+      int pyear=CommonTools::TimeFlag(ptime_new,1);
+      pyear=2000+(pyear%100);
+      int pmonth=CommonTools::TimeFlag(ptime_new,2);
+      int pday=CommonTools::TimeFlag(ptime_new,3);
+      sameday=(Li_in==pLi)&&((year==pyear)&&(month==pmonth)&&(day==pday));
+   }
+
+   //read the file content
+   char tokens[20];
+   ifstream fin;
+   fin.open(filename,std::ios::in);
+   if(!fin.is_open()){
+      //Reset();
+      return -1;
+   }
+   fin.seekg(0,std::ios::beg);
+   long int poss=fin.tellg();
+   fin.seekg(0,std::ios::end);
+   long int pose=fin.tellg();
+
+   //locate the initial position
+   bool located=false;
+   if(sameday&&cpos>=0){
+      fin.seekg(cpos,std::ios::beg);
+      if(((long int)fin.tellg())<0){
+         fin.close();
+         fin.open(filename,std::ios::in);
+      }
+      located=true;
+   }
+   if(!located){
+      fin.seekg(0,std::ios::beg);
+   }
+
+   LocateFirst(&fin);
+   long int pos0=fin.tellg();
+   long int posp,posc;
+   if(jdebug>0) printf("RotateDB::LoadData2: initial position located. pos=%ld(%d)\n",fin.tellg(),located);
+   bool godown=true;
+   posp=fin.tellg();
+   int firstres=ReadData2(&fin,godown,true,Li_in);
+   posc=fin.tellg();
+   if(firstres<=0){
+      godown=false;
+      fin.seekg(pos0,std::ios::beg);
+      posp=fin.tellg();
+      firstres=ReadData2(&fin,godown,true,Li_in);
+      posc=fin.tellg();
+   }
+   if(firstres<=0) return -2;
+   int timei0=abs(ProcessTime2(0));
+   int timei1=abs(ProcessTime2(1));
+   if(timei1<timei0||timei0<1000000000) return -2;
+   godown=timei0<time_new;
+   if(jdebug>0) printf("RotateDB::LoadData2: time_in=%d time_loop0={%d,%d} buff_loop0={%s,%s}\n",time_new,timei0,timei1,buff2[0],buff2[1]);
+   bool loaded=true;
+   int nloop=0;
+   while(time_new<timei0||time_new>timei1){
+      posp=fin.tellg();
+      int fillres=ReadData2(&fin,godown,true,Li_in);
+      posc=fin.tellg();
+      if((fillres&0x3)<=0){
+         if(jdebug>1) printf("RotateDB::LoadData2: loop=%d(%d) time=%d buff={%s,%s}\n",nloop,godown,time_new,buff2[0],buff2[1]);
+         loaded=false; break;
+      }
+      else{
+         timei0=abs(ProcessTime2(0));
+         timei1=abs(ProcessTime2(1));
+         if(jdebug>1) printf("RotateDB::LoadData2: loop=%d(%d) time={%d,%d,%d} buff={%s,%s}\n",nloop,godown,timei0,timei1,time_new,buff2[0],buff2[1]);
+         if((time_new>=timei0&&time_new<=timei1)&&(!IsLogFine(true))) {loaded=false; break;}
+      }
+      nloop++;
+   }
+
+   if(jdebug>0) printf("RotateDB::LoadData2: time_in=%d time_final={%d,%d}\n",time_new,timei0,timei1);
+   if(loaded&&(time_new>=timei0&&time_new<=timei1)){
+      version=2;
+      Li2=Li_in;
+      time2[0]=timei0;
+      time2[1]=timei1;
+      currpos2=(posp+posc)/2;
+      fin.close();
+      if(jdebug>0) printf("RotateDB::LoadData2: loaded, Li=%d time_in=%d time={%d,%d} cpos=%ld posse={%ld,%ld}\n",time_new,Li2,time2[0],time2[1],currpos2,poss,pose);
+      return currpos2;
+   }
+   else{
+      //Reset();
+      fin.close();
+      return -4;
+   }
+}
+int RotateDB::ProcessTime2(int itime){
+   if(itime<0||itime>1) return 0;
+
+   char tokens[14][20];
+   char date0[20];
+   char time0[20];
+   for(int ii=0;ii<14;ii++){
+      for(int jj=0;jj<20;jj++){
+         tokens[ii][jj]='\0';
+         if(ii==0){
+            date0[jj]='\0';
+            time0[jj]='\0';
+         }
+      }
+   }
+   sscanf(buff2[itime], "%s %s %s %s %s %s %s %s %s %s %s %s %s %s",tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],tokens[7],tokens[8],tokens[9],tokens[10],tokens[11],tokens[12],tokens[13]);
+
+   //printf("tokens=%s\n",tokens[0]);
+   if(strcmp(tokens[0],"Rotate")==0){
+      strcpy(date0,tokens[1]);
+      strcpy(time0,tokens[2]);
+   }
+   else if(strcmp(tokens[0],"GPS")==0){
+      strcpy(date0,tokens[2]);
+      strcpy(time0,tokens[3]);
+   }
+   else return 0;
+
+   int size=strlen(date0);
+   int count;
+   int nchar1,nchar2,nchar3;
+   //Get Date information
+   char year[10],month[10],day[10];
+   for(int i1=0;i1<10;i1++){
+      year[i1]='\0';
+      month[i1]='\0';
+      day[i1]='\0';
+   }
+   count=0;
+   nchar1=0;nchar2=0;nchar3=0;
+   for(int ii=0;ii<size;ii++){
+      if(date0[ii]=='-'){
+         count++;
+         continue;
+      }
+      if(count==0){
+         year[nchar1++]=date0[ii];
+      }
+      else if(count==1){
+         month[nchar2++]=date0[ii];
+      }
+      else if(count==2){
+         if(date0[ii]=='\0'||date0[ii]=='\n') break;
+         day[nchar3++]=date0[ii];
+      }
+   }
+   //printf("date0=%s\n",date0);
+   //printf("date=%s %s %s\n",year,month,day);
+   char hour[10],min[10],sec[10];
+   for(int i1=0;i1<10;i1++){
+      hour[i1]='\0';
+      min[i1]='\0';
+      sec[i1]='\0';
+   }
+   size=strlen(time0);
+   count=0;
+   nchar1=0;nchar2=0;nchar3=0;
+   for(int ii=1;ii<size;ii++){
+      if(time0[ii]==':'){
+         count++;
+         continue;
+      }
+      if(count==0){
+         hour[nchar1++]=time0[ii];
+      }
+      else if(count==1){
+         min[nchar2++]=time0[ii];
+      }
+      else if(count==2){
+         if(time0[ii]=='\0'||time0[ii]=='\n') break;
+         sec[nchar3++]=time0[ii];
+      }
+   }
+   //printf("time0=%s\n",time0);
+   //printf("time=%s %s %s\n",hour,min,sec);
+
+   double time00=atoi(year)*10000000000+atoi(month)*100000000+atoi(day)*1000000+atoi(hour)*10000+atoi(min)*100+atoi(sec);
+   int result=CommonTools::Convert(time00);
+   return (time0[0]=='+')?result:(-result);
+}
+void RotateDB::ProcessAll2(){
+   if(time2<=0) return;
+   int size=strlen(buff2[0]);
+   if(jdebug>0) printf("RotateDB::ProcessAll2: %s(size=%d)\n",buff2[0],size);
+   char tokens[14][20];
+   sscanf(buff2[0],"%s %s %s %s %s %s %s %s %s %s %s %s %s %s",tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],tokens[7],tokens[8],tokens[9],tokens[10],tokens[11],tokens[12],tokens[13]);
+   int count;
+   int nchar1,nchar2,nchar3;
+   if(strcmp(tokens[0],"Rotate")==0){
+      //get time information
+      char date0[3][10];
+      size=strlen(tokens[1]);
+      count=0;
+      nchar1=0,nchar2=0,nchar3=0;
+      for(int ii=0;ii<3;ii++){
+         for(int jj=0;jj<10;jj++){
+            date0[ii][jj]='\0';
+         }
+      }
+      for(int ii=0;ii<size;ii++){
+         if(tokens[1][ii]=='-'){
+            count++;
+            continue;
+         }
+         if(count==0){
+            date0[0][nchar1++]=tokens[1][ii];
+         }
+         else if(count==1){
+            date0[1][nchar2++]=tokens[1][ii];
+         }
+         else if(count==2){
+            if(tokens[1][ii]=='\0'||tokens[1][ii]=='\n') break;
+            date0[2][nchar3++]=tokens[1][ii];
+         }
+      }
+      double time0=atoi(date0[0])*10000000000+atoi(date0[1])*100000000+atoi(date0[2])*1000000;
+      size=strlen(tokens[2]);
+      count=0;
+      nchar1=0,nchar2=0,nchar3=0;
+      for(int ii=0;ii<3;ii++){
+         for(int jj=0;jj<10;jj++){
+            date0[ii][jj]='\0';
+         }
+      }
+      for(int ii=1;ii<size;ii++){
+         if(tokens[2][ii]=='-'){
+            count++;
+            continue;
+         }
+         if(count==0){
+            date0[0][nchar1++]=tokens[2][ii];
+         }
+         else if(count==1){
+            date0[1][nchar2++]=tokens[2][ii];
+         }
+         else if(count==2){
+            if(tokens[2][ii]=='\0'||tokens[2][ii]=='\n') break;
+            date0[2][nchar3++]=tokens[2][ii];
+         }
+      }
+      time0+=atoi(date0[0])*10000+atoi(date0[1])*100+atoi(date0[2]);
+      time=CommonTools::Convert(time0);
+      //get swith information
+      allswith[4]=(strcmp(tokens[3],"O")==0); //rotate
+      allswith[0]=(strcmp(tokens[4],"O")==0); //laser
+      allswith[1]=(strcmp(tokens[5],"O")==0); //electric heat
+      allswith[2]=(strcmp(tokens[6],"O")==0); //electric air heat
+      allswith[3]=(strcmp(tokens[7],"O")==0); //power
+      allswith[5]=(strcmp(tokens[8],"O")==0); //door
+      for(int ii=6;ii<NSWITH;ii++) allswith[ii]=true;
+      //get value information
+      for(int ii=0;ii<NVALUE;ii++) varinfo[ii]=0;
+      varinfo[8]=atof(tokens[9]); //height
+      varinfo[11]=atof(tokens[10]); //angle
+      varinfo[9]=atof(tokens[11]); //elevation
+      varinfo[10]=atof(tokens[12]); //azimuth
+      //some changes due to the change of slow control software
+      if(time<1573541100){
+         varinfo[7]*=(-1);
+         varinfo[9]*=(-1);
+      }
+      else{
+         varinfo[10]*=(-1);
+      }
+      if(time<1573541855) varinfo[8]+=511.03;
+   }
+   else if(strcmp(tokens[0],"GPS")==0){
+      size=strlen(tokens[4]);
+      char coo3[3][10];
+      count=0;
+      nchar1=0,nchar2=0,nchar3=0;
+      for(int ii=0;ii<3;ii++){
+         for(int jj=0;jj<10;jj++){
+            coo3[ii][jj]='\0';
+         }
+      }
+      for(int ii=0;ii<size;ii++){
+         if(tokens[4][ii]=='-'){
+            count++;
+            continue;
+         }
+         if(count==0){
+            coo3[0][nchar1++]=tokens[4][ii];
+         }
+         else if(count==1){
+            coo3[1][nchar2++]=tokens[4][ii];
+         }
+         else if(count==2){
+            if(tokens[4][ii]=='\0'||tokens[4][ii]=='\n') break;
+            coo3[2][nchar3++]=tokens[4][ii];
+         }
+      }
+      latitude=atoi(coo3[0])+atoi(coo3[1])/100.+atoi(coo3[2])/10000.;
+      size=strlen(tokens[5]);
+      count=0;
+      nchar1=0,nchar2=0,nchar3=0;
+      for(int ii=0;ii<3;ii++){
+         for(int jj=0;jj<10;jj++){
+            coo3[ii][jj]='\0';
+         }
+      }
+      for(int ii=0;ii<size;ii++){
+         if(tokens[5][ii]=='-'){
+            count++;
+            continue;
+         }
+         if(count==0){
+            coo3[0][nchar1++]=tokens[5][ii];
+         }
+         else if(count==1){
+            coo3[1][nchar2++]=tokens[5][ii];
+         }
+         else if(count==2){
+            if(tokens[5][ii]=='\0'||tokens[5][ii]=='\n') break;
+            coo3[2][nchar3++]=tokens[5][ii];
+         }
+      }
+      longitude=atoi(coo3[0])+atoi(coo3[1])/100.+atoi(coo3[2])/10000.;
+      altitude=atof(tokens[6]);
+   }
+   return;
+}
 void RotateDB::DumpInfo(){
    printf("RotateDB::DumpInfo: buff=%s\n",buff);
    int year=CommonTools::TimeFlag(time,1);
@@ -671,25 +1286,25 @@ int RotateDB::IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel){
    if(mindist<aglmargin) return index;
    else return -1;
 }
-int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
-   if(jdebug>0) printf("RotateDB::GetEleAzi: timein=%d Lin=%d iTel=%d\n",time_in,Li_in,iTel);
+int RotateDB::GetEleAzi1(int time_in,int Li_in,int iTel){
+   if(jdebug>0) printf("RotateDB::GetEleAzi1: timein=%d Lin=%d iTel=%d\n",time_in,Li_in,iTel);
    if(LoadData(time_in,Li_in,Li,time,currpos)<0) return -1;
    ProcessAll();
    RotateDB rotbuff(this);
 
    double ele0=GetElevation();
    double azi0=GetAzimuth();
-   if(jdebug>0) printf("RotateDB::GetEleAzi: findtimelog ele=%lf azi=%lf\n",ele0,azi0);
+   if(jdebug>0) printf("RotateDB::GetEleAzi1: findtimelog ele=%lf azi=%lf\n",ele0,azi0);
    int retval=-1;
    if(iTel>0){
       retval=IsFineAngle(ele0,azi0,Li_in,iTel);
       if(retval<=0){
-         if(jdebug>0) printf("RotateDB::GetEleAzi: IsFineAngle=%d\n",retval);
+         if(jdebug>0) printf("RotateDB::GetEleAzi1: IsFineAngle=%d\n",retval);
          return -2;
       }
    }
    else{
-      printf("RotateDB::GetEleAzi: wrong iTel=%d\n",iTel);
+      printf("RotateDB::GetEleAzi1: wrong iTel=%d\n",iTel);
       return -3;
    }
 
@@ -746,6 +1361,81 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
    if(ncount<ntotmin) return -4;
    if(ncount1<=nsidemin||ncount2<=nsidemin) return -5;
    else return (Li_in*100+retval);
+}
+int RotateDB::GetEleAzi2(int time_in,int Li_in,int iTel){
+   if(jdebug>0) printf("RotateDB::GetEleAzi2: timein=%d Lin=%d iTel=%d\n",time_in,Li_in,iTel);
+   int irot=GetLi(Li_in);
+   if(irot<0) return -1;
+   if(LoadData2(time_in,Li_in,Li2,time2[0],time2[1],currpos2)<0) return -1;
+   ProcessAll2();
+
+   double ele0=GetElevation();
+   double azi0=GetAzimuth();
+   if(jdebug>0) printf("RotateDB::GetEleAzi2: findtimelog ele=%lf azi=%lf\n",ele0,azi0);
+   int retval=-1;
+   if(iTel>0){
+      retval=IsFineAngle(ele0,azi0,Li_in,iTel);
+      if(retval<=0){
+         if(jdebug>0) printf("RotateDB::GetEleAzi2: IsFineAngle=%d\n",retval);
+         return -2;
+      }
+   }
+   else{
+      printf("RotateDB::GetEleAzi2: wrong iTel=%d\n",iTel);
+      return -3;
+   }
+
+   int timei0=abs(ProcessTime2(0));
+   int timei1=abs(ProcessTime2(1));
+   int ncount1=(time_in-timedelay[irot])-timei0;
+   int ncount2=timei1-(time_in-timedelay[irot]);
+   int ncount=ncount1+ncount2+1;
+
+   if(ncount<ntotmin) return -4;
+   if(ncount1<=nsidemin||ncount2<=nsidemin) return -5;
+   else return (Li_in*100+retval);
+}
+int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
+   int irot=GetLi(Li_in);
+   if(irot<0) return -1;
+   int time_new=time_in-timedelay[irot];
+   int year=CommonTools::TimeFlag(time_new,1);
+   year=2000+(year%100);
+   int month=CommonTools::TimeFlag(time_new,2);
+   int day=CommonTools::TimeFlag(time_new,3);
+
+   char name1[300]="";
+   char name2[300]="";
+   char filename[100]="/eos/user/h/hliu/rotate_log/";
+   char* namebuff1=Form("L%d/%d-%02d-%02d.txt.utf8",Li_in,year,month,day);
+   char* namebuff2=Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,year,month,month,day);
+   strcat(name1,filename);
+   strcat(name1,namebuff1);
+   strcat(name2,filename);
+   strcat(name2,namebuff2);
+
+   ifstream fin1;
+   fin1.open(name1,std::ios::in);
+   bool file1=fin1.is_open();
+   ifstream fin2;
+   fin2.open(name2,std::ios::in);
+   bool file2=fin2.is_open();
+
+   if(file1){
+      if(!file2) return GetEleAzi1(time_in,Li_in,iTel);
+      else{
+         int res1=GetEleAzi1(time_in,Li_in,iTel);
+         int res2=GetEleAzi2(time_in,Li_in,iTel);
+         if(res1==res2) return res1;
+         else if(res1<0) return res2;
+         else if(res2<0) return res1;
+         else return -1;
+      }
+   }
+   else{
+      if(file2) return GetEleAzi2(time_in,Li_in,iTel);
+      else return -1;
+   }
 }
 int RotateDB::GetEleAzi(WFCTAEvent* pev){
    if(!pev) return -6;

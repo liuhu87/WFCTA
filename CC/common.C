@@ -145,6 +145,19 @@ int CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * la
    else strcpy(lastline,buff2);
    return count-1;
 }
+void CommonTools::GetFileType(char* Type,const char* filename){
+   if(!Type) return;
+   int length=strlen(filename);
+   int iloc=-1;
+   for(int ii=length-1;ii>=0;ii--){
+      if(filename[ii]=='.'){ iloc=ii; break;}
+   }
+   if(length<2||iloc<0) {Type[0]='\0'; return;}
+   for(int ii=0;ii<length;ii++){
+      if(ii>iloc) Type[ii-iloc-1]=filename[ii];
+   }
+   Type[length-1-iloc]='\0';
+}
 int CommonTools::GetTimeFromFileName(const char* filename){
    int strlength=strlen(filename);
    int ncount=0,nchar=0;
@@ -275,6 +288,50 @@ int CommonTools::GetTelIndex(const char* filename,int start,int length){
       return itel;
    }
 }
+int CommonTools::GetTelIndex(const char* filename){
+   int strlength=strlen(filename);
+   int ncount=0,nchar=0;
+   char buff0[300];
+   int itel=-1;
+   bool IsOld=false;
+   for(int ii=0;ii<strlength;ii++){
+      //printf("ii=%d(%d) ss=%c\n",ii,strlength,filename[ii]);
+      if(filename[ii]=='.'||filename[ii]=='_'){
+         ncount++;
+         buff0[nchar++]='\0';
+         //check the strings
+         char telname[10]="";
+         int ichar=0;
+         if(strstr(buff0,"WFCTA")){
+            for(int i0=5;i0<nchar;i0++){
+               int iindex=(buff0[i0]-'0');
+               if((iindex>=0&&iindex<=9)||buff0[i0]=='\0') telname[ichar++]=buff0[i0];
+            }
+            itel=atoi(telname);
+            break;
+         }
+         if(strstr(buff0,"FULL")){
+            itel=100;
+         }
+         if(strstr(buff0,"Channel")){
+            IsOld=true;
+         }
+         if(IsOld){
+            for(int i0=2;i0<nchar;i0++) telname[ichar++]=buff0[i0];
+            if(ichar<2) itel=-1;
+            else{
+               itel=atoi(telname)+100;
+               double time=GetTimeFromFileName(filename);
+               if(time<Convert(190517160000.)) itel+=3;
+            }
+            break;
+         }
+         nchar=0; continue;
+      }
+      buff0[nchar++]=filename[ii];
+   }
+   return itel;
+}
 
 int CommonTools::get_file_size_time(const char* filename){
    struct stat statbuf;
@@ -298,10 +355,10 @@ void CommonTools::getFiles(string path,vector<string>& files){
       //printf("read %s\n",buf);
       if(get_file_size_time(buf)==-1) break;
       string filename(buf);
-      if( filename.length()>=end.length() && end == filename.substr(filename.length()-end.length(),end.length())){
+      //if( filename.length()>=end.length() && end == filename.substr(filename.length()-end.length(),end.length())){
          files.push_back(filename);
-      }
-      else continue;
+      //}
+      //else continue;
    }
    closedir(dirp);
 }

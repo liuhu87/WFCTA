@@ -1,57 +1,113 @@
 #include "StatusDB.h"
 #include "TString.h"
 #include "common.h"
+#include <iostream>
 
 StatusDB* StatusDB::_Head=0;
-char StatusDB::DBPath[200]="/eos/lhaaso/raw/wfcta";
+char StatusDB::DBPath0[2][200]={"/eos/lhaaso/raw/wfcta","/eos/lhaaso/decode/wfcta"};
+char StatusDB::DBPath[200];
 
-uint8_t* StatusDB::buf=0;
-unsigned long StatusDB::buflength=0;
 char StatusDB::FILENAME[300]="";
 FILE* StatusDB::fp=0;
-vector<int> StatusDB::containtime;
-int StatusDB::readtime=0;
+uint8_t* StatusDB::buf=0;
+unsigned long StatusDB::buflength=0;
 
+TFile* StatusDB::fstatus=0;
+TTree* StatusDB::tree=0;
+
+int StatusDB::currentday=0;
+int StatusDB::nfiles[MAXTel];
+int StatusDB::telindex[MAXTel];
+int StatusDB::filetime[MAXTel][1000];
+int StatusDB::fileindex[MAXTel][1000];
+char StatusDB::filename[MAXTel][1000][200];
+
+int StatusDB::currentfile=-1;
+int StatusDB::currenttime=0;
+long int StatusDB::entryno=-1;
+vector<int> StatusDB::failday;
 vector<int> StatusDB::failtime;
 
 WFCTADecode* StatusDB::wfctaDecode=0;
 
+bool StatusDB::UseDecodeData=true;
 int StatusDB::jdebug=0;
 int StatusDB::timemargin=15;
+int StatusDB::MaxFileTime=3600;
+
+TBranch* StatusDB::b_iTel;
+TBranch* StatusDB::b_fpgaVersion;
+TBranch* StatusDB::b_f9mode;
+TBranch* StatusDB::b_f9pattern;
+TBranch* StatusDB::b_DbVersion;
+TBranch* StatusDB::b_ClbVersion;
+TBranch* StatusDB::b_clb_initial_Time;
+TBranch* StatusDB::b_clb_initial_time;
+TBranch* StatusDB::b_fired_tube;
+TBranch* StatusDB::b_status_readback_Time;
+TBranch* StatusDB::b_status_readback_time;
+TBranch* StatusDB::b_sipm;
+TBranch* StatusDB::b_mask;
+TBranch* StatusDB::b_single_thresh;
+TBranch* StatusDB::b_record_thresh;
+TBranch* StatusDB::b_single_count;
+TBranch* StatusDB::b_single_time;
+TBranch* StatusDB::b_DbTemp;
+TBranch* StatusDB::b_HV;
+TBranch* StatusDB::b_PreTemp;
+TBranch* StatusDB::b_BigResistence;
+TBranch* StatusDB::b_SmallResistence;
+TBranch* StatusDB::b_ClbTime;
+TBranch* StatusDB::b_ClbTemp;
 
 //status variables
+Short_t StatusDB::iTel;
 int StatusDB::fpgaVersion[10];
-long StatusDB::clb_initial_Time;
+int StatusDB::f9mode;
+int StatusDB::f9pattern;
+int StatusDB::DbVersion[2][89];
+int StatusDB::ClbVersion[2][89];
+Long64_t StatusDB::clb_initial_Time;
 double StatusDB::clb_initial_time;
 int StatusDB::fired_tube;
-long StatusDB::status_readback_Time;
+Long64_t StatusDB::status_readback_Time;
 double StatusDB::status_readback_time;
+int StatusDB::sipm[1024];
+int StatusDB::mask[1024];
 short StatusDB::single_thresh[1024];
 short StatusDB::record_thresh[1024];
-long StatusDB::single_count[1024];
+Long64_t StatusDB::single_count[1024];
+Long64_t StatusDB::single_time[1024];
 float StatusDB::DbTemp[1024];
-long StatusDB::single_time[1024];
 float StatusDB::HV[1024];
 float StatusDB::PreTemp[1024];
 float StatusDB::BigResistence[1024];
 float StatusDB::SmallResistence[1024];
-long StatusDB::ClbTime[1024];
+Long64_t StatusDB::ClbTime[1024];
 float StatusDB::ClbTemp[1024];
 
 void StatusDB::Init(){
-   if(!buf){
-      buf=new uint8_t[BUF_LEN];
-      Reset();
+   if(UseDecodeData) fstatus=0;
+   else{
+      if(!buf) buf=new uint8_t[BUF_LEN];
+      if(!wfctaDecode) wfctaDecode=new WFCTADecode();
    }
-   if(!wfctaDecode) wfctaDecode=new WFCTADecode();
+   Reset();
 }
 void StatusDB::Reset(){
-   if(fp) fseek(fp,0,0);
-   readtime=0;
-   containtime.clear();
+   if(UseDecodeData){
+      entryno=-1;
+   }
+   else{
+      strcpy(FILENAME,"");
+      if(fp) fseek(fp,0,0);
+      if(buf) {for(int ii=0;ii<BUF_LEN;ii++) buf[ii]=0;}
+      buflength=0;
+   }
+
+   if(tree) {delete tree; tree=0;}
+   failday.clear();
    failtime.clear();
-   for(int ii=0;ii<BUF_LEN;ii++) buf[ii]=0;
-   buflength=0;
 
    for(int ii=0;ii<10;ii++) fpgaVersion[ii]=0;
    clb_initial_Time=0;
@@ -77,75 +133,263 @@ void StatusDB::Release(){
    if(fp) fclose(fp);
    if(buf) delete buf;
    if(wfctaDecode) delete wfctaDecode;
+   if(tree) delete tree;
+   if(fstatus){fstatus->Close();}
+   failday.clear();
+   failtime.clear();
    _Head=0;
 }
 void StatusDB::SetDirectory(const char* dirname){
-   strcpy(DBPath,dirname);
+   if(dirname) strcpy(DBPath,dirname);
+   else{
+      strcpy(DBPath,DBPath0[UseDecodeData?1:0]);
+   }
 }
 StatusDB* StatusDB::GetHead(){
    if(!_Head) _Head=new StatusDB();
    return _Head;
 }
-FILE* StatusDB::LocateFile(int iTel,int Time,double time){
-   for(int ii=0;ii<containtime.size();ii++){
-      if(Time==containtime.at(ii)){
-         if(!fp) {printf("StatusDB::LocateFile: containtime error! time=%d\n",Time); return 0;}
-         int itel=CommonTools::GetTelIndex(FILENAME,42,1);
-         if(itel==iTel) return fp;
-         else break;
+int StatusDB::LocateTel(int iTel0){
+   int rectel=-1;
+   for(int ii=0;ii<MAXTel;ii++){
+      if(telindex[ii]==100||telindex[ii]==iTel0){
+         rectel=ii;
+         break;
       }
    }
-   double time0=CommonTools::InvConvert(Time);
-   if(time0<=0) return 0;
-   int year=CommonTools::TimeFlag(time0,1)+2000;
-   int month=CommonTools::TimeFlag(time0,2);
-   int day=CommonTools::TimeFlag(time0,3);
-   int hour=CommonTools::TimeFlag(time0,4);
-   int minute=CommonTools::TimeFlag(time0,5);
-   int second=CommonTools::TimeFlag(time0,6);
+   return rectel;
+}
+int StatusDB::LoadFile(int whichday){
+   if(whichday<20190000||whichday>20500000) return 0;
+   if(whichday==currentday){
+      int nsum=0;
+      for(int ii=0;ii<MAXTel;ii) nsum+=nfiles[ii];
+      return nsum;
+   }
+   int year=whichday/10000;
+   int month=(whichday%10000)/100;
+   int day=(whichday%100);
    char dirname[300]="";
    strcat(dirname,DBPath);
    strcat(dirname,Form("/%d",year));
    strcat(dirname,Form("/%02d%02d",month,day));
    string dirpath(dirname);
+
+   int telindex0[MAXTel];
+   for(int ii=0;ii<MAXTel;ii++){
+      telindex0[ii]=telindex[ii];
+      telindex[ii]=0;
+   }
+   int nfiles0[MAXTel];
+   for(int ii=0;ii<MAXTel;ii++) nfiles0[ii]=0;
+   //list all the status files
    vector<string> namebuff;
    CommonTools::getFiles(dirpath,namebuff);
-   int itar=-1;
-   int cfiletime=0;
+   if(jdebug>2) printf("StatusDB::LoadFile: whichday=%d dirname=%s nfile=%d\n",whichday,dirname,namebuff.size());
+   int nloaded=0;
    for(int ii=0;ii<namebuff.size();ii++){
-      int itel=CommonTools::GetTelIndex(namebuff.at(ii).data(),42,1);
-      if(itel!=iTel) continue;
-      int filetime=CommonTools::GetTimeFromFileName(namebuff.at(ii).data(),46,12);
-      //printf("index=%d %s %s time=%d\n",ii,dirpath.data(),namebuff.at(ii).data(),filetime);
-      if(Time>=filetime){
-         if(filetime>cfiletime){
-            cfiletime=filetime;
-            itar=ii;
+      int cfiletime=CommonTools::GetTimeFromFileName(namebuff.at(ii).data());
+      if(cfiletime<1300000000||cfiletime>2000000000) continue;
+      char filetype[30];
+      CommonTools::GetFileType(filetype,namebuff.at(ii).data());
+      int itel=CommonTools::GetTelIndex(namebuff.at(ii).data());
+      if(itel<=0) continue;
+      else if(itel<=100){ //status data in status file
+         if(UseDecodeData){
+            if(!(strstr(namebuff.at(ii).data(),".status.root"))) continue;
+            TFile* fbuff=TFile::Open(Form("root://eos01.ihep.ac.cn/%s",namebuff.at(ii).data()));
+            if(!fbuff) continue;
+            TTree* tree0=(TTree*)fbuff->Get("Status");
+            if(!tree0) {fbuff->Close(); continue;}
+            if(tree0->GetEntries()<=0) {fbuff->Close(); continue;}
+            fbuff->Close();
+         }
+         else{
+            if(!strstr(filetype,"dat")) continue;
+         }
+      }
+      else{ //status data in one single tree inside the same file with science data
+         itel=(itel%100);
+         if(UseDecodeData){
+            TFile* fbuff=TFile::Open(Form("root://eos01.ihep.ac.cn/%s",namebuff.at(ii).data()));
+            if(!fbuff) continue;
+            TTree* tree0=(TTree*)fbuff->Get("Status");
+            if(!tree0) {fbuff->Close(); continue;}
+            if(tree0->GetEntries()<=0) {fbuff->Close(); continue;}
+            fbuff->Close();
+         }
+         else{
+            if(!strstr(filetype,"dat")) continue;
+         }
+      }
+      int rectel=(itel==100)?0:(itel-1);
+      if(rectel<0||rectel>MAXTel) continue;
+      //printf("index=%d %s %s time=%d\n",ii,dirpath.data(),namebuff.at(ii).data(),cfiletime);
+      if(jdebug>2) printf("StatusDB::LoadFile: whichday=%d ii=%d(nfiles=%d) filename=%s\n",whichday,ii,nfiles0[rectel],namebuff.at(ii).data());
+
+      //record all the status files
+      if(nfiles0[rectel]>=1000){
+         std::cerr<<"StatusDB::LocateFile: the max number of files is too small(n="<<namebuff.size()<<",max nfiles=1000)..."<<endl;
+         break;
+      }
+      if(telindex[rectel]<=0) telindex[rectel]=itel;
+      strcpy(filename[rectel][nfiles0[rectel]],namebuff.at(ii).data());
+      //reorder according the file time
+      int timeindex=-1;
+      for(int ii=0;ii<nfiles0[rectel];ii++){
+         int itime=filetime[rectel][ii];
+         int itime2=filetime[rectel][ii+1];
+         if(cfiletime>=itime&&cfiletime<itime2){
+            timeindex=ii;
+            break;
+         }
+      }
+      if(jdebug>4){
+         printf("StatusDB::LocateFile: cfiletime=%d itel=%d index=%d\n",cfiletime,rectel,timeindex);
+         for(int ii=0;ii<nfiles0[rectel];ii++) printf("ii=%d time=%d\n",ii,filetime[rectel][ii]);
+      }
+      if(timeindex<0){
+         if(jdebug>5) for(int ii=0;ii<nfiles0[rectel];ii++) printf("i1=%d time=%d\n",ii,filetime[rectel][ii]);
+         if(nfiles0[rectel]-1>=0&&cfiletime>filetime[rectel][nfiles0[rectel]-1]){
+            filetime[rectel][nfiles0[rectel]]=cfiletime;
+            fileindex[rectel][nfiles0[rectel]]=nfiles0[rectel];
+         }
+         else{
+            for(int ii=nfiles0[rectel];ii>=1;ii--){
+               filetime[rectel][ii]=filetime[rectel][ii-1];
+               fileindex[rectel][ii]=fileindex[rectel][ii-1];
+            }
+            filetime[rectel][0]=cfiletime;
+            fileindex[rectel][0]=nfiles0[rectel];
+         }
+         if(jdebug>5) for(int ii=0;ii<nfiles0[rectel];ii++) printf("i2=%d time=%d\n",ii,filetime[rectel][ii]);
+      }
+      else{
+         for(int ii=nfiles0[rectel];ii>=timeindex+2;ii--){
+            filetime[rectel][ii]=filetime[rectel][ii-1];
+            fileindex[rectel][ii]=fileindex[rectel][ii-1];
+         }
+         filetime[rectel][timeindex+1]=cfiletime;
+         fileindex[rectel][timeindex+1]=nfiles0[rectel];
+      }
+      if(jdebug>4) for(int ii=0;ii<nfiles0[rectel];ii++) printf("i3=%d time=%d\n",ii,filetime[rectel][ii]);
+      nfiles0[rectel]++;
+      nloaded++;
+   }
+   if(nloaded>0){
+      for(int ii=0;ii<MAXTel;ii++) nfiles[ii]=nfiles0[ii];
+      currentday=year*10000+month*100+day;
+      if(jdebug>3){
+         for(int itel=0;itel<MAXTel;itel++){
+            for(int ii=0;ii<nfiles[itel];ii++){
+               printf("itel=%d ifile=%d(nfile=%d) whichday=%d time=%d filename=%s\n",itel,ii,nfiles[itel],whichday,filetime[itel][ii],filename[itel][ii]);
+            }
          }
       }
    }
-   if(abs(cfiletime-Time)<600){ //one file contains at most 1 hour data
-      string cfilename(FILENAME);
-      if(cfilename==namebuff.at(itar)){ //in the current file
-         if(jdebug>0) printf("StatusDB::LocateFile: find current file: %d %s time=(%d,%d) Tel=%d\n",itar,namebuff.at(itar).data(),Time,cfiletime,iTel);
-         containtime.push_back(Time);
-         return fp;
-      }
-      else{ //in a new file
-         if(jdebug>0) printf("StatusDB::LocateFile: find new file: %d %s time=(%d,%d) Tel=%d\n",itar,namebuff.at(itar).data(),Time,cfiletime,iTel);
-         if(fp) fclose(fp);
-         strcpy(FILENAME,namebuff.at(itar).data());
-         fp=fopen(FILENAME,"rb");
-         Reset();
-         containtime.push_back(Time);
-         return fp;
-      }
+   else{
+      for(int ii=0;ii<MAXTel;ii++) telindex[ii]=telindex0[ii];
    }
-   else{ //there is no file contains this Time 
-      if(jdebug>0) printf("StatusDB::LocateFile: Couldn't find file for time=%d Tel=%d (cfiletime=%d itar=%d dir=%s ntot=%d)\n",Time,iTel,cfiletime,itar,dirname,namebuff.size());
-      return 0;
-   }
+   return nloaded;
 }
+int StatusDB::LocateFile(int iTel0,int Time,double time){
+   if(Time<1300000000||Time>2000000000) return -1;
+   int year=(CommonTools::TimeFlag(Time,1)%100)+2000;
+   int month=CommonTools::TimeFlag(Time,2);
+   int day=CommonTools::TimeFlag(Time,3);
+   int hour=CommonTools::TimeFlag(Time,4);
+   int minute=CommonTools::TimeFlag(Time,5);
+   int second=CommonTools::TimeFlag(Time,6);
+   int whichday=year*10000+month*100+day;
+
+   //load the files if not loaded
+   if(whichday!=currentday){
+      if(jdebug>0) printf("StatusDB::LocateFile: Load new files for day=%d\n",whichday);
+      for(int ii=0;ii<failday.size();ii++){
+         if(whichday==failday.at(ii)) return -1;
+      }
+      int nloaded=LoadFile(whichday);
+      if(jdebug>1) printf("StatusDB::LocateFile: %d files Loaded for day=%d\n",nloaded,whichday);
+      if(nloaded<=0){
+         failday.push_back(whichday);
+         return -1;
+      }
+      //reset some variables
+      if(UseDecodeData){
+         if(tree) {delete tree; tree=0;}
+         if(fstatus) fstatus->Close();
+      }
+      else{
+         if(fp) fclose(fp);
+      }
+      currentfile=-1;
+      currenttime=0;
+      entryno=-1;
+      failtime.clear();
+   }
+   
+   if(Time==currenttime) return currentfile;
+   for(int ii=0;ii<failtime.size();ii++){
+      if(Time==failtime.at(ii)) return -1;
+   }
+   //search the time in the current files
+   int rectel=LocateTel(iTel0);
+   if(jdebug>2) printf("StatusDB::LocateFile: begin search file according to the time=%d\n",Time);
+   int located=-1;
+   if(rectel>=0){
+      for(int ii=0;ii<nfiles[rectel];ii++){
+         int time1=filetime[rectel][ii];
+         int time2=(ii+1>=nfiles[rectel])?(filetime[rectel][nfiles[rectel]-1]+MaxFileTime):filetime[rectel][ii+1];
+         if((Time>=time1&&Time<time2)&&(Time-time1)<MaxFileTime){
+            located=ii; break;
+         }
+      }
+   }
+   if(jdebug>2) printf("StatusDB::LocateFile: search file finished time=%d ifile=%d\n",Time,located);
+   if(located<0) failtime.push_back(Time);
+   else if(located!=currentfile){
+      int ifile=fileindex[rectel][located];
+      if(UseDecodeData){
+         if(tree) {delete tree; tree=0;}
+         if(fstatus) fstatus->Close();
+         fstatus=TFile::Open(Form("root://eos01.ihep.ac.cn/%s",filename[rectel][ifile]),"READ");
+         tree=(TTree*)fstatus->Get("Status");
+         if(jdebug>3) printf("StatusDB::LocateFile: Open file and SetBranchAddress ifile=%d tree=%p filename=%s\n",ifile,tree,filename[rectel][ifile]);
+         tree->SetBranchAddress("iTel", &iTel, &b_iTel);
+         tree->SetBranchAddress("fpgaVersion", &fpgaVersion, &b_fpgaVersion);
+         tree->SetBranchAddress("f9mode", &f9mode, &b_f9mode);
+         tree->SetBranchAddress("f9pattern", &f9pattern, &b_f9pattern);
+         tree->SetBranchAddress("DbVersion", &DbVersion, &b_DbVersion);
+         tree->SetBranchAddress("ClbVersion", &ClbVersion, &b_ClbVersion);
+         tree->SetBranchAddress("clb_initial_Time", (Long64_t*)&clb_initial_Time, &b_clb_initial_Time);
+         tree->SetBranchAddress("clb_initial_time", &clb_initial_time, &b_clb_initial_time);
+         tree->SetBranchAddress("fired_tube", &fired_tube, &b_fired_tube);
+         tree->SetBranchAddress("status_readback_Time", (Long64_t*)&status_readback_Time, &b_status_readback_Time);
+         tree->SetBranchAddress("status_readback_time", &status_readback_time, &b_status_readback_time);
+         tree->SetBranchAddress("sipm", &sipm, &b_sipm);
+         tree->SetBranchAddress("mask", &mask, &b_mask);
+         tree->SetBranchAddress("single_thresh", &single_thresh, &b_single_thresh);
+         tree->SetBranchAddress("record_thresh", &record_thresh, &b_record_thresh);
+         tree->SetBranchAddress("single_count", &single_count, &b_single_count);
+         tree->SetBranchAddress("single_time", &single_time, &b_single_time);
+         tree->SetBranchAddress("DbTemp", &DbTemp, &b_DbTemp);
+         tree->SetBranchAddress("HV", &HV, &b_HV);
+         tree->SetBranchAddress("PreTemp", &PreTemp, &b_PreTemp);
+         tree->SetBranchAddress("BigResistence", &BigResistence, &b_BigResistence);
+         tree->SetBranchAddress("SmallResistence", &SmallResistence, &b_SmallResistence);
+         tree->SetBranchAddress("ClbTime", &ClbTime, &b_ClbTime);
+         tree->SetBranchAddress("ClbTemp", &ClbTemp, &b_ClbTemp);
+         if(jdebug>3) printf("StatusDB::LocateFile: SetBranchAddress finished. ifile=%d tree=%p\n",ifile,tree);
+      }
+      else{
+         strcpy(FILENAME,filename[rectel][ifile]);
+         fp=fopen(FILENAME,"rb");
+      }
+      currentfile=located;
+   }
+   return located;
+}
+
 bool StatusDB::LocateBlk(int Time,double time){
    if(!fp) return false;
    for(int ii=0;ii<failtime.size();ii++){
@@ -163,11 +407,11 @@ bool StatusDB::LocateBlk(int Time,double time){
    //search the position to left  or right
    int64_t packSize;
    size_t size_of_read;
-   if(abs(Time-readtime)<=timemargin){ //just read the data from buf
-      if(jdebug>1) printf("StatusDB::LocateBlk: Time=%d in the current buffer(readtime=%d)\n",Time,readtime);
+   if(fabs(Time-currenttime)<=timemargin){ //just read the data from buf
+      if(jdebug>1) printf("StatusDB::LocateBlk: Time=%d in the current buffer(currenttime=%d)\n",Time,currenttime);
       return true;
    }
-   else if(Time>readtime){ //search from right
+   else if(Time>currenttime){ //search from right
       fseek(fp,buflength,1);
       while((size_of_read=fread((uint8_t *)buf,1,STATUS_BUF_LEN,fp))!=0){
          bool find=wfctaDecode->statusPackCheck(buf,size_of_read,9)>=0;//change "StatusPackCheck" to "statusPackCheck" by youzhiyong --- 2019 08 22
@@ -178,9 +422,9 @@ bool StatusDB::LocateBlk(int Time,double time){
             Time0 = wfctaDecode->GetStatusReadbackTime(buf,packSize);
             time0 = wfctaDecode->GetStatusReadbacktime(buf,packSize);
          }
-         if(abs(Time-(int)Time0)<=timemargin){ //find it
-            if(jdebug>1) printf("StatusDB::LocateBlk: find Time=%d in the right(readtime=%d readtime_new=%d)\n",Time,readtime,Time0);
-            readtime=Time0;
+         if(fabs(Time-(int)Time0)<=timemargin){ //find it
+            if(jdebug>1) printf("StatusDB::LocateBlk: find Time=%d in the right(currenttime=%d currenttime_new=%d)\n",Time,currenttime,Time0);
+            currenttime=Time0;
             buflength=(unsigned long)size_of_read;
             fseek(fp,-buflength,1);
             ResetBuffer();
@@ -188,7 +432,7 @@ bool StatusDB::LocateBlk(int Time,double time){
             return true;
          }
          else if(Time<Time0){ //there is no coresponding time
-            if(jdebug>1) printf("StatusDB::LocateBlk: couldn't find Time=%d in the right(readtime=%d readtime_new=%d)\n",Time,readtime,Time0);
+            if(jdebug>1) printf("StatusDB::LocateBlk: couldn't find Time=%d in the right(currenttime=%d currenttime_new=%d)\n",Time,currenttime,Time0);
             failtime.push_back(Time);
             fseek(fp,clocation,0);
             for(int ii=0;ii<buflength;ii++) buf[ii]=buffer[ii];
@@ -217,9 +461,9 @@ bool StatusDB::LocateBlk(int Time,double time){
             Time0 = wfctaDecode->GetStatusReadbackTime(buf,packSize);
             time0 = wfctaDecode->GetStatusReadbacktime(buf,packSize);
          }
-         if(abs(Time-(int)Time0)<=timemargin){ //find it
-            if(jdebug>1) printf("StatusDB::LocateBlk: find Time=%d in the left(readtime=%d readtime_new=%d)\n",Time,readtime,Time0);
-            readtime=Time0;
+         if(fabs(Time-(int)Time0)<=timemargin){ //find it
+            if(jdebug>1) printf("StatusDB::LocateBlk: find Time=%d in the left(currenttime=%d currenttime_new=%d)\n",Time,currenttime,Time0);
+            currenttime=Time0;
             buflength=(long int)size_of_read;
             fseek(fp,-buflength,1);
             ResetBuffer();
@@ -227,7 +471,7 @@ bool StatusDB::LocateBlk(int Time,double time){
             return true;
          }
          else if(Time>Time0&&Time0>0){  //there is no coresponding time
-            if(jdebug>1) printf("StatusDB::LocateBlk: couldn't find Time=%d in the left(readtime=%d readtime_new=%d)\n",Time,readtime,Time0);
+            if(jdebug>1) printf("StatusDB::LocateBlk: couldn't find Time=%d in the left(currenttime=%d currenttime_new=%d)\n",Time,currenttime,Time0);
             failtime.push_back(Time);
             fseek(fp,clocation,0);
             for(int ii=0;ii<BUF_LEN;ii++) buf[ii]=buffer[ii];
@@ -355,7 +599,7 @@ void StatusDB::Fill(){
       }
       else break;
    }
-   if(jdebug>3) printf("StatusDB::Fill: Fill %d packets for time=%d at %ld of file %s\n",nfilled,readtime,ftell(fp),FILENAME);
+   if(jdebug>3) printf("StatusDB::Fill: Fill %d packets for time=%d at %ld of file %s\n",nfilled,currenttime,ftell(fp),FILENAME);
 }
 /*void StatusDB::Fill(){
    if(buflength<64) return;
@@ -436,76 +680,158 @@ void StatusDB::Fill(){
    }
 }*/
 
-bool StatusDB::Locate(int iTel,int Time,double time){
-   if(!LocateFile(iTel,Time,time)) return false;
-   return LocateBlk(Time,time);
+long int StatusDB::LocateEntry(int Time){
+   if(!tree) return -1;
+   if(jdebug>4) printf("StatusDB::LocateEntry: Begin search entry for Time=%d\n",Time);
+   long int maxentry=tree->GetEntries();
+   long int entry0=entryno;
+   if(entry0>=0&&entry0<maxentry){
+      entryno=entry0;
+      tree->GetEntry(entryno);
+      int timei=status_readback_Time;
+      if(jdebug>4) printf("StatusDB::LocateEntry: First try Time=%d entry=%ld time=%d\n",Time,entryno,timei);
+      if(fabs(Time-timei)<=timemargin) return entryno;
+   }
+   if(entry0+1>=0&&entry0+1<maxentry){
+      entryno=entry0+1;
+      tree->GetEntry(entryno);
+      int timei=status_readback_Time;
+      if(jdebug>4) printf("StatusDB::LocateEntry: Second try Time=%d entry=%ld time=%d\n",Time,entryno,timei);
+      if(fabs(Time-timei)<=timemargin) return entryno;
+   }
+   if(entry0-1>=0&&entry0-1<maxentry){
+      entryno=entry0-1;
+      tree->GetEntry(entryno);
+      int timei=status_readback_Time;
+      if(jdebug>4) printf("StatusDB::LocateEntry: Third try Time=%d entry=%ld time=%d\n",Time,entryno,timei);
+      if(fabs(Time-timei)<=timemargin) return entryno;
+   }
+   entryno=0;
+   tree->GetEntry(entryno);
+   int time1=status_readback_Time;
+   entryno=maxentry-1;
+   tree->GetEntry(entryno);
+   int time2=status_readback_Time;
+   if(Time<time1-timemargin){
+      if(jdebug>4) printf("StatusDB::LocateEntry: Time too small, Time=%d entry=%ld time=%d\n",Time,0,time1);
+      entryno=0;
+      tree->GetEntry(entryno);
+      return -1;
+   }
+   else if(Time>time2+timemargin){
+      if(jdebug>4) printf("StatusDB::LocateEntry: Time too large, Time=%d entry=%ld time=%d\n",Time,maxentry-1,time2);
+      entryno=maxentry-1;
+      //tree->GetEntry(entryno);
+      return -1;
+   }
+   else{
+      int entry1=0;
+      int entry2=maxentry-1;
+      int entryi=(entry1+entry2)/2;
+      entryno=entryi;
+      tree->GetEntry(entryno);
+      int timei=status_readback_Time;
+      while(fabs(Time-timei)>timemargin){
+         if(Time<timei) entry2=entryi;
+         else entry1=entryi;
+         entryi=(entry1+entry2)/2;
+         entryno=entryi;
+         tree->GetEntry(entryno);
+         timei=status_readback_Time;
+         if(jdebug>5) printf("StatusDB::LocateEntry: ith try Time=%d entry=%ld time=%d\n",Time,entryno,timei);
+         if(entry1==entry2) break;
+      }
+      if(fabs(Time-timei)>timemargin){
+         if(jdebug>4) printf("StatusDB::LocateEntry: Missing some time, Time=%d entry=%ld time=%d\n",Time,entryno,timei);
+         return -1;
+      }
+      else return entryno;
+   }
 }
 
-int StatusDB::GetVersion(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+long int StatusDB::Locate(int iTel0,int Time,double time){
+   int iindex=LocateFile(iTel0,Time,time);
+   if(iindex<0) return false;
+   if(UseDecodeData){
+      long int entry=LocateEntry(Time);
+      if(entry>=0){
+         //currentfile=iindex;
+         currenttime=Time;
+         entryno=entry;
+      }
+      else failtime.push_back(Time);
+      return entry;
+   }
+   else{
+      return LocateBlk(Time,time)?1:-1;
+   }
+}
+
+int StatusDB::GetVersion(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return fpgaVersion[i];
 }
-long StatusDB::GetClbInitTime(int iTel,int Time){
-   if(!Locate(iTel,Time)) return 0;
+long StatusDB::GetClbInitTime(int iTel0,int Time){
+   if(Locate(iTel0,Time)<0) return 0;
    return clb_initial_Time;
 }
-double StatusDB::GetClbInittime(int iTel,int Time){
-   if(!Locate(iTel,Time)) return 0;
+double StatusDB::GetClbInittime(int iTel0,int Time){
+   if(Locate(iTel0,Time)<0) return 0;
    return clb_initial_time;
 }
-int StatusDB::GetFiredTube(int iTel,int Time){
-   if(!Locate(iTel,Time)) return 0;
+int StatusDB::GetFiredTube(int iTel0,int Time){
+   if(Locate(iTel0,Time)<0) return 0;
    return fired_tube;
 }
-long StatusDB::GetReadbackTime(int iTel,int Time){
-   if(!Locate(iTel,Time)) return 0;
+long StatusDB::GetReadbackTime(int iTel0,int Time){
+   if(Locate(iTel0,Time)<0) return 0;
    return status_readback_Time;
 }
-double StatusDB::GetReadbacktime(int iTel,int Time){
-   if(!Locate(iTel,Time)) return 0;
+double StatusDB::GetReadbacktime(int iTel0,int Time){
+   if(Locate(iTel0,Time)<0) return 0;
    return status_readback_time;
 }
-short StatusDB::GetSingleThrd(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+short StatusDB::GetSingleThrd(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return single_thresh[i];
 }
-short StatusDB::GetRecordThrd(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+short StatusDB::GetRecordThrd(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return record_thresh[i];
 }
-long StatusDB::GetSingleCount(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+long StatusDB::GetSingleCount(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return single_count[i];
 }
-float StatusDB::GetDbTemp(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+float StatusDB::GetDbTemp(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return single_count[i];
 }
-long StatusDB::GetSingleTime(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+long StatusDB::GetSingleTime(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return single_time[i];
 }
-float StatusDB::GetHV(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+float StatusDB::GetHV(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return HV[i];
 }
-float StatusDB::GetPreTemp(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+float StatusDB::GetPreTemp(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return PreTemp[i];
 }
-float StatusDB::GetBigR(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+float StatusDB::GetBigR(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return BigResistence[i];
 }
-float StatusDB::GetSmallR(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+float StatusDB::GetSmallR(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return SmallResistence[i];
 }
-long StatusDB::GetClbTime(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+long StatusDB::GetClbTime(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return ClbTime[i];
 }
-float StatusDB::GetClbTemp(int iTel,int Time,int i){
-   if(!Locate(iTel,Time)) return -1000;
+float StatusDB::GetClbTemp(int iTel0,int Time,int i){
+   if(Locate(iTel0,Time)<0) return -1000;
    return ClbTemp[i];
 }
