@@ -19,6 +19,7 @@ class Cloud {
    TH2Poly* cloudmap;
    int time;
    double temp;
+   double humi;
    vector<TGraph*> graphlist;
 
    public:

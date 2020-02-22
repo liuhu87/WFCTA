@@ -124,11 +124,13 @@ void Cloud::Init(){
    cloudmap=0;
    time=0;
    temp=0;
+   humi=-1;
    graphlist.clear();
 }
 void Cloud::Reset(){
    time=0;
    temp=0;
+   humi=-1;
    if(cloudmap){
       delete cloudmap;
    }
@@ -215,14 +217,15 @@ bool Cloud::ReadTemp(char* filename){
       bool gt2005=(hour>=20&&min>5);
       if(gt2005) time1=time+(24*3600*2);
       else time1=time+(24*3600);
-      int year=CommonTools::TimeFlag(time1,1)+2000;
+      int year=(CommonTools::TimeFlag(time1,1)%100)+2000;
       int month=CommonTools::TimeFlag(time1,2);
       int day=CommonTools::TimeFlag(time1,3);
-      filename=Form("/scratchfs/ybj/lix/laser-dat/Temp-humi/%02d/temp/12345_cloud_temp_%04d%02d%02d.txt",month,year,month,day);
+      //filename=Form("/scratchfs/ybj/lix/laser-dat/Temp-humi/%02d/temp/12345_cloud_temp_%04d%02d%02d.txt",month,year,month,day);
+      filename=Form("/eos/lhaaso/raw/wfctalaser/%04d/%02d%02d/12345_cloud_temp_%04d%02d%02d.txt",year,month,day,year,month,day);
       printf("ReadTemp: time=%d filename=%s\n",time,filename);
    }
    ifstream fin(filename,std::ios::in);
-   if(!fin.is_open()) {temp=0; return res;}
+   if(!fin.is_open()) {temp=0; humi=0; return res;}
    double ti,tempi,hi;
    int index;
    while(!fin.eof()){
@@ -231,11 +234,15 @@ bool Cloud::ReadTemp(char* filename){
       //printf("time=%d time1=%d temp=%lf hi=%lf\n",time,time1,tempi,hi);
       if(abs(time-time1)<100){
          temp=tempi;
+         humi=hi;
          res=true;
          break;
       }
    }
-   if(!res) temp=0;
+   if(!res){
+      temp=0;
+      humi=-1;
+   }
    fin.close();
    return res;
 }
@@ -264,7 +271,7 @@ void Cloud::AveTemp(double &avetemp,double &mintemp,TGraph* gr){
    avetemp=-1;
    mintemp=-1;
    if(!cloudmap) return;
-   if(!gr) return;
+   //if(!gr) return;
    int np=0;
    double tempmin=100;
    double tempave=0;
@@ -277,7 +284,7 @@ void Cloud::AveTemp(double &avetemp,double &mintemp,TGraph* gr){
    for(int ibin=1;ibin<=nbins;ibin++){
       double theta,phi;
       Convert(ibin,theta,phi);
-      bool inside=gr->IsInside(theta*cos(phi/180*PI),theta*sin(phi/180*PI));
+      bool inside=(!gr)?true:gr->IsInside(theta*cos(phi/180*PI),theta*sin(phi/180*PI));
       if(inside){
          double xi=cloudmap->GetBinContent(ibin);
          if(xi<tempmin) tempmin=xi;
