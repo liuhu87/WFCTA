@@ -41,4 +41,6 @@
 #pragma link C++ class ShowerPlot+;
 
 #pragma link C++ class RotateDB+;
+
+#pragma link C++ class CalibWFCTA+;
 #endif

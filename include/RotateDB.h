@@ -67,6 +67,7 @@ class RotateDB {
    long int LoadData2(int time_in,int Li_in,int pLi=0,int ptime1=0,int ptime2=0,long int cpos=-1);
    int ProcessTime2(int itime);
    void ProcessAll2();
+   int ProcessEnv(int time_in,int Li_in);
    void DumpInfo();
    bool GetLaserSwith();
    bool GetDoorSwith();
@@ -92,6 +93,9 @@ class RotateDB {
    static void GetMinDistFit(WFCTAEvent* pev,int EleAziIndex,int Li_in,double &minphi,double &mincc);
    static bool IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in=0);
    int LaserIsFine(WFCTAEvent* pev);
+
+   //Get some temperature
+   bool GetEnv(int time_in,int Li_in,double *temp);
 };
 
 #endif

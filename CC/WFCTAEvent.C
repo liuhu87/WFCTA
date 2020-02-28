@@ -13,6 +13,10 @@
 #include "Laser.h"
 #include "slalib.h"
 #include "RotateDB.h"
+#include "StatusDB.h"
+#include "CalibWFCTA.h"
+#include "LHChain.h"
+#include "common.h"
 
 using namespace std;
 
@@ -21,6 +25,7 @@ ClassImp(WFCTAEvent);
 const int WFCTAEvent::cleanPix=3;
 WFCTAEvent* WFCTAEvent::_Head=0;
 TTree* WFCTAEvent::_Tree=0;
+LHChain* WFCTAEvent::_Chain=0;
 const char* WFCTAEvent::_Name="WFCTAEvent";
 TBranch* WFCTAEvent::bAll=0;
 TBranch* WFCTAEvent::bmcevent=0;
@@ -31,6 +36,7 @@ bool WFCTAEvent::DoDraw=false;
 double WFCTAEvent::adccuttrigger=350.;
 double WFCTAEvent::npetrigger=45.;
 int WFCTAEvent::nfiretrigger=3;
+int WFCTAEvent::CalibType=0;
 WFCTAEvent::WFCTAEvent():TSelector()
 {
 	eevent.reserve(MAXPMT);
@@ -261,6 +267,9 @@ void WFCTAEvent::InitTree(TTree *tree){
 	//Tree()->SetMakeClass(1);
 	Tree()->SetBranchAddress(BranchName(),&Head());
 }
+void WFCTAEvent::SetLHChain(LHChain* chain){
+	_Chain=chain;
+}
 void WFCTAEvent::CreateBranch(TTree *tree, int branchSplit){
 	if(tree){
 		Head()=this;
@@ -300,6 +309,9 @@ bool WFCTAEvent::GetAllContents(int _Entry){
 	if(bledevent) bledevent->GetEntry(_Entry);
 	if(blaserevent) blaserevent->GetEntry(_Entry);
 	return ncount>0;
+}
+const char* WFCTAEvent::GetFileName(){
+   return _Chain?_Chain->GetFileName():0;
 }
 
 bool WFCTAEvent::CheckLaser(){
@@ -441,7 +453,7 @@ int WFCTAEvent::GetMinTimeBin(int itel){
 	return res;
 }
 
-double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex){
+double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFit){
    itel=0;
    double content=0;
    int size=iSiPM.size();
@@ -450,24 +462,82 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex){
    if(IsIndex&&(isipm<0||isipm>=size)) return content;
    for(int ii=start;ii<=end;ii++){
       if((!IsIndex)&&(iSiPM.at(ii)!=isipm)) continue;
-      if(type==0&&ii<ADC_Cut.size()) content=ADC_Cut.at(ii);
-      if(type==1&&ii<eAdcH.size()) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==2&&ii<eAdcL.size()) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==3&&ii<AdcH.size()) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-      if(type==4&&ii<AdcL.size()) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-      if(type==5&&ii<PeakPosH.size()) content=PeakPosH.at(ii);
-      if(type==6&&ii<PeakPosL.size()) content=PeakPosL.at(ii);
-      if(type==7&&ii<PeakAmH.size()) content=PeakAmH.at(ii);
-      if(type==8&&ii<PeakAmL.size()) content=PeakAmL.at(ii);
-      if(type==9&&ii<SatH.size()) content=SatH.at(ii)?1.:-1.;
-      if(type==10&&ii<SatL.size()) content=SatL.at(ii)?1.:-1.;
-      if(type==11&&(ii<SatH.size()&&ii<AdcH.size())){
-         content=SatH.at(ii)?(AdcL.at(ii)/WFCTAMCEvent::fAmpLow):(AdcH.at(ii)/WFCTAMCEvent::fAmpHig);
+      if(type==0){
+         if(ii<ADC_Cut.size()) content=ADC_Cut.at(ii);
+         else content=-1;
+      }
+      if(type==1){
+         if(ii<eAdcH.size()) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+         else content=-1;
+      }
+      if(type==2){
+         if(ii<eAdcL.size()) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+         else content=-1;
+      }
+      if(type==3){
+         if(ii<AdcH.size()) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
+         else content=-1;
+      }
+      if(type==4){
+         if(ii<AdcL.size()) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
+         else content=-1;
+      }
+      if(type==5){
+         if(ii<PeakPosH.size()) content=PeakPosH.at(ii);
+         else content=-1;
+      }
+      if(type==6){
+         if(ii<PeakPosL.size()) content=PeakPosL.at(ii);
+         else content=-1;
+      }
+      if(type==7){
+         if(ii<PeakAmH.size()) content=PeakAmH.at(ii);
+         else content=-1;
+      }
+      if(type==8){
+         if(ii<PeakAmL.size()) content=PeakAmL.at(ii);
+         else content=-1;
+      }
+      if(type==9){
+         if(ii<SatH.size()) content=SatH.at(ii)?1.:-1.;
+         else content=-2;
+      }
+      if(type==10){
+         if(ii<SatL.size()) content=SatL.at(ii)?1.:-1.;
+         else content=-2;
+      }
+      if(type==11){
+         if((ii<SatH.size()&&ii<AdcH.size())) content=SatH.at(ii)?(AdcL.at(ii)/WFCTAMCEvent::fAmpLow):(AdcH.at(ii)/WFCTAMCEvent::fAmpHig);
+         else if(ii<AdcH.size()) content=(AdcH.at(ii)/WFCTAMCEvent::fAmpHig);
+         else content=-1;
+      }
+      if(((CalibType&0x3)!=0&&content>0)&&(!IsFit)){
+         if((type>=1&&type<=4)||(type>=7&&type<=8)||type==11){
+            TDirectory* gdir=gDirectory;
+            char filename[200]="";
+            bool exist=CommonTools::GetStatusFile(filename,(char*)GetFileName());
+            double temperature=StatusDB::GetHead()->GetPreTemp(iTel,rabbitTime,iSiPM.at(ii),exist?filename:0);
+            if(CalibWFCTA::UseSiPMCalibVer==2){
+               double sum=0;
+               int nn=0;
+               for(int i0=0;i0<1024;i0++){
+                  double itemp=StatusDB::GetHead()->PreTemp[i0];
+                  if(itemp<-100) continue;
+                  sum+=itemp;
+                  nn++;
+               }
+               if(nn>0) temperature=sum/nn;
+            }
+            if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) temp=%lf cont_before=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),temperature,content);
+            if(temperature>-100) content=CalibWFCTA::GetHead()->DoCalibSiPM(iTel,iSiPM.at(ii),content,temperature,CalibType);
+            if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) temp=%lf cont_after=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),temperature,content);
+            if(gdir) gdir->cd();
+         }
       }
    }
    return content;
 }
-double WFCTAEvent::GetContentError(int isipm,int itel,int type,bool IsIndex){
+double WFCTAEvent::GetContentError(int isipm,int itel,int type,bool IsIndex,bool IsFit){
    itel=0;
    bool ismc=CheckMC();
    double econtent=10.;
@@ -478,14 +548,26 @@ double WFCTAEvent::GetContentError(int isipm,int itel,int type,bool IsIndex){
    for(int ii=start;ii<=end;ii++){
       if((!IsIndex)&&(iSiPM.at(ii)!=isipm)) continue;
       if(ismc) econtent=mcevent.eTubeSignal[itel][iSiPM.at(ii)];
-      if(type==5&&ii<PeakPosH.size()) econtent=1;
-      if(type==6&&ii<PeakPosL.size()) econtent=1;
-      if(type==9&&ii<SatH.size()) econtent=0;
-      if(type==10&&ii<SatL.size()) econtent=0;
+      if(type==5){
+         if(ii<PeakPosH.size()) econtent=1;
+         else econtent=0;
+      }
+      if(type==6){
+         if(ii<PeakPosL.size()) econtent=1;
+         else econtent=0;
+      }
+      if(type==9){
+         if(ii<SatH.size()) econtent=0;
+         else econtent=0;
+      }
+      if(type==10){
+         if(ii<SatL.size()) econtent=0;
+         else econtent=0;
+      }
    }
    return econtent;
 }
-bool WFCTAEvent::CleanImage(int isipm,int itel,bool IsIndex){
+bool WFCTAEvent::CleanImage(int isipm,int itel,bool IsIndex,bool IsFit){
    itel=0;
    if(itel<0||itel>=WFTelescopeArray::CTNumber) return false;
    int size=iSiPM.size();
@@ -500,10 +582,11 @@ bool WFCTAEvent::CleanImage(int isipm,int itel,bool IsIndex){
    for(int ii=start;ii<=end;ii++){
       int isipm0=iSiPM.at(ii);
       if((!IsIndex)&&(isipm0!=isipm)) continue;
-      bool sat0=(GetContent(IsIndex?ii:isipm0,itel,9,IsIndex)>0.5);
-      double content0=GetContent(IsIndex?ii:isipm0,itel,0,IsIndex);
-      double content=sat0?GetContent(IsIndex?ii:isipm0,itel,4,IsIndex):GetContent(IsIndex?ii:isipm0,itel,3,IsIndex);
-      //if(ADC_Cut.size()>ii) {if(content0<trig0) continue;}
+      double content0=GetContent(IsIndex?ii:isipm0,itel,0,IsIndex,IsFit);
+      //bool sat0=(GetContent(IsIndex?ii:isipm0,itel,9,IsIndex,IsFit)>0.5);
+      //double content=sat0?GetContent(IsIndex?ii:isipm0,itel,4,IsIndex,IsFit):GetContent(IsIndex?ii:isipm0,itel,3,IsIndex,IsFit);
+      double content=GetContent(IsIndex?ii:isipm0,itel,3,IsIndex,IsFit);
+      //if(ADC_Cut.size()>ii) {if(content0>0&&content0<trig0) continue;}
       //else{if(content<trig1) continue;}
       if(content<trig1) continue;
       double ImageXi=0,ImageYi=0;
@@ -515,9 +598,10 @@ bool WFCTAEvent::CleanImage(int isipm,int itel,bool IsIndex){
          GetImageXYCoo(jj,ImageXj,ImageYj);
          double dist=sqrt(pow(ImageXi-ImageXj,2)+pow(ImageYi-ImageYj,2));
          if(dist>0.6) continue;
-         bool sat1=(GetContent(jj,itel,9,true)>0.5);
-         double contentj0=GetContent(jj,itel,0,true);
-         double contentj=sat1?GetContent(jj,itel,4,true):GetContent(jj,itel,3,true);
+         bool sat1=(GetContent(jj,itel,9,true,IsFit)>0.5);
+         double contentj0=GetContent(jj,itel,0,true,IsFit);
+         //double contentj=sat1?GetContent(jj,itel,4,true,IsFit):GetContent(jj,itel,3,true,IsFit);
+         double contentj=GetContent(jj,itel,3,true,IsFit);
          //if(ADC_Cut.size()>jj) {if(contentj0<trig0) continue;}
          //else{if(contentj<trig1) continue;}
          if(contentj<trig1) continue;
@@ -544,11 +628,14 @@ double WFCTAEvent::Interface(const double* par){
    double econtent[1024];
    double allcontent=0;
    double eallcontent=0;
+   int itel=(int)(par[0]+0.5);
+   int type=(int)(par[1]+0.5);
+   bool IsFit=((int)(par[4]+0.5));
    for(int ii=0;ii<size;ii++){
       int isipm=iSiPM.at(ii);
-      if(CleanImage(ii,(int)(par[0]+0.5),true)){
-         content[ii]=GetContent(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true);
-         econtent[ii]=GetContentError(ii,(int)(par[0]+0.5),(int)(par[1]+0.5),true);
+      if(CleanImage(ii,itel,true,IsFit)){
+         content[ii]=GetContent(ii,itel,type,true,IsFit);
+         econtent[ii]=GetContentError(ii,itel,type,true,IsFit);
       }
       else{
          content[ii]=0;
@@ -627,10 +714,11 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
    int size=iSiPM.size();
    int nbin=0;
    double mx,my,sx,sy,sxy,nn;
+   bool IsFit=true;
    for(int ii=0;ii<size;ii++){
       int isipm0=iSiPM.at(ii);
-      if(!CleanImage(ii,itel,true)) continue;
-      double content=GetContent(ii,itel,type,true);
+      if(!CleanImage(ii,itel,true,IsFit)) continue;
+      double content=GetContent(ii,itel,type,true,IsFit);
       double ImageX,ImageY;
       GetImageXYCoo(isipm0,ImageX,ImageY,-1,false);
 
@@ -670,7 +758,7 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
    #if defined(__CINT__)
    ROOT::Math::Functor f(this,"WFCTAEvent","Interface");
    #else
-   ROOT::Math::Functor f(this,&WFCTAEvent::Interface,4);
+   ROOT::Math::Functor f(this,&WFCTAEvent::Interface,5);
    #endif
    minimizer->SetFunction(f);
    minimizer->SetFixedVariable(0,"iTel",0);
@@ -684,6 +772,7 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
    //minimizer->SetLimitedVariable(2,"cc",1,0.01,-5,5);
    //minimizer->SetLimitedVariable(3,"phi",0,fabs(0.1/180.*PI),-PI/2,PI/2);
    //minimizer->SetFixedVariable(3,"phi",0.);
+   minimizer->SetFixedVariable(4,"IsFit",IsFit?1.:0.);
    minimizer->Minimize();
    minimizer->Hesse();
    //printf("LinearFit: kk=%lf bb=%lf cc={%lf,%lf} phi={%lf,%lf}\n",a,b/PI*180,cc0/PI*180,minimizer->X()[2]/PI*180,phi0/PI*180,minimizer->X()[3]/PI*180.);
@@ -973,22 +1062,31 @@ TH1F* WFCTAEvent::GetDistribution(bool IsLong,int itel,int type,bool IsWidth,boo
    }
 
    int size=iSiPM.size();
-
-   TH2F* h2d=new TH2F("h2d",";Long Axis [degree];Short Axis [degree]",24,-12.,12.,128,-8,8);
+   TH2F* h2d=new TH2F(Form("h2d"),";Long Axis [degree];Short Axis [degree]",24,-12.,12.,128,-8,8);
    for(int ii=0;ii<size;ii++){
       int isipm0=iSiPM.at(ii);
       if(!CleanImage(ii,itel,true)) continue;
-      double ImageX,ImageY;
+      double ImageX=0,ImageY=0;
       double dcell=GetImageXYCoo(isipm0,ImageX,ImageY);
       double ImageX2=ImageX*cos(phi)+ImageY*sin(phi); //long axis
       double ImageY2=-ImageX*sin(phi)+ImageY*cos(phi)-CC; //short axis
-      double content=GetContent(ii,itel,11,true);
-      double econtent=GetContentError(ii,itel,11,true);
+      double content=GetContent(ii,itel,3,true);
+      double econtent=GetContentError(ii,itel,3,true);
       int ibinx=h2d->GetXaxis()->FindBin(ImageX2);
       int ibiny=h2d->GetYaxis()->FindBin(ImageY2);
       h2d->SetBinContent(ibinx,ibiny,h2d->GetBinContent(ibinx,ibiny)+content);
       h2d->SetBinError(ibinx,ibiny,sqrt(pow(h2d->GetBinError(ibinx,ibiny),2)+pow(econtent,2)));
    }
+//printf("testf");
+////delete h2d;
+//double CC;
+//double phi;
+//double XY1[4],XY2[4];
+//TH1F* hh=0;
+//double margin=24.;
+//const int nbin=48;
+//double nfill[nbin];
+
    double sigm=-1;
    for(int ibin=0;ibin<=h2d->GetNbinsX();ibin++){
       TH1D* hbuff=0;
@@ -1028,6 +1126,7 @@ TH1F* WFCTAEvent::GetDistribution(bool IsLong,int itel,int type,bool IsWidth,boo
       delete hh;
       return 0;
    }
+   if(jdebug>5) printf("WFCTAEvent::GetDistribution: sigm=%lf\n",sigm);
    double LRange[2]={-30,30};
    for(int ii=0;ii<3;ii++){
       double xx=XY1[0];
@@ -1078,7 +1177,7 @@ TH1F* WFCTAEvent::GetDistribution(bool IsLong,int itel,int type,bool IsWidth,boo
       if(!CleanImage(ii,itel,true)) continue;
       double content=GetContent(ii,itel,type,true);
       double econtent=GetContentError(ii,itel,type,true);
-      double norm=GetContent(ii,itel,11,true);
+      double norm=GetContent(ii,itel,3,true);
       if(norm<=0) continue;
       double ImageX,ImageY;
       double dcell=GetImageXYCoo(isipm0,ImageX,ImageY);
@@ -2602,7 +2701,6 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold
    TH2Poly* image=new TH2Poly();
    image->SetName("DrawPlot");
    int Liindex=RotateDB::GetLi((double)rabbittime);
-   image->SetTitle(Form("iTel=%d iEvent=%d Li=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d);X [degree];Y [degree]",iTel,iEvent,Liindex<0?Liindex:RotateDB::rotindex[Liindex],rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6)));
    for(int ii=0;ii<NSIPM;ii++){
       double ImageX,ImageY;
       GetImageXYCoo(ii,ImageX,ImageY);
@@ -2610,13 +2708,16 @@ TH2Poly* WFCTAEvent::Draw(int type,const char* opt,bool DoClean,double threshold
       //printf("WFCTAEvent::Draw: SiPM=%d ImageX=%lf ImageY=%lf\n",ii,ImageX,ImageY);
    }
    int ncontent=0;
+   double sum=0;
    for(int ii=0;ii<iSiPM.size();ii++){
       if(DoClean) {if(!CleanImage(ii,iTel,true)) continue;}
       double content=GetContent(ii,iTel,type,true);
+      sum+=content;
       image->SetBinContent(iSiPM.at(ii)+1,content>0?content:0);
       //printf("WFCTAEvent::Draw: SiPM=%d content=%lf\n",iSiPM.at(ii),AdcH.at(ii));
       ncontent++;
    }
+   image->SetTitle(Form("iTel=%d iEvent=%d Li=%d time=%ld+%lf(%d-%02d-%02d %02d:%02d:%02d) Npe=%.0lf;X [degree];Y [degree]",iTel,iEvent,Liindex<0?Liindex:RotateDB::rotindex[Liindex],rabbitTime,rabbittime*20*1.0e-9,CommonTools::TimeFlag((int)rabbitTime,1),CommonTools::TimeFlag((int)rabbitTime,2),CommonTools::TimeFlag((int)rabbitTime,3),CommonTools::TimeFlag((int)rabbitTime,4),CommonTools::TimeFlag((int)rabbitTime,5),CommonTools::TimeFlag((int)rabbitTime,6),sum));
    if(type==-1){
       for(int ii=0;ii<NSIPM;ii++){
          double content=((ii%2)==1)?ii:0;
@@ -2913,7 +3014,7 @@ void WFCTAEvent::CalInfo(double result[100]){
 
    int size=iSiPM.size();
    for(int ii=0;ii<size;ii++){
-      double npe=GetContent(ii,0,11,true);
+      double npe=GetContent(ii,0,3,true);
       double ntime=GetContent(ii,0,5,true);
       if(npe>MAX) MAX=npe;
       if(npe>0){
@@ -2939,7 +3040,7 @@ void WFCTAEvent::CalInfo(double result[100]){
       SXvariance[icut]=0;
       SYvariance[icut]=0;
       for(int ii=0;ii<size;ii++){
-         double npe=GetContent(ii,0,11,true);
+         double npe=GetContent(ii,0,3,true);
          if(npe>value[icut]){
             Num[icut]++;
             Sum[icut]+=npe;

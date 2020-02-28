@@ -3,6 +3,7 @@
 #include "WFCTAEvent.h"
 #include <fstream>
 #include <string>
+#include <stdio.h>
 RotateDB* RotateDB::_Head=0;
 int RotateDB::jdebug=0;
 int RotateDB::ntotmin=5;
@@ -159,6 +160,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    }
    if(!located){
       int time_first=abs(ProcessTime());
+      if(jdebug>2) printf("RotateDB::LoadData: time_new=%d time_first=%d buff=%s\n",time_new,time_first,buff);
       if(time_first>time_new){
          //Reset();
          fin.close();
@@ -174,6 +176,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
       else{
          fin.getline(buff,500);
          time_last=abs(ProcessTime());
+         if(jdebug>2) printf("RotateDB::LoadData: time_new=%d time_last=%d buff=%s\n",time_new,time_last,buff);
          if(time_last<time_new){
             //Reset();
             fin.close();
@@ -182,7 +185,8 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
       }
 
       if(hour<12){
-         long int posi=(hour*3600+min*60+sec-time_first)*linelength;
+         long int posi=(time_new-time_first)*linelength;
+         if(jdebug>2) printf("RotateDB::LoadData: poss=%ld pose=%ld posi=%d deltaT1=%d\n",poss,pose,posi,(hour*3600+min*60+sec-time_first));
          if(poss+posi>=pose){
             fin.seekg(-10,std::ios::end);
          }
@@ -192,6 +196,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
       }
       else{
          long int posi=pose-(time_last-time_new)*linelength;
+         if(jdebug>2) printf("RotateDB::LoadData: poss=%ld pose=%ld posi=%d deltaT2=%d\n",poss,pose,posi,(time_last-time_new));
          if(posi<poss){
             fin.seekg(0,std::ios::beg);
          }
@@ -1131,6 +1136,97 @@ void RotateDB::ProcessAll2(){
    }
    return;
 }
+int RotateDB::ProcessEnv(int time_in,int Li_in){
+   int irot=GetLi(Li_in);
+   if(irot<0) return -4;
+   int time_new=time_in-timedelay[irot];
+   int year=CommonTools::TimeFlag(time_new,1);
+   year=2000+(year%100);
+   int month=CommonTools::TimeFlag(time_new,2);
+   int day=CommonTools::TimeFlag(time_new,3);
+   char filename[100]="/eos/user/h/hliu/rotate_log/";
+   char* namebuff=Form("L%d/rotate/%04d/%02d/var_%02d%02d.txt",Li_in,year,month,month,day);
+   strcat(filename,namebuff);
+   if(jdebug>0) printf("RotateDB::ProcessEnv: filename=%s\n",filename);
+   ifstream fin;
+   fin.open(filename,std::ios::in);
+   bool isopen=fin.is_open();
+   if(!isopen) return -3;
+   bool located=false;
+   double vars12[2][6];
+   for(int ii=0;ii<6;ii++){
+      vars12[0][ii]=-100;
+      vars12[1][ii]=-100;
+   }
+   int timemargin=5*60;
+   while(!fin.eof()){
+      char linebuff[300];
+      fin.getline(linebuff,300);
+      int size=strlen(linebuff);
+      if(size<10) break;
+      char tokens[8][20];
+      sscanf(linebuff,"%s %s %s %s %s %s %s %s",tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],tokens[7],tokens[8]);
+      if(strcmp(tokens[0],"Environment")==0){
+         //time
+         size=strlen(tokens[2]);
+         int count,nchar1,nchar2,nchar3;
+         char hour[10];
+         char min[10];
+         char sec[10];
+         for(int ii=0;ii<10;ii++){
+            hour[ii]='\0';
+            min[ii]='\0';
+            sec[ii]='\0';
+         }
+         count=0;
+         nchar1=0;nchar2=0;nchar3=0;
+         for(int ii=1;ii<size;ii++){
+            if(tokens[2][ii]==':'){
+               count++;
+               continue;
+            }
+            if(count==0){
+               hour[nchar1++]=tokens[2][ii];
+            }
+            else if(count==1){
+               min[nchar2++]=tokens[2][ii];
+            }
+            else if(count==2){
+               if(tokens[2][ii]=='\0'||tokens[2][ii]=='\n') break;
+               sec[nchar3++]=tokens[2][ii];
+            }
+         }
+         double time00=year*10000000000.+month*100000000.+day*1000000+atoi(hour)*10000+atoi(min)*100+atoi(sec);
+         int timei=CommonTools::Convert(time00);
+         if(!located){
+            if(timei>=time_new-timemargin&&timei<time_new+timemargin){
+               version=3;
+               located=true;
+               vars12[0][0]=timei*1.;
+               for(int ii=0;ii<5;ii++) vars12[0][ii+1]=atof(tokens[ii+3]);
+            }
+         }
+         else{
+            if(fabs(timei-vars12[0][0])>15*60) break;
+            vars12[1][0]=timei*1.;
+            for(int ii=0;ii<5;ii++) vars12[1][ii+1]=atof(tokens[ii+3]);
+            break;
+         }
+      }
+   }
+   if(located){
+      if(vars12[1][0]<0){
+         for(int ii=0;ii<5;ii++) varinfo[ii]=vars12[0][ii+1];
+      }
+      else{
+         for(int ii=0;ii<5;ii++){
+            double ratio=(time_new-vars12[0][0])/(vars12[1][0]-vars12[0][0]);
+            varinfo[ii]=vars12[0][ii+1]*(1-ratio)+vars12[1][ii+1]*ratio;
+         }
+      }
+   }
+   return located?1:-1;
+}
 void RotateDB::DumpInfo(){
    printf("RotateDB::DumpInfo: buff=%s\n",buff);
    int year=CommonTools::TimeFlag(time,1);
@@ -1397,7 +1493,7 @@ int RotateDB::GetEleAzi2(int time_in,int Li_in,int iTel){
 }
 int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
    int irot=GetLi(Li_in);
-   if(irot<0) return -1;
+   if(irot<0) return -10;
    int time_new=time_in-timedelay[irot];
    int year=CommonTools::TimeFlag(time_new,1);
    year=2000+(year%100);
@@ -1429,12 +1525,12 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
          if(res1==res2) return res1;
          else if(res1<0) return res2;
          else if(res2<0) return res1;
-         else return -1;
+         else return -11;
       }
    }
    else{
       if(file2) return GetEleAzi2(time_in,Li_in,iTel);
-      else return -1;
+      else return -12;
    }
 }
 int RotateDB::GetEleAzi(WFCTAEvent* pev){
@@ -1563,8 +1659,71 @@ bool RotateDB::IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in){
 }
 int RotateDB::LaserIsFine(WFCTAEvent* pev){
    int EleAziIndex=GetEleAzi(pev);
+   if(jdebug>0) printf("RotateDB::LaserIsFine: EleAziIndex=%d\n",EleAziIndex);
    if(EleAziIndex<=0) return EleAziIndex;
 
-   pev->DoFit(0,3);
-   return IsFineImage(pev,EleAziIndex)?EleAziIndex:-10;
+   bool fitted=pev->DoFit(0,3);
+   if(jdebug>1) printf("RotateDB::LaserIsFine: Fit=%d\n",fitted);
+   bool image=IsFineImage(pev,EleAziIndex);
+   if(jdebug>1) printf("RotateDB::LaserIsFine: FineImage=%d\n",image);
+
+   return image?EleAziIndex:-10;
+}
+bool RotateDB::GetEnv(int time_in,int Li_in,double *temp){
+   if(!temp) return false;
+   int irot=GetLi(Li_in);
+   if(irot<0) return false;
+   int time_new=time_in;
+   int year=CommonTools::TimeFlag(time_new,1);
+   year=2000+(year%100);
+   int month=CommonTools::TimeFlag(time_new,2);
+   int day=CommonTools::TimeFlag(time_new,3);
+
+   char name1[300]="";
+   char name2[300]="";
+   char filename[100]="/eos/user/h/hliu/rotate_log/";
+   char* namebuff1=Form("L%d/%d-%02d-%02d.txt.utf8",Li_in,year,month,day);
+   char* namebuff2=Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,year,month,month,day);
+   strcat(name1,filename);
+   strcat(name1,namebuff1);
+   strcat(name2,filename);
+   strcat(name2,namebuff2);
+
+   ifstream fin1;
+   fin1.open(name1,std::ios::in);
+   bool file1=fin1.is_open();
+   if(file1) fin1.close();
+   ifstream fin2;
+   fin2.open(name2,std::ios::in);
+   bool file2=fin2.is_open();
+   if(file2) fin2.close();
+
+   if(file1){
+      if(LoadData(time_in,Li_in,Li,time,currpos)<0){
+         if(!file2) return false;
+         else{
+            if(ProcessEnv(time_in,Li_in)<=0) return false;
+            else{
+               for(int ii=0;ii<4;ii++) temp[ii]=GetTemperature(ii);
+               temp[4]=GetHumidity();
+               return true;
+            }
+         }
+      }
+      ProcessAll();
+      for(int ii=0;ii<4;ii++) temp[ii]=GetTemperature(ii);
+      temp[4]=GetHumidity();
+      return true;
+   }
+   else{
+      if(file2){
+         if(ProcessEnv(time_in,Li_in)<=0) return false;
+         else{
+            for(int ii=0;ii<4;ii++) temp[ii]=GetTemperature(ii);
+            temp[4]=GetHumidity();
+            return true;
+         }
+      }
+      else return false;
+   }
 }

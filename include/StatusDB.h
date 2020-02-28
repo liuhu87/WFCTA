@@ -20,30 +20,30 @@ class StatusDB {
 
    //for raw data
    ///the filename of the raw data file
-   static char FILENAME[300];
-   static FILE* fp;
-   static uint8_t *buf;
-   static unsigned long buflength;
+   char FILENAME[300];
+   FILE* fp;
+   uint8_t *buf;
+   unsigned long buflength;
 
    //for decode data
-   static TFile* fstatus;
-   static TTree* tree;
+   TFile* fstatus;
+   TTree* tree;
 
    //to locate the filename
-   static int currentday;
-   static int nfiles[MAXTel];
-   static int telindex[MAXTel];
-   static int filetime[MAXTel][1000];
-   static int fileindex[MAXTel][1000];
-   static char filename[MAXTel][1000][200];
+   int currentday;
+   int nfiles[MAXTel];
+   int telindex[MAXTel];
+   int filetime[MAXTel][1000];
+   int fileindex[MAXTel][1000];
+   char filename[MAXTel][1000][200];
    //to read data containt
-   static int currentfile;
-   static int currenttime;
-   static long int entryno;
-   static vector<int> failday;
-   static vector<int> failtime;
+   int currentfile;
+   int currenttime;
+   long int entryno;
+   vector<int> failday;
+   vector<int> failtime;
 
-   static WFCTADecode *wfctaDecode;
+   WFCTADecode *wfctaDecode;
 
    public:
    static bool UseDecodeData;
@@ -51,89 +51,64 @@ class StatusDB {
    static int timemargin;
    static int MaxFileTime;
 
-   static Short_t iTel;
-   static int fpgaVersion[10];
-   static int f9mode;
-   static int f9pattern;
-   static int DbVersion[2][89];
-   static int ClbVersion[2][89];
-   static Long64_t clb_initial_Time;
-   static double clb_initial_time;
-   static int fired_tube;
-   static Long64_t status_readback_Time;
-   static double status_readback_time;
-   static int sipm[1024];
-   static int mask[1024];
-   static short single_thresh[1024];
-   static short record_thresh[1024];
-   static Long64_t single_count[1024];
-   static Long64_t single_time[1024];
-   static float DbTemp[1024];
-   static float HV[1024];
-   static float PreTemp[1024];
-   static float BigResistence[1024];
-   static float SmallResistence[1024];
-   static Long64_t ClbTime[1024];
-   static float ClbTemp[1024];
+   Short_t iTel;
+   int fpgaVersion[10];
+   int f9mode;
+   int f9pattern;
+   int DbVersion[2][89];
+   int ClbVersion[2][89];
+   Long64_t clb_initial_Time;
+   double clb_initial_time;
+   int fired_tube;
+   Long64_t status_readback_Time;
+   double status_readback_time;
+   int sipm[1024];
+   int mask[1024];
+   short single_thresh[1024];
+   short record_thresh[1024];
+   Long64_t single_count[1024];
+   Long64_t single_time[1024];
+   float DbTemp[1024];
+   float HV[1024];
+   float PreTemp[1024];
+   float BigResistence[1024];
+   float SmallResistence[1024];
+   Long64_t ClbTime[1024];
+   float ClbTemp[1024];
 
-   static TBranch* b_iTel;
-   static TBranch* b_fpgaVersion;
-   static TBranch* b_f9mode;
-   static TBranch* b_f9pattern;
-   static TBranch* b_DbVersion;
-   static TBranch* b_ClbVersion;
-   static TBranch* b_clb_initial_Time;
-   static TBranch* b_clb_initial_time;
-   static TBranch* b_fired_tube;
-   static TBranch* b_status_readback_Time;
-   static TBranch* b_status_readback_time;
-   static TBranch* b_sipm;
-   static TBranch* b_mask;
-   static TBranch* b_single_thresh;
-   static TBranch* b_record_thresh;
-   static TBranch* b_single_count;
-   static TBranch* b_single_time;
-   static TBranch* b_DbTemp;
-   static TBranch* b_HV;
-   static TBranch* b_PreTemp;
-   static TBranch* b_BigResistence;
-   static TBranch* b_SmallResistence;
-   static TBranch* b_ClbTime;
-   static TBranch* b_ClbTemp;
-
-   static void Init();
-   static void Reset();
-   static void Release();
+   void Init();
+   void Reset();
+   void Release();
    StatusDB() {Init(); SetDirectory();}
    ~StatusDB(){Release();}
    static void SetDirectory(const char* dirname=0);
    static StatusDB* GetHead();
-   static int LocateTel(int iTel0);
-   static int LoadFile(int whichday);
-   static int LocateFile(int iTel0,int Time,double time=0);
-   static bool LocateBlk(int Time,double time=0);
-   static void ResetBuffer();
-   static void Fill();
-   static long int LocateEntry(int Time);
-   static long int Locate(int iTel0,int Time,double time=0);
+   int LocateTel(int iTel0);
+   int LoadFile(int whichday,char* filename_in=0);
+   int LocateFile(int iTel0,int Time,char* filename_in=0,double time=0);
+   bool LocateBlk(int Time,double time=0);
+   void ResetBuffer();
+   void Fill();
+   long int LocateEntry(int Time);
+   long int Locate(int iTel0,int Time,char* filename_in=0,double time=0);
 
-   static int   GetVersion(int iTel0,int Time,int i);
-   static long  GetClbInitTime(int iTel0,int Time);
-   static double GetClbInittime(int iTel0,int Time);
-   static int   GetFiredTube(int iTel0,int Time);
-   static long  GetReadbackTime(int iTel0,int Time);
-   static double GetReadbacktime(int iTel0,int Time);
-   static short GetSingleThrd(int iTel0,int Time,int i);
-   static short GetRecordThrd(int iTel0,int Time,int i);
-   static long  GetSingleCount(int iTel0,int Time,int i);
-   static float GetDbTemp(int iTel0,int Time,int i);
-   static long  GetSingleTime(int iTel0,int Time,int i);
-   static float GetHV(int iTel0,int Time,int i);
-   static float GetPreTemp(int iTel0,int Time,int i);
-   static float GetBigR(int iTel0,int Time,int i);
-   static float GetSmallR(int iTel0,int Time,int i);
-   static long  GetClbTime(int iTel0,int Time,int i);
-   static float GetClbTemp(int iTel0,int Time,int i);
+   int   GetVersion(int iTel0,int Time,int i,char* filename_in=0);
+   long  GetClbInitTime(int iTel0,int Time,char* filename_in=0);
+   double GetClbInittime(int iTel0,int Time,char* filename_in=0);
+   int   GetFiredTube(int iTel0,int Time,char* filename_in=0);
+   long  GetReadbackTime(int iTel0,int Time,char* filename_in=0);
+   double GetReadbacktime(int iTel0,int Time,char* filename_in=0);
+   short GetSingleThrd(int iTel0,int Time,int i,char* filename_in=0);
+   short GetRecordThrd(int iTel0,int Time,int i,char* filename_in=0);
+   long  GetSingleCount(int iTel0,int Time,int i,char* filename_in=0);
+   float GetDbTemp(int iTel0,int Time,int i,char* filename_in=0);
+   long  GetSingleTime(int iTel0,int Time,int i,char* filename_in=0);
+   float GetHV(int iTel0,int Time,int i,char* filename_in=0);
+   float GetPreTemp(int iTel0,int Time,int i,char* filename_in=0);
+   float GetBigR(int iTel0,int Time,int i,char* filename_in=0);
+   float GetSmallR(int iTel0,int Time,int i,char* filename_in=0);
+   long  GetClbTime(int iTel0,int Time,int i,char* filename_in=0);
+   float GetClbTemp(int iTel0,int Time,int i,char* filename_in=0);
 };
 
 #endif

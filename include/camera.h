@@ -1,3 +1,6 @@
+#ifndef __camera__
+#define __camera__
+
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
@@ -217,4 +220,4 @@ void eSiPM2SC_Channel(short mSiPM, short *mSC, short *mChannel)
 
 
 
-
+#endif

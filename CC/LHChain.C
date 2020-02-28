@@ -1,4 +1,5 @@
 #include "LHChain.h"
+#include "TFile.h"
 #include <fstream>
 using namespace std;
 int LHChain::jdebug=0;
@@ -30,6 +31,7 @@ void LHChain::Init(WFCTAEvent* event){
        _EVENT->Head()=_EVENT;
        this->SetBranchAddress(WFCTAEvent::BranchName(),&_EVENT);
        _EVENT->Tree()=NULL;
+       _EVENT->SetLHChain(this);
    }
 }
 WFCTAEvent* LHChain::_getevent(Int_t entry, Bool_t kLocal){
@@ -143,3 +145,7 @@ void LHChain::Reset(Option_t* option) {
   _TREENUMBER = -1;
 }
 
+const char* LHChain::GetFileName(){
+  TFile* curf=((TChain*)this)->GetFile();
+  return curf?((const char*)curf->GetName()):0;
+}

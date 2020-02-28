@@ -7,84 +7,59 @@ StatusDB* StatusDB::_Head=0;
 char StatusDB::DBPath0[2][200]={"/eos/lhaaso/raw/wfcta","/eos/lhaaso/decode/wfcta"};
 char StatusDB::DBPath[200];
 
-char StatusDB::FILENAME[300]="";
-FILE* StatusDB::fp=0;
-uint8_t* StatusDB::buf=0;
-unsigned long StatusDB::buflength=0;
-
-TFile* StatusDB::fstatus=0;
-TTree* StatusDB::tree=0;
-
-int StatusDB::currentday=0;
-int StatusDB::nfiles[MAXTel];
-int StatusDB::telindex[MAXTel];
-int StatusDB::filetime[MAXTel][1000];
-int StatusDB::fileindex[MAXTel][1000];
-char StatusDB::filename[MAXTel][1000][200];
-
-int StatusDB::currentfile=-1;
-int StatusDB::currenttime=0;
-long int StatusDB::entryno=-1;
-vector<int> StatusDB::failday;
-vector<int> StatusDB::failtime;
-
-WFCTADecode* StatusDB::wfctaDecode=0;
+//char StatusDB::FILENAME[300]="";
+//FILE* StatusDB::fp=0;
+//uint8_t* StatusDB::buf=0;
+//unsigned long StatusDB::buflength=0;
+//
+//TFile* StatusDB::fstatus=0;
+//TTree* StatusDB::tree=0;
+//
+//int StatusDB::currentday=0;
+//int StatusDB::nfiles[MAXTel];
+//int StatusDB::telindex[MAXTel];
+//int StatusDB::filetime[MAXTel][1000];
+//int StatusDB::fileindex[MAXTel][1000];
+//char StatusDB::filename[MAXTel][1000][200];
+//
+//int StatusDB::currentfile=-1;
+//int StatusDB::currenttime=0;
+//long int StatusDB::entryno=-1;
+//vector<int> StatusDB::failday;
+//vector<int> StatusDB::failtime;
+//
+//WFCTADecode* StatusDB::wfctaDecode=0;
 
 bool StatusDB::UseDecodeData=true;
 int StatusDB::jdebug=0;
 int StatusDB::timemargin=15;
 int StatusDB::MaxFileTime=3600;
 
-TBranch* StatusDB::b_iTel;
-TBranch* StatusDB::b_fpgaVersion;
-TBranch* StatusDB::b_f9mode;
-TBranch* StatusDB::b_f9pattern;
-TBranch* StatusDB::b_DbVersion;
-TBranch* StatusDB::b_ClbVersion;
-TBranch* StatusDB::b_clb_initial_Time;
-TBranch* StatusDB::b_clb_initial_time;
-TBranch* StatusDB::b_fired_tube;
-TBranch* StatusDB::b_status_readback_Time;
-TBranch* StatusDB::b_status_readback_time;
-TBranch* StatusDB::b_sipm;
-TBranch* StatusDB::b_mask;
-TBranch* StatusDB::b_single_thresh;
-TBranch* StatusDB::b_record_thresh;
-TBranch* StatusDB::b_single_count;
-TBranch* StatusDB::b_single_time;
-TBranch* StatusDB::b_DbTemp;
-TBranch* StatusDB::b_HV;
-TBranch* StatusDB::b_PreTemp;
-TBranch* StatusDB::b_BigResistence;
-TBranch* StatusDB::b_SmallResistence;
-TBranch* StatusDB::b_ClbTime;
-TBranch* StatusDB::b_ClbTemp;
-
-//status variables
-Short_t StatusDB::iTel;
-int StatusDB::fpgaVersion[10];
-int StatusDB::f9mode;
-int StatusDB::f9pattern;
-int StatusDB::DbVersion[2][89];
-int StatusDB::ClbVersion[2][89];
-Long64_t StatusDB::clb_initial_Time;
-double StatusDB::clb_initial_time;
-int StatusDB::fired_tube;
-Long64_t StatusDB::status_readback_Time;
-double StatusDB::status_readback_time;
-int StatusDB::sipm[1024];
-int StatusDB::mask[1024];
-short StatusDB::single_thresh[1024];
-short StatusDB::record_thresh[1024];
-Long64_t StatusDB::single_count[1024];
-Long64_t StatusDB::single_time[1024];
-float StatusDB::DbTemp[1024];
-float StatusDB::HV[1024];
-float StatusDB::PreTemp[1024];
-float StatusDB::BigResistence[1024];
-float StatusDB::SmallResistence[1024];
-Long64_t StatusDB::ClbTime[1024];
-float StatusDB::ClbTemp[1024];
+////status variables
+//Short_t StatusDB::iTel;
+//int StatusDB::fpgaVersion[10];
+//int StatusDB::f9mode;
+//int StatusDB::f9pattern;
+//int StatusDB::DbVersion[2][89];
+//int StatusDB::ClbVersion[2][89];
+//Long64_t StatusDB::clb_initial_Time;
+//double StatusDB::clb_initial_time;
+//int StatusDB::fired_tube;
+//Long64_t StatusDB::status_readback_Time;
+//double StatusDB::status_readback_time;
+//int StatusDB::sipm[1024];
+//int StatusDB::mask[1024];
+//short StatusDB::single_thresh[1024];
+//short StatusDB::record_thresh[1024];
+//Long64_t StatusDB::single_count[1024];
+//Long64_t StatusDB::single_time[1024];
+//float StatusDB::DbTemp[1024];
+//float StatusDB::HV[1024];
+//float StatusDB::PreTemp[1024];
+//float StatusDB::BigResistence[1024];
+//float StatusDB::SmallResistence[1024];
+//Long64_t StatusDB::ClbTime[1024];
+//float StatusDB::ClbTemp[1024];
 
 void StatusDB::Init(){
    if(UseDecodeData) fstatus=0;
@@ -159,12 +134,41 @@ int StatusDB::LocateTel(int iTel0){
    }
    return rectel;
 }
-int StatusDB::LoadFile(int whichday){
-   if(whichday<20190000||whichday>20500000) return 0;
+int StatusDB::LoadFile(int whichday,char* filename_in){
+   int type=0;
+   if(whichday>=20190101&&whichday<=20500000) type=1;
+   if(whichday>=1300000000&&whichday<=2524579200) type=2;
+   if(type<1||type>2) return 0;
    if(whichday==currentday){
-      int nsum=0;
-      for(int ii=0;ii<MAXTel;ii) nsum+=nfiles[ii];
-      return nsum;
+      if(type==1){
+         int nsum=0;
+         for(int ii=0;ii<MAXTel;ii) nsum+=nfiles[ii];
+         return nsum;
+      }
+      if(type==2) return currentfile>=-1?1:0;
+   }
+   if(type==2){
+      if(!filename_in) return 0;
+      if(UseDecodeData){
+         TFile* fbuff=TFile::Open(filename_in);
+         if(!fbuff) return 0;
+         TTree* tree0=(TTree*)fbuff->Get("Status");
+         if(!tree0) {fbuff->Close(); return 0;}
+         if(tree0->GetEntries()<=0) {fbuff->Close(); return 0;}
+         fbuff->Close();
+         currentday=whichday;
+         return 1;
+      }
+      else{
+         char filetype[30];
+         CommonTools::GetFileType(filetype,filename_in);
+         if(!strstr(filetype,"dat")) return 0;
+         FILE* fp0=fopen(filename_in,"rb");
+         if(fp0==NULL) return 0;
+         fclose(fp0);
+         currentday=whichday;
+         return 1;
+      }
    }
    int year=whichday/10000;
    int month=(whichday%10000)/100;
@@ -206,6 +210,9 @@ int StatusDB::LoadFile(int whichday){
          }
          else{
             if(!strstr(filetype,"dat")) continue;
+            FILE* fp0=fopen(filename_in,"rb");
+            if(fp0==NULL) continue;
+            fclose(fp0);
          }
       }
       else{ //status data in one single tree inside the same file with science data
@@ -220,6 +227,9 @@ int StatusDB::LoadFile(int whichday){
          }
          else{
             if(!strstr(filetype,"dat")) continue;
+            FILE* fp0=fopen(filename_in,"rb");
+            if(fp0==NULL) continue;
+            fclose(fp0);
          }
       }
       int rectel=(itel==100)?0:(itel-1);
@@ -229,7 +239,7 @@ int StatusDB::LoadFile(int whichday){
 
       //record all the status files
       if(nfiles0[rectel]>=1000){
-         std::cerr<<"StatusDB::LocateFile: the max number of files is too small(n="<<namebuff.size()<<",max nfiles=1000)..."<<endl;
+         std::cerr<<"StatusDB::LoadFile: the max number of files is too small(n="<<namebuff.size()<<",max nfiles=1000)..."<<endl;
          break;
       }
       if(telindex[rectel]<=0) telindex[rectel]=itel;
@@ -245,7 +255,7 @@ int StatusDB::LoadFile(int whichday){
          }
       }
       if(jdebug>4){
-         printf("StatusDB::LocateFile: cfiletime=%d itel=%d index=%d\n",cfiletime,rectel,timeindex);
+         printf("StatusDB::LoadFile: cfiletime=%d itel=%d index=%d\n",cfiletime,rectel,timeindex);
          for(int ii=0;ii<nfiles0[rectel];ii++) printf("ii=%d time=%d\n",ii,filetime[rectel][ii]);
       }
       if(timeindex<0){
@@ -292,7 +302,7 @@ int StatusDB::LoadFile(int whichday){
    }
    return nloaded;
 }
-int StatusDB::LocateFile(int iTel0,int Time,double time){
+int StatusDB::LocateFile(int iTel0,int Time,char* filename_in,double time){
    if(Time<1300000000||Time>2000000000) return -1;
    int year=(CommonTools::TimeFlag(Time,1)%100)+2000;
    int month=CommonTools::TimeFlag(Time,2);
@@ -301,6 +311,9 @@ int StatusDB::LocateFile(int iTel0,int Time,double time){
    int minute=CommonTools::TimeFlag(Time,5);
    int second=CommonTools::TimeFlag(Time,6);
    int whichday=year*10000+month*100+day;
+   if(filename_in){
+      whichday=CommonTools::GetTimeFromFileName(filename_in);
+   }
 
    //load the files if not loaded
    if(whichday!=currentday){
@@ -308,7 +321,7 @@ int StatusDB::LocateFile(int iTel0,int Time,double time){
       for(int ii=0;ii<failday.size();ii++){
          if(whichday==failday.at(ii)) return -1;
       }
-      int nloaded=LoadFile(whichday);
+      int nloaded=LoadFile(whichday,filename_in);
       if(jdebug>1) printf("StatusDB::LocateFile: %d files Loaded for day=%d\n",nloaded,whichday);
       if(nloaded<=0){
          failday.push_back(whichday);
@@ -322,10 +335,11 @@ int StatusDB::LocateFile(int iTel0,int Time,double time){
       else{
          if(fp) fclose(fp);
       }
-      currentfile=-1;
+      currentfile=-2;
       currenttime=0;
       entryno=-1;
       failtime.clear();
+      if(jdebug>2) printf("StatusDB::LocateFile: variables reseted currentday=%d currentfile=%d currenttime=%d entryno=%ld\n",currentday,currentfile,currenttime,entryno);
    }
    
    if(Time==currenttime) return currentfile;
@@ -333,57 +347,70 @@ int StatusDB::LocateFile(int iTel0,int Time,double time){
       if(Time==failtime.at(ii)) return -1;
    }
    //search the time in the current files
-   int rectel=LocateTel(iTel0);
-   if(jdebug>2) printf("StatusDB::LocateFile: begin search file according to the time=%d\n",Time);
-   int located=-1;
-   if(rectel>=0){
-      for(int ii=0;ii<nfiles[rectel];ii++){
-         int time1=filetime[rectel][ii];
-         int time2=(ii+1>=nfiles[rectel])?(filetime[rectel][nfiles[rectel]-1]+MaxFileTime):filetime[rectel][ii+1];
-         if((Time>=time1&&Time<time2)&&(Time-time1)<MaxFileTime){
-            located=ii; break;
+   int located=-2;
+   int rectel=0;
+   if(!filename_in){
+      rectel=LocateTel(iTel0);
+      if(jdebug>2) printf("StatusDB::LocateFile: begin search file according to the time=%d\n",Time);
+      if(rectel>=0){
+         for(int ii=0;ii<nfiles[rectel];ii++){
+            int time1=filetime[rectel][ii];
+            int time2=(ii+1>=nfiles[rectel])?(filetime[rectel][nfiles[rectel]-1]+MaxFileTime):filetime[rectel][ii+1];
+            if((Time>=time1&&Time<time2)&&(Time-time1)<MaxFileTime){
+               located=ii; break;
+            }
          }
       }
    }
-   if(jdebug>2) printf("StatusDB::LocateFile: search file finished time=%d ifile=%d\n",Time,located);
-   if(located<0) failtime.push_back(Time);
+   else located=-1;
+   if(jdebug>2) printf("StatusDB::LocateFile: search file finished time=%d ifile=%d currentfile=%d filename_in=%s\n",Time,located,currentfile,filename_in);
+   if(located<-1) failtime.push_back(Time);
    else if(located!=currentfile){
-      int ifile=fileindex[rectel][located];
+      int ifile=(!filename_in)?fileindex[rectel][located]:0;
       if(UseDecodeData){
-         if(tree) {delete tree; tree=0;}
-         if(fstatus) fstatus->Close();
-         fstatus=TFile::Open(Form("root://eos01.ihep.ac.cn/%s",filename[rectel][ifile]),"READ");
+         if(currentfile>=-1){
+            if(tree) {delete tree; tree=0;}
+            if(fstatus) fstatus->Close();
+         }
+         //TFile* fstatus;
+         if(!filename_in) fstatus=TFile::Open(Form("root://eos01.ihep.ac.cn/%s",filename[rectel][ifile]),"READ");
+         else fstatus=TFile::Open(filename_in,"READ");
+         fstatus->cd();
          tree=(TTree*)fstatus->Get("Status");
-         if(jdebug>3) printf("StatusDB::LocateFile: Open file and SetBranchAddress ifile=%d tree=%p filename=%s\n",ifile,tree,filename[rectel][ifile]);
-         tree->SetBranchAddress("iTel", &iTel, &b_iTel);
-         tree->SetBranchAddress("fpgaVersion", &fpgaVersion, &b_fpgaVersion);
-         tree->SetBranchAddress("f9mode", &f9mode, &b_f9mode);
-         tree->SetBranchAddress("f9pattern", &f9pattern, &b_f9pattern);
-         tree->SetBranchAddress("DbVersion", &DbVersion, &b_DbVersion);
-         tree->SetBranchAddress("ClbVersion", &ClbVersion, &b_ClbVersion);
-         tree->SetBranchAddress("clb_initial_Time", (Long64_t*)&clb_initial_Time, &b_clb_initial_Time);
-         tree->SetBranchAddress("clb_initial_time", &clb_initial_time, &b_clb_initial_time);
-         tree->SetBranchAddress("fired_tube", &fired_tube, &b_fired_tube);
-         tree->SetBranchAddress("status_readback_Time", (Long64_t*)&status_readback_Time, &b_status_readback_Time);
-         tree->SetBranchAddress("status_readback_time", &status_readback_time, &b_status_readback_time);
-         tree->SetBranchAddress("sipm", &sipm, &b_sipm);
-         tree->SetBranchAddress("mask", &mask, &b_mask);
-         tree->SetBranchAddress("single_thresh", &single_thresh, &b_single_thresh);
-         tree->SetBranchAddress("record_thresh", &record_thresh, &b_record_thresh);
-         tree->SetBranchAddress("single_count", &single_count, &b_single_count);
-         tree->SetBranchAddress("single_time", &single_time, &b_single_time);
-         tree->SetBranchAddress("DbTemp", &DbTemp, &b_DbTemp);
-         tree->SetBranchAddress("HV", &HV, &b_HV);
-         tree->SetBranchAddress("PreTemp", &PreTemp, &b_PreTemp);
-         tree->SetBranchAddress("BigResistence", &BigResistence, &b_BigResistence);
-         tree->SetBranchAddress("SmallResistence", &SmallResistence, &b_SmallResistence);
-         tree->SetBranchAddress("ClbTime", &ClbTime, &b_ClbTime);
-         tree->SetBranchAddress("ClbTemp", &ClbTemp, &b_ClbTemp);
+         if(jdebug>3) printf("StatusDB::LocateFile: Open file and SetBranchAddress ifile=%d tree=%p filename=%s\n",ifile,tree,filename_in?filename_in:filename[rectel][ifile]);
+         tree->SetBranchAddress("iTel", &iTel);
+         tree->SetBranchAddress("fpgaVersion", &fpgaVersion);
+         tree->SetBranchAddress("f9mode", &f9mode);
+         tree->SetBranchAddress("f9pattern", &f9pattern);
+         tree->SetBranchAddress("DbVersion", &DbVersion);
+         tree->SetBranchAddress("ClbVersion", &ClbVersion);
+         tree->SetBranchAddress("clb_initial_Time", (Long64_t*)&clb_initial_Time);
+         tree->SetBranchAddress("clb_initial_time", &clb_initial_time);
+         tree->SetBranchAddress("fired_tube", &fired_tube);
+         tree->SetBranchAddress("status_readback_Time", (Long64_t*)&status_readback_Time);
+         tree->SetBranchAddress("status_readback_time", &status_readback_time);
+         tree->SetBranchAddress("sipm", &sipm);
+         tree->SetBranchAddress("mask", &mask);
+         tree->SetBranchAddress("single_thresh", &single_thresh);
+         tree->SetBranchAddress("record_thresh", &record_thresh);
+         tree->SetBranchAddress("single_count", &single_count);
+         tree->SetBranchAddress("single_time", &single_time);
+         tree->SetBranchAddress("DbTemp", &DbTemp);
+         tree->SetBranchAddress("HV", &HV);
+         tree->SetBranchAddress("PreTemp", &PreTemp);
+         tree->SetBranchAddress("BigResistence", &BigResistence);
+         tree->SetBranchAddress("SmallResistence", &SmallResistence);
+         tree->SetBranchAddress("ClbTime", &ClbTime);
+         tree->SetBranchAddress("ClbTemp", &ClbTemp);
          if(jdebug>3) printf("StatusDB::LocateFile: SetBranchAddress finished. ifile=%d tree=%p\n",ifile,tree);
+         //tree->GetEntry(0);
+         //if(jdebug>4) printf("StatusDB::LocateFile: check entry 0 of %d, time0=%d\n",tree->GetEntries(),status_readback_Time);
       }
       else{
-         strcpy(FILENAME,filename[rectel][ifile]);
+         if(!filename_in) strcpy(FILENAME,filename[rectel][ifile]);
+         else strcpy(FILENAME,filename_in);
          fp=fopen(FILENAME,"rb");
+         if(jdebug>3) printf("StatusDB::LocateFile: dat file opened. ifile=%d pfile=%p\n",ifile,fp);
       }
       currentfile=located;
    }
@@ -681,9 +708,10 @@ void StatusDB::Fill(){
 }*/
 
 long int StatusDB::LocateEntry(int Time){
-   if(!tree) return -1;
+   if(!tree) return -2;
    if(jdebug>4) printf("StatusDB::LocateEntry: Begin search entry for Time=%d\n",Time);
    long int maxentry=tree->GetEntries();
+   if(maxentry<1) return -2;
    long int entry0=entryno;
    if(entry0>=0&&entry0<maxentry){
       entryno=entry0;
@@ -713,16 +741,48 @@ long int StatusDB::LocateEntry(int Time){
    tree->GetEntry(entryno);
    int time2=status_readback_Time;
    if(Time<time1-timemargin){
-      if(jdebug>4) printf("StatusDB::LocateEntry: Time too small, Time=%d entry=%ld time=%d\n",Time,0,time1);
-      entryno=0;
-      tree->GetEntry(entryno);
-      return -1;
+      int retval;
+      if(Time<time1-3*60){
+         //entryno=-1;
+         entryno=entry0;
+         tree->GetEntry(entryno);
+         retval=-1;
+      }
+      else{
+         entryno=0;
+         tree->GetEntry(entryno);
+         retval=entryno;
+      }
+      if(jdebug>4) printf("StatusDB::LocateEntry: Time too small, Time=%d entry=%ld time=%d return=%d\n",Time,entryno,time1,retval);
+      return retval;
    }
    else if(Time>time2+timemargin){
-      if(jdebug>4) printf("StatusDB::LocateEntry: Time too large, Time=%d entry=%ld time=%d\n",Time,maxentry-1,time2);
+      int retval;
+      if(Time>time2+3*60){
+         //entryno=-1;
+         entryno=entry0;
+         tree->GetEntry(entryno);
+         retval=-1;
+      }
+      else{
+         entryno=maxentry-1;
+         tree->GetEntry(entryno);
+         retval=entryno;
+      }
+      if(jdebug>4) printf("StatusDB::LocateEntry: Time too large, Time=%d entry=%ld time=%d return=%d\n",Time,entryno,time1,retval);
+      return retval;
+   }
+   else if(fabs(Time-time1)<=timemargin){
+      entryno=0;
+      tree->GetEntry(entryno);
+      if(jdebug>5) printf("StatusDB::LocateEntry: try minimum entry, Time=%d entry=%ld time=%d\n",Time,entryno,time1);
+      return entryno;
+   }
+   else if(fabs(Time-time2)<=timemargin){
       entryno=maxentry-1;
-      //tree->GetEntry(entryno);
-      return -1;
+      tree->GetEntry(entryno);
+      if(jdebug>5) printf("StatusDB::LocateEntry: try maximum entry, Time=%d entry=%ld time=%d\n",Time,entryno,time2);
+      return entryno;
    }
    else{
       int entry1=0;
@@ -732,27 +792,44 @@ long int StatusDB::LocateEntry(int Time){
       tree->GetEntry(entryno);
       int timei=status_readback_Time;
       while(fabs(Time-timei)>timemargin){
-         if(Time<timei) entry2=entryi;
-         else entry1=entryi;
+         if(Time<timei) {entry2=entryi; time2=timei;}
+         else {entry1=entryi; time1=timei;}
          entryi=(entry1+entry2)/2;
+         if(entryi==entry1||entryi==entry2){
+            if(fabs(Time-time1)<fabs(Time-time2)) entryi=entry1;
+            else entryi=entry2;
+         }
          entryno=entryi;
          tree->GetEntry(entryno);
          timei=status_readback_Time;
-         if(jdebug>5) printf("StatusDB::LocateEntry: ith try Time=%d entry=%ld time=%d\n",Time,entryno,timei);
-         if(entry1==entry2) break;
+         if(jdebug>5) printf("StatusDB::LocateEntry: ith try Time=%d entry=%ld(entry1=%ld entry2=%ld) time=%d\n",Time,entryno,entry1,entry2,timei);
+         if(fabs(entry1-entry2)<1.5) break;
       }
       if(fabs(Time-timei)>timemargin){
-         if(jdebug>4) printf("StatusDB::LocateEntry: Missing some time, Time=%d entry=%ld time=%d\n",Time,entryno,timei);
-         return -1;
+         if(fabs(time1-time2)<3*60){
+            if(jdebug>4) printf("StatusDB::LocateEntry: Missing a short time, Time=%d entry=%ld time=%d (entry1=%ld time1=%d,entry2=%ld time2=%d)\n",Time,entryno,timei,entry1,time1,entry2,time2);
+            return entryi;
+         }
+         else{
+            //entryno=-1;
+            entryno=entry0;
+            tree->GetEntry(entryno);
+            if(jdebug>4) printf("StatusDB::LocateEntry: Missing some time, Time=%d entry=%ld time=%d (entry1=%ld time1=%d,entry2=%ld time2=%d)\n",Time,entryi,timei,entry1,time1,entry2,time2);
+            return -1;
+         }
       }
       else return entryno;
    }
 }
 
-long int StatusDB::Locate(int iTel0,int Time,double time){
-   int iindex=LocateFile(iTel0,Time,time);
-   if(iindex<0) return false;
+long int StatusDB::Locate(int iTel0,int Time,char* filename_in,double time){
+   int iindex=LocateFile(iTel0,Time,filename_in,time);
+   if(iindex<-1) return -2;
    if(UseDecodeData){
+      if(jdebug>5) printf("StatusDB::Locate: currentime=%d entryno=%ld Time=%d\n",currenttime,entryno,Time);
+      if(fabs(Time-currenttime)<1){
+         return entryno;
+      }
       long int entry=LocateEntry(Time);
       if(entry>=0){
          //currentfile=iindex;
@@ -760,6 +837,7 @@ long int StatusDB::Locate(int iTel0,int Time,double time){
          entryno=entry;
       }
       else failtime.push_back(Time);
+      if(jdebug>4) printf("StatusDB::Locate: entry=%ld located for iTel=%d Time=%d currentime=%d entryno=%ld\n",entry,iTel0,Time,currenttime,entryno);
       return entry;
    }
    else{
@@ -767,71 +845,71 @@ long int StatusDB::Locate(int iTel0,int Time,double time){
    }
 }
 
-int StatusDB::GetVersion(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+int StatusDB::GetVersion(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return fpgaVersion[i];
 }
-long StatusDB::GetClbInitTime(int iTel0,int Time){
-   if(Locate(iTel0,Time)<0) return 0;
+long StatusDB::GetClbInitTime(int iTel0,int Time,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return 0;
    return clb_initial_Time;
 }
-double StatusDB::GetClbInittime(int iTel0,int Time){
-   if(Locate(iTel0,Time)<0) return 0;
+double StatusDB::GetClbInittime(int iTel0,int Time,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return 0;
    return clb_initial_time;
 }
-int StatusDB::GetFiredTube(int iTel0,int Time){
-   if(Locate(iTel0,Time)<0) return 0;
+int StatusDB::GetFiredTube(int iTel0,int Time,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return 0;
    return fired_tube;
 }
-long StatusDB::GetReadbackTime(int iTel0,int Time){
-   if(Locate(iTel0,Time)<0) return 0;
+long StatusDB::GetReadbackTime(int iTel0,int Time,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return 0;
    return status_readback_Time;
 }
-double StatusDB::GetReadbacktime(int iTel0,int Time){
-   if(Locate(iTel0,Time)<0) return 0;
+double StatusDB::GetReadbacktime(int iTel0,int Time,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return 0;
    return status_readback_time;
 }
-short StatusDB::GetSingleThrd(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+short StatusDB::GetSingleThrd(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return single_thresh[i];
 }
-short StatusDB::GetRecordThrd(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+short StatusDB::GetRecordThrd(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return record_thresh[i];
 }
-long StatusDB::GetSingleCount(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+long StatusDB::GetSingleCount(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return single_count[i];
 }
-float StatusDB::GetDbTemp(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+float StatusDB::GetDbTemp(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return single_count[i];
 }
-long StatusDB::GetSingleTime(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+long StatusDB::GetSingleTime(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return single_time[i];
 }
-float StatusDB::GetHV(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+float StatusDB::GetHV(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return HV[i];
 }
-float StatusDB::GetPreTemp(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+float StatusDB::GetPreTemp(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return PreTemp[i];
 }
-float StatusDB::GetBigR(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+float StatusDB::GetBigR(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return BigResistence[i];
 }
-float StatusDB::GetSmallR(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+float StatusDB::GetSmallR(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return SmallResistence[i];
 }
-long StatusDB::GetClbTime(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+long StatusDB::GetClbTime(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return ClbTime[i];
 }
-float StatusDB::GetClbTemp(int iTel0,int Time,int i){
-   if(Locate(iTel0,Time)<0) return -1000;
+float StatusDB::GetClbTemp(int iTel0,int Time,int i,char* filename_in){
+   if(Locate(iTel0,Time,filename_in)<0) return -1000;
    return ClbTemp[i];
 }

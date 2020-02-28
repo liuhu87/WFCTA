@@ -69,6 +69,9 @@ class LHChain : public TChain {
    const char* ChainName(){return _NAME;}
    //Long64_t  Process(TSelector*pev, Option_t *option="", Long64_t nentries=1000000000000LL, Long64_t firstentry=0);
 
+   ///Get the name of current file
+   const char* GetFileName();
+
    ClassDef(LHChain,5);
 };
 #endif

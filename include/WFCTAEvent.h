@@ -7,6 +7,7 @@
 #include <map>
 #include "TObject.h"
 #include "TObjArray.h"
+#include "TChain.h"
 #include "TTree.h"
 #include "TBranch.h"
 #include "TH2Poly.h"
@@ -21,12 +22,14 @@
 
 using namespace std;
 const int MAXPMT=1024;
+class LHChain;
 class WFCTAEvent : public TSelector
 {
 	protected:
 		static const int cleanPix;
 		static WFCTAEvent* _Head;
 		static TTree* _Tree;
+		static LHChain* _Chain;
 		static const char * _Name;
 		static TBranch* bAll;
 		static TBranch* bmcevent;
@@ -39,6 +42,7 @@ class WFCTAEvent : public TSelector
    static double adccuttrigger;
    static double npetrigger;
    static int nfiretrigger;
+   static int CalibType;
 
    TList* tlist; //!
    vector<TGraph*> graphlist; //!
@@ -143,9 +147,11 @@ class WFCTAEvent : public TSelector
 		static const char *  BranchName() {return _Name;}
 		static WFCTAEvent* & Head()  {return _Head;}
 		static TTree* & Tree()  {return _Tree;}
+                static void SetLHChain(LHChain* chain);
 		void CreateBranch(TTree *tree, int branchSplit);
 		void GetBranch(TTree *fChain);
 		bool GetAllContents(int _Entry);
+                const char* GetFileName();
                 bool CheckLaser();
                 bool CheckMC();
                 void CalculateDataVar(int itel=0);
@@ -154,9 +160,9 @@ class WFCTAEvent : public TSelector
                 int GetPeakADCBin(int isipm,int itel=0);
                 int GetMaxTimeBin(int itel=0);
                 int GetMinTimeBin(int itel=0);
-                double GetContent(int isipm,int itel=0,int type=3,bool IsIndex=false);
-                double GetContentError(int isipm,int itel=0,int type=3,bool IsIndex=false);
-                bool CleanImage(int isipm,int itel=0,bool IsIndex=false);
+                double GetContent(int isipm,int itel=0,int type=3,bool IsIndex=false,bool IsFit=false);
+                double GetContentError(int isipm,int itel=0,int type=3,bool IsIndex=false,bool IsFit=false);
+                bool CleanImage(int isipm,int itel=0,bool IsIndex=false,bool IsFit=false);
                 bool PassClean(int itel=0,int nthreshold=5);
                 double Interface(const double* par);
                 bool DoFit(int itel=0,int type=3,bool force=false);
