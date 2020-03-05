@@ -5,9 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <map>
 
-using namespace std;
 class WFCTAMerge
 {
 	protected:
@@ -20,11 +18,11 @@ class WFCTAMerge
 		static float m_Baselow;
 		static float m_Adchigh;
 		static float m_Adclow;
-		static vector<int> merged_pulsehigh;
-		static vector<int> merged_pulselow;
+		static std::vector<int> merged_pulsehigh;
+		static std::vector<int> merged_pulselow;
 
-		static void FindPeak(int isipm, vector<WFCTAMerge> &evs);
-		static void WaveForm_Merge(int isipm, vector<WFCTAMerge> &evs);
+		static void FindPeak(int isipm, std::vector<WFCTAMerge> &evs);
+		static void WaveForm_Merge(int isipm, std::vector<WFCTAMerge> &evs);
 	public:
 		int big_pack_lenth;
 		long eEvent;
@@ -32,6 +30,7 @@ class WFCTAMerge
 		double rabbittime;
 		short n_fired;
 		short n_Channel;
+		short packCheck;
 		long eevent[1024];
 		short zipmod[1024];
 		float winsum[1024];
@@ -49,34 +48,35 @@ class WFCTAMerge
 		WFCTAMerge();
 		~WFCTAMerge();
 		void EventInitial();
-		static long GeteEvent(vector<WFCTAMerge> &evs);
-		static long RabbitTime(vector<WFCTAMerge> &evs);
-		static long Rabbittime(vector<WFCTAMerge> &evs);
-		static int GetBigPackLen(vector<WFCTAMerge> &evs);
-		static short GetNFired(vector<WFCTAMerge> &evs);
-		static short GetNChannel(vector<WFCTAMerge> &evs);
-		static long eevent_Merge(int isipm, vector<WFCTAMerge> &evs);
-		static short zipmod_Merge(int isipm, vector<WFCTAMerge> &evs);
-		static bool OvSigMarker_Merge(int isipm, vector<WFCTAMerge> &evs);
-		static bool OvRecMarker_Merge(int isipm, vector<WFCTAMerge> &evs);
-		static float WimSum_Merge(int isipm, vector<WFCTAMerge> &evs);
-		static short GetPeakPosH(int isipm, vector<WFCTAMerge> &evs);
-		static short GetPeakPosL(int isipm, vector<WFCTAMerge> &evs);
-		static int GetPeakAmpH(int isipm, vector<WFCTAMerge> &evs);
-		static int GetPeakAmpL(int isipm, vector<WFCTAMerge> &evs);
-		static void Calc_Q_Base(int isipm, vector<WFCTAMerge> &evs, int laserCalc);
-		static float GetBaseH(int isipm, vector<WFCTAMerge> &evs);
-		static float GetBaseL(int isipm, vector<WFCTAMerge> &evs);
-		static float GetAdcH(int isipm, vector<WFCTAMerge> &evs);
-		static float GetAdcL(int isipm, vector<WFCTAMerge> &evs);
-		static float GetLaserBaseH(int isipm, vector<WFCTAMerge> &evs);
-		static float GetLaserBaseL(int isipm, vector<WFCTAMerge> &evs);
-		static float GetLaserAdcH(int isipm, vector<WFCTAMerge> &evs);
-		static float GetLaserAdcL(int isipm, vector<WFCTAMerge> &evs);
-		static int eSatH_Merge(int isipm, vector<WFCTAMerge> &evs);
-		static int eSatL_Merge(int isipm, vector<WFCTAMerge> &evs);
+		static long GeteEvent(std::vector<WFCTAMerge> &evs);
+		static long RabbitTime(std::vector<WFCTAMerge> &evs);
+		static long Rabbittime(std::vector<WFCTAMerge> &evs);
+		//static void packCheck_Merge(std::vector<WFCTAMerge> &evs);
+		static int GetBigPackLen(std::vector<WFCTAMerge> &evs);
+		static short GetNFired(std::vector<WFCTAMerge> &evs);
+		static short GetNChannel(std::vector<WFCTAMerge> &evs);
+		static long eevent_Merge(int isipm, std::vector<WFCTAMerge> &evs);
+		static short zipmod_Merge(int isipm, std::vector<WFCTAMerge> &evs);
+		static bool OvSigMarker_Merge(int isipm, std::vector<WFCTAMerge> &evs);
+		static bool OvRecMarker_Merge(int isipm, std::vector<WFCTAMerge> &evs);
+		static float WimSum_Merge(int isipm, std::vector<WFCTAMerge> &evs);
+		static short GetPeakPosH(int isipm, std::vector<WFCTAMerge> &evs);
+		static short GetPeakPosL(int isipm, std::vector<WFCTAMerge> &evs);
+		static int GetPeakAmpH(int isipm, std::vector<WFCTAMerge> &evs);
+		static int GetPeakAmpL(int isipm, std::vector<WFCTAMerge> &evs);
+		static void Calc_Q_Base(int isipm, std::vector<WFCTAMerge> &evs, int laserCalc);
+		static float GetBaseH(int isipm, std::vector<WFCTAMerge> &evs);
+		static float GetBaseL(int isipm, std::vector<WFCTAMerge> &evs);
+		static float GetAdcH(int isipm, std::vector<WFCTAMerge> &evs);
+		static float GetAdcL(int isipm, std::vector<WFCTAMerge> &evs);
+		static float GetLaserBaseH(int isipm, std::vector<WFCTAMerge> &evs);
+		static float GetLaserBaseL(int isipm, std::vector<WFCTAMerge> &evs);
+		static float GetLaserAdcH(int isipm, std::vector<WFCTAMerge> &evs);
+		static float GetLaserAdcL(int isipm, std::vector<WFCTAMerge> &evs);
+		static int eSatH_Merge(int isipm, std::vector<WFCTAMerge> &evs);
+		static int eSatL_Merge(int isipm, std::vector<WFCTAMerge> &evs);
 
-		static bool IsData_Merge(int isipm, vector<WFCTAMerge> &evs);
+		static bool IsData_Merge(int isipm, std::vector<WFCTAMerge> &evs);
 
 };
 

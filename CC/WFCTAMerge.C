@@ -82,7 +82,19 @@ long WFCTAMerge::Rabbittime(vector<WFCTAMerge> &evs)
 	return rb_time;
 }
 
-
+/*
+void WFCTAMerge::packCheck_Merge(vector<WFCTAMerge> &evs)
+{
+	vector<short> pack_check;
+	pack_check.clear();
+	vector<WFCTAMerge>::iterator evs_iter;
+	for(evs_iter=evs.begin(); evs_iter!=evs.end(); evs_iter++)
+	{
+		pack_check.push_back( (*evs_iter).packCheck );
+	}
+	//return &pack_check;
+}
+*/
 int WFCTAMerge::GetBigPackLen(vector<WFCTAMerge> &evs)
 {
 	int big_pac_len=0;
@@ -311,9 +323,9 @@ void WFCTAMerge::Calc_Q_Base(int isipm, vector<WFCTAMerge> &evs, int laserCalc)
 
 	int wave_len = merged_pulsehigh.size();
 	WFCTAMerge::FindPeak(isipm,evs);
-	if(isipm==1){
-		printf("peakPosH:%d peakAmH:%d\n",peakPosH,peakAmpH);
-	}
+	//if(isipm==1){
+	//	printf("peakPosH:%d peakAmH:%d\n",peakPosH,peakAmpH);
+	//}
 	m_Basehigh = 0;
 	m_Baselow = 0;
 	m_Adchigh = 0;
@@ -342,9 +354,9 @@ void WFCTAMerge::Calc_Q_Base(int isipm, vector<WFCTAMerge> &evs, int laserCalc)
 		}
 		m_Basehigh = m_Basehigh/(4*base_calc_len);
 		m_Adchigh -= m_Basehigh*4*wave_calc_len;
-		if(isipm==1){
-			printf("BaseH:%f AdcH:%f waveStart:%d waveEnd:%d wave_calc_len:%d base_calc_len:%d\n",m_Basehigh,m_Adchigh,waveStart,waveEnd,wave_calc_len,base_calc_len);
-		}
+		//if(isipm==1){
+		//	printf("BaseH:%f AdcH:%f waveStart:%d waveEnd:%d wave_calc_len:%d base_calc_len:%d\n",m_Basehigh,m_Adchigh,waveStart,waveEnd,wave_calc_len,base_calc_len);
+		//}
 
 		//calc low gain cosmic ray adc and base
 		base_calc_len=0;
@@ -439,9 +451,9 @@ void WFCTAMerge::Calc_Q_Base(int isipm, vector<WFCTAMerge> &evs, int laserCalc)
 		}
 		m_Basehigh = m_Basehigh/(4*base_calc_len);
 		m_Adchigh -= m_Basehigh*4*wave_calc_len;
-		if(isipm==1){
-			printf("BaseH:%f AdcH:%f waveStart:%d waveEnd:%d wave_calc_len:%d base_calc_len:%d preBaseH:%lf\n",m_Basehigh,m_Adchigh,waveStart,waveEnd,wave_calc_len,base_calc_len,preBaseH);
-		}
+		//if(isipm==1){
+		//	printf("BaseH:%f AdcH:%f waveStart:%d waveEnd:%d wave_calc_len:%d base_calc_len:%d preBaseH:%lf\n",m_Basehigh,m_Adchigh,waveStart,waveEnd,wave_calc_len,base_calc_len,preBaseH);
+		//}
 
 		int ipulseL;
 		//calc low gain laser adc and base

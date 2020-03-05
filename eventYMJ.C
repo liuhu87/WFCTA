@@ -80,6 +80,7 @@ int main(int argc, char**argv)
 			wfctaDecode->Find_SiPMs(buf);//,packSize);//,0);
 			sipm_position = &(wfctaDecode->GetSiPM_Position());
 
+			wfctaEvent->packCheck.push_back(wfctaDecode->PackCheck());
 			//get info of each sipm: q, base, peakposition...//
 			wfctaEvent->n_Channel = 0;
 			for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){

@@ -455,14 +455,53 @@ double WFCTADecode::GetclbInitialtime(uint8_t *begin, int packsize)
 int WFCTADecode::GetF18Version(uint8_t *begin, int packsize)
 {
 	int m_f18version = (int)( (int32_t)begin[packsize-3]);
-	printf("m_f18version:%0x\n",m_f18version);
+	//printf("m_f18version:%0x\n",m_f18version);
 	return m_f18version;
+}
+
+void WFCTADecode::GetMask(uint8_t *begin, int packsize, uint8_t f_board, int *mask)
+{
+	int m_mask;
+	short db_board,channel,sc,sipm;
+	int ich=0;
+
+	for(int i=59;i>27;i--)
+	{
+		m_mask = (int)( (int32_t)((begin[packsize-i]>>6)&0x03));
+		channel = ich%16+1;db_board = ich/16+1;ich++;
+		sc = db_board*10+f_board;
+		SC_Channel2SiPM(sc,channel,&sipm);
+		*(mask+sipm) = m_mask;
+		//printf("f_board:%d db_board:%d channel:%d sipm:%d m_mask:%d\n",f_board,db_board,channel,sipm,m_mask);
+
+		m_mask = (int)( (int32_t)((begin[packsize-i]>>4)&0x03));
+		channel = ich%16+1;db_board = ich/16+1;ich++;
+		sc = db_board*10+f_board;
+		SC_Channel2SiPM(sc,channel,&sipm);
+		*(mask+sipm) = m_mask;
+		//printf("f_board:%d db_board:%d channel:%d sipm:%d m_mask:%d\n",f_board,db_board,channel,sipm,m_mask);
+
+		m_mask = (int)( (int32_t)((begin[packsize-i]>>2)&0x03));
+		channel = ich%16+1;db_board = ich/16+1;ich++;
+		sc = db_board*10+f_board;
+		SC_Channel2SiPM(sc,channel,&sipm);
+		*(mask+sipm) = m_mask;
+		//printf("f_board:%d db_board:%d channel:%d sipm:%d m_mask:%d\n",f_board,db_board,channel,sipm,m_mask);
+
+		m_mask = (int)( (int32_t)((begin[packsize-i])&0x03));
+		channel = ich%16+1;db_board = ich/16+1;ich++;
+		sc = db_board*10+f_board;
+		SC_Channel2SiPM(sc,channel,&sipm);
+		*(mask+sipm) = m_mask;
+		//printf("f_board:%d db_board:%d channel:%d sipm:%d m_mask:%d\n",f_board,db_board,channel,sipm,m_mask);
+	}
+	//dumpPacket(begin+packsize-59,34);
 }
 
 int WFCTADecode::GetDBVersion(uint8_t *begin, int packsize)
 {
 	int m_dbversion = (int)( (int32_t)begin[packsize-3]);
-	printf("m_dbversion:%0x\n",m_dbversion);
+	//printf("m_dbversion:%0x\n",m_dbversion);
 	return m_dbversion;
 }
 int WFCTADecode::GetDBNumber(uint8_t *begin, int packsize)
@@ -470,14 +509,14 @@ int WFCTADecode::GetDBNumber(uint8_t *begin, int packsize)
 	int db = (int)( (int8_t)(begin[packsize-70]>>4)&0xf);
 	int fpga = (int)( (int8_t)(begin[packsize-70])&0xf);
 	int m_dbnumber = db*10 + fpga;
-	printf("m_dbnumber:%d\n",m_dbnumber);
+	//printf("m_dbnumber:%d\n",m_dbnumber);
 	return m_dbnumber;
 }
 
 int WFCTADecode::GetClbVersion(uint8_t *begin, int packsize)
 {
 	int m_clbversion = (int)( ((int32_t)begin[packsize-6]<<8) | (int32_t)begin[packsize-5]);
-	printf("m_clbversion:%0x\n",m_clbversion);
+	//printf("m_clbversion:%0x\n",m_clbversion);
 	return m_clbversion;
 }
 int WFCTADecode::GetClbNumber(uint8_t *begin, int packsize)
@@ -485,7 +524,7 @@ int WFCTADecode::GetClbNumber(uint8_t *begin, int packsize)
 	int db = (int)( (int8_t)(begin[packsize-72]>>4)&0xf);
 	int fpga = (int)( (int8_t)(begin[packsize-72])&0xf);
 	int m_clbnumber = db*10 + fpga;
-	printf("m_clbnumber:%d\n",m_clbnumber);
+	//printf("m_clbnumber:%d\n",m_clbnumber);
 	return m_clbnumber;
 }
 
@@ -576,14 +615,26 @@ bool WFCTADecode::FEEDataFragment(uint8_t *begin)
 /**********************
  * **find big package**
  * ********************/
-bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart)
+int WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart)
 {
-	//int64_t big_pack_len;
+	//printf("packStart:%lld bufsize:%lld \n",packStart,bufsize);
+	if(packStart==bufsize || bufsize==20)
+	{
+		return 0;
+	}
+
+	int serchRange = packStart+131113;
+	if(serchRange>bufsize)
+	{
+		serchRange=bufsize;
+	}
 	head = 0;
 	tail = 0;
-
 	readPos = 0+packStart;
-	while(readPos<bufsize)
+	int packHead=0;
+	int packTail=0;
+	int16_t fire_tube=-1;
+	while(readPos<serchRange)
 	{
 		if(   *(begin+readPos+0)==0xcc && *(begin+readPos+1)==0xcc 
 				&& *(begin+readPos+2)==0xdd && *(begin+readPos+3)==0xdd
@@ -591,35 +642,80 @@ bool WFCTADecode::bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart)
 				&& *(begin+readPos+6)==0xff && *(begin+readPos+7)==0xff)
 		{
 			head = readPos;
+			packHead = 1;
 			break;
 		}
 		readPos++;
 	}
 
-	readPos = 0+packStart;
-	while(readPos<bufsize)
+	if(packHead==1)
 	{
-		if(   *(begin+readPos+0)==0x11 && *(begin+readPos+1)==0x11 
-				&& *(begin+readPos+2)==0x22 && *(begin+readPos+3)==0x22  
-				&& *(begin+readPos+4)==0x33 && *(begin+readPos+5)==0x33 
-				&& *(begin+readPos+6)==0x44 && *(begin+readPos+7)==0x44)
+		fire_tube = WFCTADecode::nFired(begin);
+		if(fire_tube>=0&&fire_tube<=1024)
 		{
-			tail = readPos+7;
-			break;
+			readPos = head+fire_tube*128+32;
+			if(   *(begin+readPos+0)==0x11 && *(begin+readPos+1)==0x11 
+					&& *(begin+readPos+2)==0x22 && *(begin+readPos+3)==0x22  
+					&& *(begin+readPos+4)==0x33 && *(begin+readPos+5)==0x33 
+					&& *(begin+readPos+6)==0x44 && *(begin+readPos+7)==0x44)
+			{
+				tail = readPos+7;
+				packTail = 1;
+			}
 		}
-		readPos++;
-	}
-
-	big_pack_len = tail + 1 - head;
-	packSize = tail+1;
-	if(big_pack_len>1)
-	{
-		//dumpPacket(begin+head,24);printf("%lld ** %lld ** packsize:%lld | \n",head,tail,packSize);
-		return true;
 	}
 	else
 	{
-		return false;
+		readPos = 0+packStart;
+		while(readPos<serchRange)
+		{   
+			if(   *(begin+readPos+0)==0x11 && *(begin+readPos+1)==0x11 
+					&& *(begin+readPos+2)==0x22 && *(begin+readPos+3)==0x22  
+					&& *(begin+readPos+4)==0x33 && *(begin+readPos+5)==0x33 
+					&& *(begin+readPos+6)==0x44 && *(begin+readPos+7)==0x44)
+			{   
+				tail = readPos+7;
+				packTail = 1;
+				break;
+			}
+			readPos++;
+		}
+	}
+
+	if(packHead==1&&packTail==1)
+	{
+		packCheck = 1;//pack is ok
+		big_pack_len = tail + 1 - head;
+		packSize = tail+1;
+		//printf("pack ok\n");
+		return 1;
+	}
+	if(packHead==1&&packTail==0)
+	{
+		packCheck = 2;//pack head is ok, no pack tail
+		tail = head + 1;
+		big_pack_len = tail + 1 - head;
+		packSize = tail+1;
+		//printf("no pack tail\n");
+		return 2;
+	}
+	if(packHead==0&&packTail==1)
+	{
+		packCheck = 3;//pack tail is ok, no pack head
+		tail = head + 1;
+		big_pack_len = tail + 1 - head;
+		packSize = tail+1;
+		//printf("no pack head\n");
+		return 2;
+	}
+	if(packHead==0&&packTail==0)
+	{
+		packCheck = 4;//no pack head, no pack tail
+		tail = head + 1;
+		big_pack_len = tail + 1 - head;
+		packSize = tail+1;
+		//printf("no pack\n");
+		return 0;
 	}
 }
 
@@ -632,7 +728,6 @@ int32_t WFCTADecode::sliceLength(uint8_t *begin, int feedatahead)
 		((int32_t)begin[feedatahead+6]<<16)|
 		((int32_t)begin[feedatahead+5]<<8)|
 		((int32_t)begin[feedatahead+4]);
-	//printf("totle size:%d\n",sliceLength);
 	return sliceLength;
 }
 
@@ -642,7 +737,6 @@ int32_t WFCTADecode::sliceLength(uint8_t *begin, int feedatahead)
 short WFCTADecode::Telid(uint8_t *begin, int feedatahead)
 {
 	short telId = (short)begin[feedatahead+8];
-	//printf("telid:%d\n",telId);
 	return telId;
 }
 
@@ -653,9 +747,51 @@ void WFCTADecode::Find_SiPMs(uint8_t *begin)//, int packStart)
 {
 	short fpga,db;
 	short sc,channel,sipm;
+	int littlePackHead=0;
 	m_sipm_position.clear();
-	readPos = head;
+	int sipmCount[1024]={0};
+	short sipmRepeat=0;
+	short sipmNumber=0;
+	short sipmAddress=0;
 
+	int16_t fire_tube = WFCTADecode::nFired(begin);
+	//dumpPacket(begin+head,16,16);
+	for(int i=0;i<fire_tube;i++){
+		littlePackHead = head+24+128*i;
+		if(   *(begin+littlePackHead+0)==0xaa && *(begin+littlePackHead+1)==0xaa
+				&& *(begin+littlePackHead+124)==0xbb && *(begin+littlePackHead+125)==0xbb)
+		{
+			fpga = *(begin+littlePackHead+5)&0x0f;
+			db = (*(begin+littlePackHead+5)>>4)&0x0f;
+			sc = db*10+fpga;
+			channel = *(begin+littlePackHead+4);
+			SC_Channel2SiPM(sc,channel,&sipm);
+			if(sipm>=0&&sipm<=1023){
+				sipmCount[sipm]++;
+				m_sipm_position.insert(pair<short,int>(sipm,(int)littlePackHead));
+			}
+			else{
+				sipmNumber = 1;//sipm number is wrong
+			}
+		}
+		else
+		{
+			sipmAddress = 1;//address of little pack is wrong
+		}
+	}
+	for(int i=0;i<1024;i++)
+	{
+		//if(evtid==59970)
+		//printf("%d sipmCount:%d\n",i,sipmCount[i]);
+		if(sipmCount[i]>1)
+		{
+			sipmRepeat = 1;//some sipm repeat in one event
+		}
+	}
+	packCheck = packCheck*1000+sipmNumber*100+sipmAddress*10+sipmRepeat;
+	//printf("eEvent:%lld\n\n",evtid);
+	/*
+	readPos = head;
 	while(readPos<tail)
 	{
 		if(   *(begin+readPos+0)==0xaa && *(begin+readPos+1)==0xaa
@@ -671,6 +807,8 @@ void WFCTADecode::Find_SiPMs(uint8_t *begin)//, int packStart)
 				readPos += 126;
 			}
 			else{
+				packCheck = 2;
+				//printf("bad small pack:%d\n",packCheck);
 				readPos++;
 			}
 		}
@@ -679,6 +817,7 @@ void WFCTADecode::Find_SiPMs(uint8_t *begin)//, int packStart)
 			readPos++;
 		}
 	}
+	*/
 	//dumpPacket(begin,packSize,16);
 }
 
@@ -687,7 +826,7 @@ void WFCTADecode::Find_SiPMs(uint8_t *begin)//, int packStart)
  * ********************/
 uint64_t WFCTADecode::eventId(uint8_t *begin)
 {
-	uint64_t evtid = ((uint64_t)begin[head+12]<<24)|
+	evtid = ((uint64_t)begin[head+12]<<24)|
 		((uint64_t)begin[head+13]<<16)|
 		((uint64_t)begin[head+14]<<8)|
 		((uint64_t)begin[head+15]);
@@ -995,9 +1134,9 @@ void WFCTADecode::waveform(uint8_t *begin, short isipm)
 	for(int i=14; i<28; i++)
 	{   
 		pulsehigh[i] = ((int)(begin[waveStart2+i*4]&0x7f)<<8)|((int)begin[waveStart2+i*4+1]);
-		saturationH[i] = ((int)((begin[waveStart1+i*4]>>7)&0x01));
+		saturationH[i] = ((int)((begin[waveStart2+i*4]>>7)&0x01));
 		pulselow[i]  = ((int)(begin[waveStart2+i*4+2]&0x7f)<<8)|((int)begin[waveStart2+i*4+3]);
-		saturationL[i] = ((int)((begin[waveStart1+i*4+2]>>7)&0x01));
+		saturationL[i] = ((int)((begin[waveStart2+i*4+2]>>7)&0x01));
 	}
 }
 

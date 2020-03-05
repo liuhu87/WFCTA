@@ -25,7 +25,7 @@ int main(int argc, char**argv)
 		printf("Use %s iptpath/inputfile outpath/outfile\n",argv[0]);
 		return 0;
 	}
-
+//int eventTEST=atoi(argv[3]);
 	FILE *fp;
 	uint8_t *buf = NULL;// = new uint8_t[BUF_LEN];
 	int32_t slicelength = 2000000;
@@ -68,6 +68,7 @@ int main(int argc, char**argv)
 		buf = new uint8_t[40];
 		size_of_read = fread((uint8_t *)buf,1,40,fp);
 		if(size_of_read==0){break;}
+
 		if(wfctaDecode->FEEDataFragment(buf))
 		{
 			FEEDataHead = wfctaDecode->feeDataHead();
@@ -81,13 +82,19 @@ int main(int argc, char**argv)
 			packStart = 0;
 			while(1)
 			{
-				if(wfctaDecode->bigPackCheck(buf,int(size_of_read),packStart))
+				int bigpackcheck = wfctaDecode->bigPackCheck(buf,int(size_of_read),packStart);
+				if(bigpackcheck == 1)
 				{
 					//get info rabbit_time and position in file//
 					rb_Time->push_back( wfctaDecode->RabbitTime(buf) );
 					rb_time->push_back( wfctaDecode->Rabbittime(buf) );
 					pack_pos->push_back( FEEPos + packStart );
 					pack_len->push_back( wfctaDecode->bigpackLen() );
+					packStart = wfctaDecode->PackSize();
+				}
+				else if(bigpackcheck == 2)
+				{
+					printf("bigpack is wrong\n");
 					packStart = wfctaDecode->PackSize();
 				}
 				else
@@ -121,6 +128,7 @@ int main(int argc, char**argv)
 	short ISIPM;
 	WFCTAMerge merge_ev;
 	vector<WFCTAMerge> merge_evs;
+	vector<WFCTAMerge>::iterator merge_evs_iter;
 	merge_evs.clear();
 
 	slicelength = 2000000;
@@ -137,6 +145,7 @@ int main(int argc, char**argv)
 		merge_ev.EventInitial();
 		wfctaDecode->bigPackCheck(buf,int(slicelength),0);
 		merge_ev.eEvent=wfctaDecode->eventId(buf);
+		//if(merge_ev.eEvent!=eventTEST){continue;}
 		merge_ev.rabbitTime=wfctaDecode->RabbitTime(buf);
 		merge_ev.rabbittime=wfctaDecode->Rabbittime(buf);
 		merge_ev.big_pack_lenth = wfctaDecode->bigpackLen();
@@ -144,6 +153,8 @@ int main(int argc, char**argv)
 		//find sipms and their position in this pack//
 		wfctaDecode->Find_SiPMs(buf);//,0);
 		sipm_position = &(wfctaDecode->GetSiPM_Position());
+		merge_ev.packCheck = wfctaDecode->PackCheck();
+		printf("bigpackCheck:%d eEvent:%lld\n\n",wfctaDecode->PackCheck(),merge_ev.eEvent);
 		//get info of each sipm: q, base, peakposition...//
 		for(sipm_position_iter=sipm_position->begin(); sipm_position_iter!=sipm_position->end(); sipm_position_iter++){
 			merge_ev.n_Channel++;
@@ -162,9 +173,9 @@ int main(int argc, char**argv)
 
 		merge_evs.push_back(merge_ev);
 		deltaTime = next_time_position_iter->first - time_position_iter->first;
-		printf("TimeNext:%lld    TimeThis:%lld    deltaTime:%lld\n",next_time_position_iter->first,time_position_iter->first,deltaTime);
+		//printf("TimeNext:%lld    TimeThis:%lld    deltaTime:%lld\n",next_time_position_iter->first,time_position_iter->first,deltaTime);
 
-		if(deltaTime!=1600)
+		if(deltaTime>1600)
 		{
 			wfctaEvent->iTel = ITEL;
 			wfctaEvent->merge_size = merge_evs.size();
@@ -176,11 +187,22 @@ int main(int argc, char**argv)
 			wfctaEvent->big_pack_lenth=WFCTAMerge::GetBigPackLen(merge_evs);
 			wfctaEvent->n_fired=WFCTAMerge::GetNFired(merge_evs);
 			wfctaEvent->n_Channel=WFCTAMerge::GetNChannel(merge_evs);
+			for(merge_evs_iter=merge_evs.begin(); merge_evs_iter!=merge_evs.end(); merge_evs_iter++)
+			{
+				wfctaEvent->packCheck.push_back( (*merge_evs_iter).packCheck );
+			}
 			for(int isipm=0;isipm<1024;isipm++)
 			{
 				if(!WFCTAMerge::IsData_Merge(isipm,merge_evs)){continue;}
-				if(ITEL==5)	{wfctaEvent->iSiPM.push_back( 1023 - isipm );}
-				else		{wfctaEvent->iSiPM.push_back( isipm );}
+				if(WFCTAMerge::WimSum_Merge(isipm,merge_evs)<100){continue;}
+				if(ITEL==5)	{
+					//printf("tel5 reverse: event:%d  isipm:%d 1023-isipm:%d\n",wfctaEvent->iEvent,isipm,1023-isipm);
+					wfctaEvent->iSiPM.push_back( 1023 - isipm );
+				}
+				else		{
+					//printf("tel%d event:%d  isipm:%d\n",ITEL,wfctaEvent->iEvent,isipm);
+					wfctaEvent->iSiPM.push_back( isipm );
+				}
 				wfctaEvent->eevent.push_back( WFCTAMerge::eevent_Merge(isipm,merge_evs) );
 				wfctaEvent->zipmod.push_back( WFCTAMerge::zipmod_Merge(isipm,merge_evs) );
 				wfctaEvent->Over_Single_Marker.push_back( WFCTAMerge::OvSigMarker_Merge(isipm,merge_evs) );
@@ -208,11 +230,11 @@ int main(int argc, char**argv)
 				wfctaEvent->LaserBaseL.push_back( WFCTAMerge::GetLaserBaseL(isipm,merge_evs) );
 				wfctaEvent->LaserAdcH.push_back( WFCTAMerge::GetLaserAdcH(isipm,merge_evs) );
 				wfctaEvent->LaserAdcL.push_back( WFCTAMerge::GetLaserAdcL(isipm,merge_evs) );
-				if(isipm==1){
-					printf("winsum_merge:%f\n",WFCTAMerge::WimSum_Merge(isipm,merge_evs));
-				}
+				//if(isipm==1){
+				//	printf("winsum_merge:%f\n",WFCTAMerge::WimSum_Merge(isipm,merge_evs));
+				//}
 			}
-			printf("merge event:%d\n\n",merge_evs.size());
+			//printf("merge event:%d\n\n",merge_evs.size());
 			eventShow->Fill();
 			merge_evs.clear();
 			wfctaEvent->EventInitial();

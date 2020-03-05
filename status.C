@@ -49,6 +49,7 @@ int main(int argc, char**argv)
 	long status_readback_Time;
 	double status_readback_time;
 	int sipm[1024];  for(int i=0;i<1024;i++) {sipm[i]=i;}
+	int mask[1024];
 	short single_thresh[1024];
 	short record_thresh[1024];
 	long single_count[1024];
@@ -78,6 +79,7 @@ int main(int argc, char**argv)
 	Status -> Branch("status_readback_Time",&status_readback_Time,"status_readback_Time/L");
 	Status -> Branch("status_readback_time",&status_readback_time,"status_readback_time/D");
 	Status -> Branch("sipm",sipm,"sipm[1024]/I");
+	Status -> Branch("mask",mask,"mask[1024]/I");
 	Status -> Branch("single_thresh",single_thresh,"single_thresh[1024]/S");
 	Status -> Branch("record_thresh",record_thresh,"record_thresh[1024]/S");
 	Status -> Branch("single_count",single_count,"single_count[1024]/L");
@@ -93,6 +95,7 @@ int main(int argc, char**argv)
 
 	int dbnumber;
 	int clbnumber;
+	int mask5[1024]={0};
 	short single_thresh5[1024]={0};
 	short record_thresh5[1024]={0};
 	long single_count5[1024]={0};
@@ -113,6 +116,7 @@ int main(int argc, char**argv)
 	status_readback_Time = -1000;
 	status_readback_time = -1000;
 	for(int i=0;i<1024;i++){
+		mask[i] = -1000;
 		single_thresh[i] = -1000;
 		record_thresh[i] = -1000;
 		single_count[i] = -1000;
@@ -214,6 +218,7 @@ int main(int argc, char**argv)
 								if(iTel==5)
 								{
 									for(int i=0;i<1024;i++){
+										mask5[i] = mask[1023-i];
 										single_thresh5[i] = single_thresh[1023-i];
 										record_thresh5[i] = record_thresh[1023-i];
 										single_count5[i] = single_count[1023-i];
@@ -227,6 +232,7 @@ int main(int argc, char**argv)
 										ClbTemp5[i] = ClbTemp[1023-i];
 									}
 									for(int i=0;i<1024;i++){
+										mask[i] = mask5[i];
 										single_thresh[i] = single_thresh5[i];
 										record_thresh[i] = record_thresh5[i];
 										single_count[i] = single_count5[i];
@@ -251,6 +257,7 @@ int main(int argc, char**argv)
 								status_readback_Time = -1000;
 								status_readback_time = -1000;
 								for(int i=0;i<1024;i++){
+									mask[i] = -1000;
 									single_thresh[i] = -1000;
 									record_thresh[i] = -1000;
 									single_count[i] = -1000;
@@ -280,6 +287,7 @@ int main(int argc, char**argv)
 								if(iTel==5)
 								{
 									for(int i=0;i<1024;i++){
+										mask5[i] = mask[1023-i];
 										single_thresh5[i] = single_thresh[1023-i];
 										record_thresh5[i] = record_thresh[1023-i];
 										single_count5[i] = single_count[1023-i];
@@ -293,6 +301,7 @@ int main(int argc, char**argv)
 										ClbTemp5[i] = ClbTemp[1023-i];
 									}
 									for(int i=0;i<1024;i++){
+										mask[i] = mask5[i];
 										single_thresh[i] = single_thresh5[i];
 										record_thresh[i] = record_thresh5[i];
 										single_count[i] = single_count5[i];
@@ -315,6 +324,7 @@ int main(int argc, char**argv)
 								status_readback_Time = -1000;
 								status_readback_time = -1000;
 								for(int i=0;i<1024;i++){
+									mask[i] = -1000;
 									single_thresh[i] = -1000;
 									record_thresh[i] = -1000;
 									single_count[i] = -1000;
@@ -341,7 +351,8 @@ int main(int argc, char**argv)
 								break;
 							default:
 								fpgaVersion[status_pack_marker] = wfctaDecode->GetF18Version(buf,packSize);
-								printf("status_pack_marker:%d\n",status_pack_marker);
+								wfctaDecode->GetMask(buf, packSize, status_pack_marker, (int *)mask);
+								//printf("status_pack_marker:%d\n",status_pack_marker);
 								break;
 						}
 					}

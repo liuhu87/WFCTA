@@ -21,10 +21,11 @@ public:
 
     bool FEEDataFragment(uint8_t *begin);
     int feeDataHead() {return FEEDataHead;};
-    bool bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart);
+    int bigPackCheck(uint8_t *begin, int bufsize, int64_t packStart);
     void Find_SiPMs(uint8_t *begin);//, int packStart);
 
     int64_t PackSize() {return packSize;};
+    short PackCheck() {return packCheck;};
     int32_t bigpackLen() {return big_pack_len;};
     map<short, int>& GetSiPM_Position() {return m_sipm_position;};
 
@@ -88,6 +89,7 @@ public:
 	int GetDBNumber(uint8_t *begin, int packsize);
 	int GetClbNumber(uint8_t *begin, int packsize);
 	int GetF18Version(uint8_t *begin, int packsize);
+	void GetMask(uint8_t *begin, int packsize, uint8_t f_board, int *mask);
 	int GetDBVersion(uint8_t *begin, int packsize);
 	int GetClbVersion(uint8_t *begin, int packsize);
 
@@ -110,6 +112,8 @@ private:
     map<short, int>::iterator m_sipm_position_iter;
 
     //char m_peak;
+	short packCheck;
+	uint64_t evtid;
     float m_adc_high;
     float m_adc_low;
     //float m_base_high;
