@@ -88,14 +88,7 @@ int Cloud::FindBinIndex(double xx,double yy){
       return nbin+1;
    }
    else{
-      while(yy<0){
-         yy+=360;
-         if(yy>=0) break;
-      }
-      while(yy>=360){
-         yy-=360;
-         if(yy<360) break;
-      }
+      yy=CommonTools::ProcessAngle(yy);
 
       int nbin=0;
       bool findit=false;
@@ -104,9 +97,18 @@ int Cloud::FindBinIndex(double xx,double yy){
          double theta2=Cbintheta[ii];
          if(xx>=theta1&&xx<theta2){
             for(int jj=0;jj<Cnbinphi[ii];jj++){
-               double phi1=(ii%2==0)?Cbinphi[ii][jj+1]:Cbinphi[ii][jj];
-               double phi2=(ii%2==0)?Cbinphi[ii][jj]:Cbinphi[ii][jj+1];
-               if(yy>=phi1&&yy<phi2){ //break
+               double phi1=CommonTools::ProcessAngle((ii%2==0)?Cbinphi[ii][jj+1]:Cbinphi[ii][jj]);
+               double phi2=CommonTools::ProcessAngle((ii%2==0)?Cbinphi[ii][jj]:Cbinphi[ii][jj+1]);
+               double phimin=TMath::Min(phi1,phi2);
+               double phimax=TMath::Max(phi1,phi2);
+               bool inside;
+               if(fabs(phimax-phimin)>=180.){
+                  inside=(yy>=0&&yy<=phimin)||(yy>phimax&&yy<=360);
+               }
+               else{
+                  inside=yy>=phimin&&yy<phimax;
+               }
+               if(inside){ //break
                   findit=true;
                }
                else nbin++;
@@ -122,6 +124,7 @@ int Cloud::FindBinIndex(double xx,double yy){
 }
 void Cloud::Init(){
    cloudmap=0;
+   mapnbins=0;
    time=0;
    temp=0;
    humi=-1;
@@ -138,7 +141,7 @@ void Cloud::Reset(){
    int npt=10;
    //double PI=3.1415926;
 
-   int nbin=0;
+   mapnbins=0;
    for(int ii=0;ii<Cntheta;ii++){
       double theta1=Cbintheta[ii];
       double theta2=Cbintheta[ii+1];
@@ -165,7 +168,7 @@ void Cloud::Reset(){
          //gr->SetPoint(gr->GetN(),theta1*cos(phi1/180*PI),theta1*sin(phi1/180*PI));
          cloudmap->AddBin((TObject*)gr);
          //graphlist.push_back(gr);//delete gr;
-         nbin++;
+         mapnbins++;
          double theta0=(theta1+theta2)/2.;
          double phi0=(phi1+phi2)/2.;
       }

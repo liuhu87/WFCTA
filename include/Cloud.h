@@ -17,6 +17,7 @@ class Cloud {
    static int Cnbinphi[Cntheta];
    static double Cbinphi[Cntheta][Cnphi+1];
    TH2Poly* cloudmap;
+   int mapnbins;
    int time;
    double temp;
    double humi;
@@ -33,6 +34,7 @@ class Cloud {
    void Clear();
    Cloud() { Init(); }
    ~Cloud() { Clear(); }
+   int GetNbins() {return mapnbins;}
    void ReadCloudMap(char* filename);
    bool ReadTemp(char* filename=0);
    void AveTemp(double &avetemp,double &mintemp,TGraph* gr);

@@ -162,6 +162,7 @@ class WFCTAEvent : public TSelector
                 int GetMinTimeBin(int itel=0);
                 double GetContent(int isipm,int itel=0,int type=3,bool IsIndex=false,bool IsFit=false);
                 double GetContentError(int isipm,int itel=0,int type=3,bool IsIndex=false,bool IsFit=false);
+                double GetTotalPe(double &error,int &ncontent,int itel,int type,bool DoClean=true,bool IsFit=false);
                 bool CleanImage(int isipm,int itel=0,bool IsIndex=false,bool IsFit=false);
                 bool PassClean(int itel=0,int nthreshold=5);
                 double Interface(const double* par);

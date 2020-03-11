@@ -30,7 +30,7 @@ int CalibWFCTA::LoadCalibSiPM(int version,char* dirname){
    if(version==1||version<=0){
       TFile* fin=0;
       if(!dirname){
-         fin=TFile::Open("/afs/ihep.ac.cn/users/h/hliu/public/WFDataDir/temp_corr.root","READ");
+         fin=TFile::Open("/afs/ihep.ac.cn/users/h/hliu/public/WFDataDir/temp_corr_v2.root","READ");
       }
       else{
          fin=TFile::Open(Form("%s/temp_corr.root",dirname));

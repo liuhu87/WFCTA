@@ -118,7 +118,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    int hour=CommonTools::TimeFlag(time_new,4);
    int min=CommonTools::TimeFlag(time_new,5);
    int sec=CommonTools::TimeFlag(time_new,6);
-   char filename[100]="/eos/user/h/hliu/rotate_log/";
+   char filename[100]="/scratchfs/lhaaso/hliu/rotate_log/";
    char* namebuff=Form("L%d/%d-%02d-%02d.txt.utf8",Li_in,year,month,day);
    strcat(filename,namebuff);
    if(jdebug>0) printf("RotateDB::LoadData: filename=%s\n",filename);
@@ -564,11 +564,21 @@ void RotateDB::ProcessAll(){
 
    return;
 }
-bool RotateDB::IsLogFine(char* buffer,bool IsRotate){
+bool RotateDB::IsLogFine(char* buffer,int RotateType){
    if(!buffer) return false;
    char tokens[5][20]={"","","","",""};
    sscanf(buffer,"%s %s %s %s %s",tokens[0],tokens[1],tokens[2],tokens[3],tokens[4]);
-   return (strcmp(tokens[0],"Rotate")==0);
+   /////////////////
+   //RotateType=0: keyword:Plant
+   //RotateType=1: keyword:Rotate
+   //RotateType=2: keyword:GPS
+   //RotateType=2: keyword:Environment
+   /////////////////
+   if(RotateType==0) return (strcmp(tokens[0],"Plant")==0);
+   else if(RotateType==1) return (strcmp(tokens[0],"Rotate")==0);
+   else if(RotateType==2) return (strcmp(tokens[0],"GPS")==0);
+   else if(RotateType==3) return (strcmp(tokens[0],"Environment")==0);
+   else return false;
 }
 bool RotateDB::IsLogFine(bool IsRotate){
    char tokens1[5][20]={"","","","",""};
@@ -581,9 +591,10 @@ bool RotateDB::IsLogFine(bool IsRotate){
    if(jdebug>2) printf("RotateDB::IsLogFine: token1=%s token2=%s res=%d\n",tokens1[4],tokens2[4]);
    return result;
 }
-int RotateDB::ReadData(ifstream* fin,bool godown,bool IsRotate){
+int RotateDB::ReadData(ifstream* fin,bool godown,int RotateType){
    int result=0;
    if(!fin) return result;
+   if(RotateType<0||RotateType>3) return result;
    if(!LocateFirst(fin)) return result;
    long int pos0=fin->tellg();
    if(pos0<0) return result;
@@ -593,56 +604,69 @@ int RotateDB::ReadData(ifstream* fin,bool godown,bool IsRotate){
    fin->seekg(0,std::ios::end);
    long int pose=fin->tellg();
    char buffer[200];
-   char target[20];
-   strcpy(target,IsRotate?"Rotate":"GPS");
+   //char target[20];
+   /////////////////
+   //RotateType=0: keyword:Plant
+   //RotateType=1: keyword:Rotate
+   //RotateType=2: keyword:GPS
+   //RotateType=2: keyword:Environment
+   /////////////////
+   //char target0[4][20]={"Plant","Rotate","GPS","Environment"};
+   //strcpy(target,target0[RotateType]);
+   int targetlength[4]={45,64,52,56};
    long int posp,posc;
-   long int linelength=IsRotate?64:52;
+   long int linelength=targetlength[RotateType];
    if(godown){
       fin->seekg(pos0,std::ios::beg);
       posp=fin->tellg();
       posres=posp;
       if(posp<0||posp>=pose){
          fin->seekg(posres,std::ios::beg);
+         if(jdebug>6) printf("RotateDB::ReadData: return0=%d\n",result);
          return result;
       }
       fin->getline(buff2[0],500);
       posc=fin->tellg();
       strcpy(buffer,buff2[0]);
-      if(jdebug>1) printf("RotateDB::ReadData: item0 pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",posp,posc,poss,pose,buff2[0]);
-      while(!IsLogFine(buffer,IsRotate)){
+      if(jdebug>6) printf("RotateDB::ReadData: item0 godown=%d pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",godown,posp,posc,poss,pose,buff2[0]);
+      while(!IsLogFine(buffer,RotateType)){
          posp=fin->tellg();
          if(posp<0||posp>=pose) break;
          fin->getline(buff2[0],500);
          strcpy(buffer,buff2[0]);
          posc=fin->tellg();
-         if(jdebug>1) printf("RotateDB::ReadData: itemi pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",posp,posc,poss,pose,buff2[0]);
+         if(jdebug>7) printf("RotateDB::ReadData: item0i godown=%d pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",godown,posp,posc,poss,pose,buff2[0]);
       }
-      if(IsLogFine(buffer,IsRotate)){
+      if(IsLogFine(buffer,RotateType)){
          linelength=posc-posp;
          result=(result|0x1);
       }
       posres=posc;
       if(posc<0||posc>=pose){
          fin->seekg(posres,std::ios::beg);
+         if(jdebug>6) printf("RotateDB::ReadData: return1=%d\n",result);
          return result;
       }
       fin->getline(buff2[1],500);
       strcpy(buffer,buff2[1]);
       posc=fin->tellg();
-      while(!IsLogFine(buffer,IsRotate)){
+      if(jdebug>6) printf("RotateDB::ReadData: item1 godown=%d pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",godown,posp,posc,poss,pose,buff2[1]);
+      while(!IsLogFine(buffer,RotateType)){
          posp=fin->tellg();
          if(posp<0||posp>=pose) break;
          fin->getline(buff2[1],500);
          strcpy(buffer,buff2[1]);
          posc=fin->tellg();
+         if(jdebug>7) printf("RotateDB::ReadData: item1i godown=%d pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",godown,posp,posc,poss,pose,buff2[1]);
       }
-      if(IsLogFine(buffer,IsRotate)){
+      if(IsLogFine(buffer,RotateType)){
          result=(result|0x2);
       }
       else{
          if(result|0x1) posres=posc;
       }
       fin->seekg(posres,std::ios::beg);
+      if(jdebug>6) printf("RotateDB::ReadData: return2=%d\n",result);
       return result;
    }
    else{
@@ -651,6 +675,7 @@ int RotateDB::ReadData(ifstream* fin,bool godown,bool IsRotate){
       posres=posp;
       if(posp-0.5*linelength<poss){
          fin->seekg(posres,std::ios::beg);
+         if(jdebug>6) printf("RotateDB::ReadData: return3=%d\n",result);
          return result;
       }
       fin->seekg(posp-0.5*linelength,std::ios::beg);
@@ -659,8 +684,8 @@ int RotateDB::ReadData(ifstream* fin,bool godown,bool IsRotate){
       fin->getline(buff2[1],500);
       posc=fin->tellg();
       strcpy(buffer,buff2[1]);
-      if(jdebug>1) printf("RotateDB::ReadData: item0 pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",posp,posc,poss,pose,buff2[1]);
-      while(!IsLogFine(buffer,IsRotate)){
+      if(jdebug>6) printf("RotateDB::ReadData: item0 godown=%d pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",godown,posp,posc,poss,pose,buff2[1]);
+      while(!IsLogFine(buffer,RotateType)){
          if(posp<0||posp-0.5*linelength<poss) break;
          fin->seekg(posp-0.5*linelength,std::ios::beg);
          LocateFirst(fin);
@@ -668,15 +693,16 @@ int RotateDB::ReadData(ifstream* fin,bool godown,bool IsRotate){
          fin->getline(buff2[1],500);
          strcpy(buffer,buff2[1]);
          posc=fin->tellg();
-         if(jdebug>1) printf("RotateDB::ReadData: itemi pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",posp,posc,poss,pose,buff2[1]);
+         if(jdebug>7) printf("RotateDB::ReadData: item0i godown=%d pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",godown,posp,posc,poss,pose,buff2[1]);
       }
-      if(IsLogFine(buffer,IsRotate)){
+      if(IsLogFine(buffer,RotateType)){
          linelength=posc-posp;
          result=(result|0x1);
       }
       posres=posp;
       if(posp<0||posp-0.5*linelength<poss){
          fin->seekg(posres,std::ios::beg);
+         if(jdebug>6) printf("RotateDB::ReadData: return4=%d\n",result);
          return result;
       }
       fin->seekg(posp-0.5*linelength,std::ios::beg);
@@ -684,38 +710,47 @@ int RotateDB::ReadData(ifstream* fin,bool godown,bool IsRotate){
       posp=fin->tellg();
       fin->getline(buff2[0],500);
       strcpy(buffer,buff2[0]);
-      while(!IsLogFine(buffer,IsRotate)){
+      if(jdebug>6) printf("RotateDB::ReadData: item1 godown=%d pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",godown,posp,posc,poss,pose,buff2[0]);
+      while(!IsLogFine(buffer,RotateType)){
          if(posp<0||posp-0.5*linelength<poss) break;
          fin->seekg(posp-0.5*linelength,std::ios::beg);
          LocateFirst(fin);
          posp=fin->tellg();
          fin->getline(buff2[0],500);
          strcpy(buffer,buff2[0]);
+         if(jdebug>7) printf("RotateDB::ReadData: item1i godown=%d pos={%ld,%ld} posse={%ld,%ld} buffer=%s\n",godown,posp,posc,poss,pose,buff2[0]);
       }
-      if(IsLogFine(buffer,IsRotate)){
+      if(IsLogFine(buffer,RotateType)){
          result=(result|0x2);
       }
       else{
          if(result|0x1) posres=posp;
       }
       fin->seekg(posres,std::ios::beg);
+      if(jdebug>6) printf("RotateDB::ReadData: return5=%d\n",result);
       return result;
    }
    return result;
 }
 int RotateDB::ReadData2(ifstream* fin,bool godown,bool IsRotate,int Li_in){
+   if(!fin) return 0;
    char buffer0[2][500]={"",""};
    strcpy(buffer0[0],buff2[0]);
    strcpy(buffer0[1],buff2[1]);
-   int res=ReadData(fin,godown,IsRotate);
+   int RotateType=IsRotate?1:2;
+   if(jdebug>5) printf("RotateDB::ReadData2: ReadData_before pos=%ld\n",fin->tellg());
+   int res=ReadData(fin,godown,RotateType);
+   if(jdebug>5) printf("RotateDB::ReadData2: ReadData readres=%d pos=%ld\n",res,fin->tellg());
    if(res<=0){
       strcpy(buff2[0],buffer0[0]);
       strcpy(buff2[1],buffer0[1]);
+      if(jdebug>5) printf("RotateDB::ReadData2: return1=%d\n",res);
       return res;
    }
    else if((res&0x1)==0){ //should not exist
       strcpy(buff2[0],buffer0[0]);
       strcpy(buff2[1],buffer0[1]);
+      if(jdebug>5) printf("RotateDB::ReadData2: return2=%d\n",0);
       return 0;
    }
    else if((res&0x2)==0){ //should read the first or last from another file
@@ -725,29 +760,34 @@ int RotateDB::ReadData2(ifstream* fin,bool godown,bool IsRotate,int Li_in){
          nyear=2000+(nyear%100);
          int nmonth=CommonTools::TimeFlag(timei+24*3600,2);
          int nday=CommonTools::TimeFlag(timei+24*3600,3);
-         char nfilename[150]="/eos/user/h/hliu/rotate_log/";
+         char nfilename[150]="/scratchfs/lhaaso/hliu/rotate_log/";
          strcat(nfilename,Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,nyear,nmonth,nmonth,nday));
          ifstream fin2;
          fin2.open(nfilename,std::ios::in);
          char buffer1[500];
          strcpy(buffer1,buff2[0]);
-         int res2=ReadData(&fin2,godown,IsRotate);
+         int res2=ReadData(&fin2,godown,RotateType);
+         if(jdebug>6) printf("RotateDB::ReadData2: read the log for next day. readres=%d godown=%d filename=%s\n",res2,godown,nfilename);
          fin2.close();
          if((res2&0x1)==0){
             strcpy(buff2[0],buffer0[0]);
             strcpy(buff2[1],buffer0[1]);
+            if(jdebug>5) printf("RotateDB::ReadData2: return3=%d\n",0);
             return 0;
          }
          else{
             int timei2=abs(ProcessTime2(0));
-            if(abs(timei2-timei)>3600){
+            //if(abs(timei2-timei)>3600)
+            if(timei2<timei){
                strcpy(buff2[0],buffer0[0]);
                strcpy(buff2[1],buffer0[1]);
+               if(jdebug>5) printf("RotateDB::ReadData2: return4=%d\n",0);
                return 0;
             }
             else{
                strcpy(buff2[1],buff2[0]);
                strcpy(buff2[0],buffer1);
+               if(jdebug>5) printf("RotateDB::ReadData2: return5=%d\n",(res|0x2));
                return (res|0x2);
             }
          }
@@ -758,36 +798,46 @@ int RotateDB::ReadData2(ifstream* fin,bool godown,bool IsRotate,int Li_in){
          pyear=2000+(pyear%100);
          int pmonth=CommonTools::TimeFlag(timei-24*3600,2);
          int pday=CommonTools::TimeFlag(timei-24*3600,3);
-         char pfilename[150]="/eos/user/h/hliu/rotate_log/";
+         char pfilename[150]="/scratchfs/lhaaso/hliu/rotate_log/";
          strcat(pfilename,Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,pyear,pmonth,pmonth,pday));
          ifstream fin2;
          fin2.open(pfilename,std::ios::in);
+         fin2.seekg(0,std::ios::end);
          char buffer1[500];
          strcpy(buffer1,buff2[0]);
-         int res2=ReadData(&fin2,godown,IsRotate);
+         int res2=ReadData(&fin2,godown,RotateType);
+         if(jdebug>6) printf("RotateDB::ReadData2: read the log for previous day. readres=%d godown=%d filename=%s\n",res2,godown,pfilename);
          fin2.close();
          if((res2&0x2)==0){
             strcpy(buff2[0],buffer0[0]);
             strcpy(buff2[1],buffer0[1]);
+            if(jdebug>5) printf("RotateDB::ReadData2: return6=%d\n",0);
             return 0;
          }
          else{
             int timei2=abs(ProcessTime2(1));
-            if(abs(timei2-timei)>3600){
+            //if(abs(timei2-timei)>3600)
+            if(timei2>timei){
                strcpy(buff2[0],buffer0[0]);
                strcpy(buff2[1],buffer0[1]);
+               if(jdebug>5) printf("RotateDB::ReadData2: return7=%d\n",0);
                return 0;
             }
             else{
                strcpy(buff2[0],buff2[1]);
                strcpy(buff2[1],buffer1);
+               if(jdebug>5) printf("RotateDB::ReadData2: return8=%d\n",(res|0x2));
                return (res|0x2);
             }
          }
       }
+      if(jdebug>5) printf("RotateDB::ReadData2: return9=%d\n",(res|0x2));
       return (res|0x2);
    }
-   else return res;
+   else{
+      if(jdebug>5) printf("RotateDB::ReadData2: return10=%d\n",res);
+      return res;
+   }
 }
 long int RotateDB::LoadData2(int time_in,int Li_in,int pLi,int ptime1,int ptime2,long int cpos){
    int ptime[2]={ptime1,ptime2};
@@ -806,7 +856,7 @@ long int RotateDB::LoadData2(int time_in,int Li_in,int pLi,int ptime1,int ptime2
    int min=CommonTools::TimeFlag(time_new,5);
    int sec=CommonTools::TimeFlag(time_new,6);
 
-   char filename[150]="/eos/user/h/hliu/rotate_log/";
+   char filename[150]="/scratchfs/lhaaso/hliu/rotate_log/";
    char* namebuff=Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,year,month,month,day);
    strcat(filename,namebuff);
    if(jdebug>0) printf("RotateDB::LoadData2: filename=%s\n",filename);
@@ -895,7 +945,7 @@ long int RotateDB::LoadData2(int time_in,int Li_in,int pLi,int ptime1,int ptime2
       time2[1]=timei1;
       currpos2=(posp+posc)/2;
       fin.close();
-      if(jdebug>0) printf("RotateDB::LoadData2: loaded, Li=%d time_in=%d time={%d,%d} cpos=%ld posse={%ld,%ld}\n",time_new,Li2,time2[0],time2[1],currpos2,poss,pose);
+      if(jdebug>0) printf("RotateDB::LoadData2: loaded, Li=%d time_in=%d time={%d,%d} cpos=%ld posse={%ld,%ld} buff={%s,%s}\n",time_new,Li2,time2[0],time2[1],currpos2,poss,pose,buff2[0],buff2[1]);
       return currpos2;
    }
    else{
@@ -1144,7 +1194,7 @@ int RotateDB::ProcessEnv(int time_in,int Li_in){
    year=2000+(year%100);
    int month=CommonTools::TimeFlag(time_new,2);
    int day=CommonTools::TimeFlag(time_new,3);
-   char filename[100]="/eos/user/h/hliu/rotate_log/";
+   char filename[100]="/scratchfs/lhaaso/hliu/rotate_log/";
    char* namebuff=Form("L%d/rotate/%04d/%02d/var_%02d%02d.txt",Li_in,year,month,month,day);
    strcat(filename,namebuff);
    if(jdebug>0) printf("RotateDB::ProcessEnv: filename=%s\n",filename);
@@ -1502,7 +1552,7 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
 
    char name1[300]="";
    char name2[300]="";
-   char filename[100]="/eos/user/h/hliu/rotate_log/";
+   char filename[100]="/scratchfs/lhaaso/hliu/rotate_log/";
    char* namebuff1=Form("L%d/%d-%02d-%02d.txt.utf8",Li_in,year,month,day);
    char* namebuff2=Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,year,month,month,day);
    strcat(name1,filename);
@@ -1657,6 +1707,19 @@ bool RotateDB::IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in){
    GetMinDistFit(pev,EleAziIndex,Li_in,minphi,mincc);
    return (minphi<phimargin&&mincc<ccmargin);
 }
+double RotateDB::GetEref(int Li_in,int iTel,int type,int iangle){
+   int irot=GetLi(Li_in);
+   if(irot<0||irot>=nrot) return -1;
+   int itel=GetTi(iTel);
+   if(itel<0||itel>=ntel) return -1;
+   if(type==1){
+      return 1.3e6;
+   }
+   else if(type==2){
+      return 1.31e6;
+   }
+   else return -1;
+}
 int RotateDB::LaserIsFine(WFCTAEvent* pev){
    int EleAziIndex=GetEleAzi(pev);
    if(jdebug>0) printf("RotateDB::LaserIsFine: EleAziIndex=%d\n",EleAziIndex);
@@ -1681,7 +1744,7 @@ bool RotateDB::GetEnv(int time_in,int Li_in,double *temp){
 
    char name1[300]="";
    char name2[300]="";
-   char filename[100]="/eos/user/h/hliu/rotate_log/";
+   char filename[100]="/scratchfs/lhaaso/hliu/rotate_log/";
    char* namebuff1=Form("L%d/%d-%02d-%02d.txt.utf8",Li_in,year,month,day);
    char* namebuff2=Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,year,month,month,day);
    strcat(name1,filename);

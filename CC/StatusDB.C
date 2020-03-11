@@ -62,10 +62,14 @@ int StatusDB::MaxFileTime=3600;
 //float StatusDB::ClbTemp[1024];
 
 void StatusDB::Init(){
-   if(UseDecodeData) fstatus=0;
+   if(UseDecodeData){
+      fstatus=0;
+      tree=0;
+   }
    else{
-      if(!buf) buf=new uint8_t[BUF_LEN];
-      if(!wfctaDecode) wfctaDecode=new WFCTADecode();
+      fp=0;
+      buf=new uint8_t[BUF_LEN];
+      wfctaDecode=new WFCTADecode();
    }
    Reset();
 }
@@ -138,6 +142,7 @@ int StatusDB::LoadFile(int whichday,char* filename_in){
    int type=0;
    if(whichday>=20190101&&whichday<=20500000) type=1;
    if(whichday>=1300000000&&whichday<=2524579200) type=2;
+   if(jdebug>2) printf("StatusDB::LoadFile: day=%d type=%d filename=%s\n",whichday,type,filename_in);
    if(type<1||type>2) return 0;
    if(whichday==currentday){
       if(type==1){

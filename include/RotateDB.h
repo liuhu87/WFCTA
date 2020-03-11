@@ -60,9 +60,9 @@ class RotateDB {
    long int LoadData(int time_in,int Li_in,int pLi=0,int ptime=-1,long int cpos=-1);
    int ProcessTime();
    void ProcessAll();
-   bool IsLogFine(char* buffer,bool IsRotate);
+   bool IsLogFine(char* buffer,int RotateType);
    bool IsLogFine(bool IsRotate=true);
-   int ReadData(ifstream* fin,bool godown,bool IsRotate=true);
+   int ReadData(ifstream* fin,bool godown,int RotateType=1);
    int ReadData2(ifstream* fin,bool godown,bool IsRotate=true,int Li_in=2);
    long int LoadData2(int time_in,int Li_in,int pLi=0,int ptime1=0,int ptime2=0,long int cpos=-1);
    int ProcessTime2(int itime);
@@ -92,6 +92,7 @@ class RotateDB {
    int GetEleAzi(WFCTAEvent* pev);
    static void GetMinDistFit(WFCTAEvent* pev,int EleAziIndex,int Li_in,double &minphi,double &mincc);
    static bool IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in=0);
+   static double GetEref(int Li_in,int iTel,int type,int iangle);
    int LaserIsFine(WFCTAEvent* pev);
 
    //Get some temperature

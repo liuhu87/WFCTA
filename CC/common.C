@@ -10,40 +10,48 @@ double CommonTools::timebinunit[2]={0.3,3000};
 bool CommonTools::IsLaser=false;
 ///check wheather the year is leap year
 bool CommonTools::Is366(int year){
-   if((year%4==0)&&(year%100!=0)) return true;
-   else if((year%100==0)&&(year%400==0)) return true;
+   if(((year%4)==0)&&((year%100)!=0)) return true;
+   else if(((year%100)==0)&&((year%400)==0)) return true;
    return false;
 }
 ///convert the time to second since 1970-01-01 08:00:00
 int CommonTools::Convert(double time){
    int year=int(time*1.e-10);
    double time1=(time-year*10000000000);
-   if(year>=100) year=year%100;
+   if(year>=100) year=(year%100);
    int month=int(time1/100000000);
    int time2=int(time1-month*100000000);
    int day=(time2%100000000)/1000000;
    int h=(time2%1000000)/10000;
    int min=(time2%10000)/100;
-   int sec=time2%100;
+   int sec=(time2%100);
+   //printf("time=%.0lf %d-%d-%d %d:%d:%d\n",time,year,month,day,h,min,sec);
    int result=0;
    for(int ii=0;ii<year;ii++){
       result+=(Is366(2000+ii)?366:365)*24*3600;
+      //printf("add year: ii=%d day=%d\n",ii,(Is366(2000+ii)?366:365));
    }
+   //printf("year,res=%d\n",result);
    for(int ii=1;ii<month;ii++){
       if((ii==1||ii==3||ii==5||ii==7)||(ii==8||ii==10||ii==12)) result+=31*24*3600;
-      else if(ii==2) result+=(Is366(2000+ii)?29:28)*24*3600;
+      else if(ii==2) result+=(Is366(2000+year)?29:28)*24*3600;
       else result+=30*24*3600;
    }
+   //printf("month,res=%d\n",result);
    for(int ii=1;ii<day;ii++){
       result+=24*3600;
    }
+   //printf("day,res=%d\n",result);
    for(int ii=0;ii<h;ii++){
       result+=3600;
    }
+   //printf("hour,res=%d\n",result);
    for(int ii=0;ii<min;ii++){
       result+=60;
    }
+   //printf("minute,res=%d\n",result);
    result+=sec;
+   //printf("second,res=%d\n",result);
    return result+946656000; //946656000 is the number for "2000-01-01 00:00:00"
 }
 //inverse of convert
@@ -61,7 +69,7 @@ double CommonTools::InvConvert(int time){
    for(int ii=1;ii<=12;ii++){
       int result0=result;
       if((ii==1||ii==3||ii==5||ii==7)||(ii==8||ii==10||ii==12)) result+=31*24*3600;
-      else if(ii==2) result+=(Is366(2000+ii)?29:28)*24*3600;
+      else if(ii==2) result+=(Is366(2000+year)?29:28)*24*3600;
       else result+=30*24*3600;
       if(time0<result) {month=ii; time0-=result0; break;}
    }
