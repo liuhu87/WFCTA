@@ -1746,7 +1746,7 @@ bool RotateDB::GetEnv(int time_in,int Li_in,double *temp){
    char name2[300]="";
    char filename[100]="/scratchfs/lhaaso/hliu/rotate_log/";
    char* namebuff1=Form("L%d/%d-%02d-%02d.txt.utf8",Li_in,year,month,day);
-   char* namebuff2=Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,year,month,month,day);
+   char* namebuff2=Form("L%d/rotate/%d/%02d/var_%02d%02d.txt",Li_in,year,month,month,day);
    strcat(name1,filename);
    strcat(name1,namebuff1);
    strcat(name2,filename);
