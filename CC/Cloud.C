@@ -449,10 +449,10 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    else if(WFTelescopeArray::CTNumber==5){
       cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d,%d,%d,%d},Ave Temp={%.2f,%.2f,%.2f,%.2f,%.2lf},Min Temp={%.2f,%.2f,%.2f,%.2f,%.2lf})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,pct->pct[2]->TelIndex_,pct->pct[3]->TelIndex_,pct->pct[4]->TelIndex_,tempave[0],tempave[1],tempave[2],tempave[3],tempave[4],tempmin[0],tempmin[1],tempmin[2],tempmin[3],tempmin[4]));
    }
-   else if(WFTelescopeArray::CTNumber>=6){
+   else if(WFTelescopeArray::CTNumber==6){
       cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d,%d,%d,%d,%d},Ave Temp={%.2f,%.2f,%.2f,%.2f,%.2lf,%.2lf},Min Temp={%.2f,%.2f,%.2f,%.2f,%.2lf,%.2lf})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,pct->pct[2]->TelIndex_,pct->pct[3]->TelIndex_,pct->pct[4]->TelIndex_,pct->pct[5]->TelIndex_,tempave[0],tempave[1],tempave[2],tempave[3],tempave[4],tempave[5],tempmin[0],tempmin[1],tempmin[2],tempmin[3],tempmin[4],tempmin[5]));
    }
-   else if(WFTelescopeArray::CTNumber>=7){
+   else if(WFTelescopeArray::CTNumber==7){
       cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d,%d,%d,%d,%d,%d},Ave Temp={%.2f,...},Min Temp={%.2f,...})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,pct->pct[2]->TelIndex_,pct->pct[3]->TelIndex_,pct->pct[4]->TelIndex_,pct->pct[5]->TelIndex_,pct->pct[6]->TelIndex_,tempave[0],tempmin[0]));
    }
    else if(WFTelescopeArray::CTNumber>=8){
