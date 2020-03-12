@@ -1,4 +1,5 @@
 #include "WFTelescope.h"
+#include "WFCTAEvent.h"
 #include "WFMirror.h"
 #include "WFCone.h"
 #include "WFCamera.h"
@@ -6,12 +7,20 @@
 #include "CorsikaIO.h"
 #include "TMath.h"
 #include "TRandom.h"
+#include "TFile.h"
+#include "TGraph.h"
+#include <vector>
+using std::vector;
 
 int WFTelescopeArray::jdebug=0;
 bool WFTelescopeArray::DoSim=true;
 int WFTelescopeArray::CTNumber=1;
 WFTelescopeArray* WFTelescopeArray::_Head=0;
 TRandom3* WFTelescopeArray::prandom=0;
+double WFTelescopeArray::viewunit=0.5;
+vector<int> WFTelescopeArray::TelID;
+vector<TGraph*> WFTelescopeArray::gTelView;
+bool WFTelescopeArray::LoadViewExt=true;
 WFTelescopeArray* WFTelescopeArray::GetHead(char* filename,int seed){
    if(!DoSim) return 0;
    if(_Head) return _Head;
@@ -219,12 +228,86 @@ int WFTelescopeArray::GetTelescope(int iTel){
    }
    return res;
 }
-TGraph* WFTelescopeArray::TelView(int iTel){
-   if(!pct) return 0;
-   if(iTel<0||iTel>=WFTelescopeArray::CTNumber) return 0;
-   WFTelescope* pct0=pct[iTel];
+TGraph* WFTelescopeArray::TelViewCal(int iTel,bool IsLocal){
+   WFTelescope* pct0=0;
+   int itel=pct?GetTelescope(iTel):-1;
+   if(itel>=0) pct0=pct[itel];
+   bool exist=bool(pct0);
+   if(!exist){
+      if(IsLocal) pct0=new WFTelescope();
+   }
    if(!pct0) return 0;
-   const int nbin=100;
+   int nbin=(int)(180/viewunit);
+   vector<double> xlist;
+   vector<double> ylist1;
+   vector<double> ylist2;
+   for(int ibinx=1;ibinx<=nbin;ibinx++){
+      double xx=-90.+(90.-(-90.))/nbin*(ibinx-0.5);
+      double ymin=100;
+      double ymax=-100;
+      bool inside_pre=false;
+      for(int ibiny=1;ibiny<=nbin;ibiny++){
+         double yy=-90.+(90.-(-90.))/nbin*(ibiny-0.5);
+         double theta=sqrt(xx*xx+yy*yy)/180.*PI;
+         if(theta>=PI/2) continue;
+         bool inside=false;
+         double x2=yy;
+         double y2=-xx;
+         double phi=0;
+         if(x2!=0||y2!=0){
+            phi=acos(x2/sqrt(x2*x2+y2*y2));
+            if(y2<0) phi=2*PI-phi;
+         }
+         double dir_in[3]={-cos(phi)*sin(theta),-sin(phi)*sin(theta),-cos(theta)};
+         double dir_tel[3]={0,0,-1};
+         if(!IsLocal){
+            dir_tel[0]=-cos(pct0->TelA_)*sin(pct0->TelZ_);
+            dir_tel[1]=-sin(pct0->TelA_)*sin(pct0->TelZ_);
+            dir_tel[2]=-cos(pct0->TelZ_);
+         }
+         if((dir_in[0]*dir_tel[0]+dir_in[1]*dir_tel[1]+dir_in[2]*dir_tel[2])<cos(13./180*PI)) continue;
+         double imagexy[2];
+         bool res=pct0->GetImageCoo(dir_in,imagexy[0],imagexy[1],IsLocal);
+         if(res){
+            int retval=WFCTAEvent::IsInside(imagexy[0],imagexy[1]);
+            if(retval>=0||retval<-1) inside=true;
+         }
+         if(!inside_pre){
+            if(inside&&ymin>99){
+               ymin=yy;
+            }
+         }
+         else{
+            if(!inside) ymax=yy;
+         }
+         inside_pre=inside;
+      }
+      if(ymin<=ymax){
+         xlist.push_back(xx);
+         ylist1.push_back(ymin);
+         ylist2.push_back(ymax);
+      }
+   }
+   if((!exist)&&IsLocal) delete pct0;
+
+   if(xlist.size()<=0) return 0;
+   TGraph* gr=new TGraph();
+   for(int ii=0;ii<xlist.size();ii++){
+      gr->SetPoint(gr->GetN(),xlist.at(ii),ylist1.at(ii));
+   }
+   for(int ii=xlist.size()-1;ii>=0;ii--){
+      gr->SetPoint(gr->GetN(),xlist.at(ii),ylist2.at(ii));
+   }
+   gr->SetPoint(gr->GetN(),xlist.at(0),ylist1.at(0));
+   return gr;
+}
+TGraph* WFTelescopeArray::TelViewMC(int iTel,bool IsLocal){
+   if(!pct) return 0;
+   int itel=GetTelescope(iTel);
+   if(itel<0) return 0;
+   WFTelescope* pct0=pct[itel];
+   if(!pct0) return 0;
+   const int nbin=1000;
    double xbin[nbin+1];
    double ybin[nbin+1][2];
    for(int ibin=0;ibin<=nbin;ibin++){
@@ -240,31 +323,53 @@ TGraph* WFTelescopeArray::TelView(int iTel){
          double m1=-xx;
          double n1=-yy;
          double l1=-zz;
+
          //check wheather inside the field of view
          bool inside=false;
+         bool quickpro=true;
          double x0new,y0new,z0new;
          double m1new,n1new,l1new;
-         pct0->ConvertCoor(x0,y0,z0,m1,n1,l1,x0new,y0new,z0new,m1new,n1new,l1new);
-         //printf("itel=%d dirin={%lf,%lf,%lf} dirout={%lf,%lf,%lf}\n",iTel,m1,n1,l1,m1new,n1new,l1new);
-         z0new=WFTelescope::ZDOOR;
-         double margin=100.;
-         int ntest=20;
-         for(int itest=0;itest<ntest*ntest;itest++){
-            int ix=itest/ntest;
-            int iy=itest%ntest;
-            x0new=-(WFTelescope::D_DOOR-margin)/2.+(WFTelescope::D_DOOR-margin)/(ntest-1)*ix;
-            y0new=-(WFTelescope::Hdoor-margin)/2.+(WFTelescope::Hdoor-margin)/(ntest-1)*iy;
-            double t,xcluster,ycluster,m2,n2,l2;
-            int result=pct0->RayTraceUpToCone(x0new,y0new,z0new,m1new,n1new,l1new,t,xcluster,ycluster,m2,n2,l2);
-            if(result>=0){
-               double xc = ycluster;
-               double yc = xcluster;
-               int itube=(pct0->pcame)->GetCone(xc,yc);
-               if(itube>=0) inside=true;
-               if(inside) break;
+         if(quickpro){
+            double dir_in[3]={m1,n1,l1};
+            double imagexy[2];
+            bool res=pct0->GetImageCoo(dir_in,imagexy[0],imagexy[1],IsLocal);
+            if(res){
+               inside=WFCTAEvent::IsInside(imagexy[0],imagexy[1])>=0;
+            }
+            if(jdebug>1) printf("WFTelescopeArray::TelView: res=%d inside=%d dir_in={%.2lf,%.2lf,%.2lf} imagexy={%.2lf,%.2lf}\n",res,inside,dir_in[0],dir_in[1],dir_in[2],imagexy[0],imagexy[1]);
+         }
+         else{
+            if(IsLocal){
+               x0new=x0*10;
+               y0new=y0*10;
+               z0new=z0*10;
+               m1new=m1;
+               n1new=n1;
+               l1new=l1;
+            }
+            else{
+               pct0->ConvertCoor(x0,y0,z0,m1,n1,l1,x0new,y0new,z0new,m1new,n1new,l1new);
+            }
+            z0new=WFTelescope::ZDOOR;
+            double margin=100.;
+            int ntest=60;
+            for(int itest=0;itest<ntest*ntest;itest++){
+               int ix=itest/ntest;
+               int iy=itest%ntest;
+               x0new=-(WFTelescope::D_DOOR-margin)/2.+(WFTelescope::D_DOOR-margin)/(ntest-1)*ix;
+               y0new=-(WFTelescope::Hdoor-margin)/2.+(WFTelescope::Hdoor-margin)/(ntest-1)*iy;
+               double t,xcluster,ycluster,m2,n2,l2;
+               int result=pct0->RayTraceUpToCone(x0new,y0new,z0new,m1new,n1new,l1new,t,xcluster,ycluster,m2,n2,l2);
+               if(result>=0){
+                  double xc = ycluster;
+                  double yc = xcluster;
+                  int itube=(pct0->pcame)->GetCone(xc,yc);
+                  if(itube>=0) inside=true;
+                  if(inside) break;
+               }
             }
          }
-         if(jdebug>0) printf("WFTelescopeArray::TelView: xbin=%d(xx=%.2lf) ybin=%d(yy=%.2lf) zz=%lf inside=%d\n",ibin,xx,ibin2,yy,zz,inside);
+         if(jdebug>0&&inside) printf("WFTelescopeArray::TelView: xbin=%d(xx=%.2lf) ybin=%d(yy=%.2lf) zz=%lf inside=%d\n",ibin,xx,ibin2,yy,zz,inside);
          if(inside_pre==false){
             if(inside==true){
                xbin[ibin]=xx;
@@ -301,6 +406,68 @@ TGraph* WFTelescopeArray::TelView(int iTel){
    if(np<1) {delete gr; return 0;}
    else return gr;
 }
+int WFTelescopeArray::SaveTelView(char* filename){
+   TDirectory* gdir=gDirectory;
+   TFile* fout=TFile::Open(filename,"RECREATE");
+   int ngr=0;
+   for(int ii=0;ii<=CTNumber;ii++){
+      TGraph* gr=ii>0?TelViewCal(ii,false):TelViewCal(1,true);
+      if(!gr) continue;
+      gr->Write(Form("Tel%d",ii));
+      ngr++;
+   }
+   fout->Close();
+   gdir->cd();
+   return ngr;
+}
+int WFTelescopeArray::LoadTelView(char* filename){
+   if(!filename) return 0;
+   if(TelID.size()>0){
+      TelID.clear();
+      for(int ii=0;ii<gTelView.size();ii++){
+         TGraph* gr=gTelView.at(ii);
+         delete gr;
+      }
+      gTelView.clear();
+   }
+   TDirectory* gdir=gDirectory;
+   TFile* fin=TFile::Open(filename,"READ");
+   int ngr=0;
+   for(int ii=0;ii<=CTNumber;ii++){
+      int itel=GetTelescope(ii);
+      if(ii>0&&itel<0) continue;
+      TGraph* gr=(TGraph*)fin->Get(Form("Tel%d",ii));
+      if(!gr) continue;
+      TelID.push_back(ii);
+      gTelView.push_back(gr);
+      ngr++;
+   }
+   fin->Close();
+   gdir->cd();
+   return ngr;
+}
+TGraph* WFTelescopeArray::TelView(int iTel,bool IsLocal){
+   if(LoadViewExt){
+      for(int ii=0;ii<TelID.size();ii++){
+         if(IsLocal){if(TelID.at(ii)==0) return gTelView.at(ii);}
+         else{
+            if(iTel>0&&iTel==TelID.at(ii)) return gTelView.at(ii);
+         }
+      }
+   }
+   //if not in the vector list, then just calculate
+   TGraph* gr=TelViewCal(iTel,IsLocal);
+   if(!gr) return 0;
+   int iTel_rec=IsLocal?0:iTel;
+   for(int ii=0;ii<TelID.size();ii++){
+      if(iTel_rec==TelID.at(ii)) return gr;
+   }
+   //push this graph in the list
+   TelID.push_back(iTel_rec);
+   gTelView.push_back(gr);
+   return gr;
+}
+
 WFMirrorArray* WFTelescopeArray::GetMirror(int iTel){
    if(!pct) return 0;
    if(iTel<0||iTel>=CTNumber) return 0;
@@ -839,4 +1006,27 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Passing All to SiPM Tube%d Cell%d\n",itube,icell);
 
     return 1;
+}
+bool WFTelescope::GetImageCoo(double dir_in[3],double &xx,double &yy,bool IsLocal){
+   double norm=sqrt(dir_in[0]*dir_in[0]+dir_in[1]*dir_in[1]+dir_in[2]*dir_in[2]);
+   double theta=IsLocal?(PI/2):(PI/2-TelZ_);
+   double phi=IsLocal?0:TelA_;
+   double zz0=(dir_in[0]*cos(phi)+dir_in[1]*sin(phi))/norm*cos(theta)+dir_in[2]/norm*sin(theta);
+   if(zz0>=0) return false;
+   double xx0=(dir_in[0]*cos(phi)+dir_in[1]*sin(phi))/norm*sin(theta)-dir_in[2]/norm*cos(theta);
+   double yy0=(-dir_in[0]*sin(phi)+dir_in[1]*cos(phi))/norm;
+   xx=-yy0/zz0/PI*180;
+   yy=-xx0/zz0/PI*180;
+   return true;
+}
+void WFTelescope::GetOutDir(double imagexy[2],double dir_out[3],bool IsLocal){
+   double theta=IsLocal?(PI/2):(PI/2-TelZ_);
+   double phi=IsLocal?0:TelA_;
+   double xx0=imagexy[1]/180.*PI;
+   double yy0=imagexy[0]/180.*PI;
+   dir_out[0]=(-xx0*sin(theta)+cos(theta))*cos(phi)+yy0*sin(phi);
+   dir_out[1]=(-xx0*sin(theta)+cos(theta))*sin(phi)-yy0*cos(phi);
+   dir_out[2]=xx0*cos(theta)+sin(theta);
+   double norm=sqrt(dir_out[0]*dir_out[0]+dir_out[1]*dir_out[1]+dir_out[2]*dir_out[2]);
+   for(int ii=0;ii<3;ii++) dir_out[ii]/=norm;
 }

@@ -11,6 +11,7 @@
 #include "TRandom3.h"
 //#include "telescopeparameters.h"
 #include "common.h"
+#include "TH2F.h"
 
 using namespace std;
 
@@ -35,6 +36,11 @@ class WFTelescopeArray{
    static int CTNumber;
    ///wheather do WFCTA simulation
    static bool DoSim;
+   ///Variables for Telescope Field View Calculation
+   static double viewunit;
+   static vector<int> TelID;
+   static vector<TGraph*> gTelView;
+   static bool LoadViewExt;
    ///pointer to each Cerenkov Telescopes
    WFTelescope** pct;
 
@@ -53,7 +59,11 @@ class WFTelescopeArray{
    int RayTrace(double x0, double y0, double z0, double m1, double n1, double l1,double weight,double wavelength,int &itel,double &t,int &itube,int &icell);
    bool CheckTelescope();
    int GetTelescope(int iTel);
-   TGraph* TelView(int iTel);
+   TGraph* TelViewCal(int iTel,bool IsLocal=false);
+   TGraph* TelViewMC(int iTel,bool IsLocal=false);
+   TGraph* TelView(int iTel,bool IsLocal=false);
+   int SaveTelView(char* filename);
+   int LoadTelView(char* filename);
    WFMirrorArray* GetMirror(int iTel);
    SquareCone* GetCone(int iTel);
    WCamera* GetCamera(int iTel);
@@ -149,6 +159,8 @@ class WFTelescope
    bool RayTraceMirror2(double xmirror0,double ymirror0,double zmirror0,double m1, double n1, double l1,double &m2, double &n2, double &l2,int &ii,int &mm);
    int RayTraceUpToCone(double x0, double y0, double z0, double m1, double n1, double l1,double &t,double &xcluster,double &ycluster,double &m2,double &n2,double &l2);
    int RayTrace(double x0, double y0, double z0, double m1, double n1, double l1,double wavelength,double &t,int &itube,int &icell);
+   bool GetImageCoo(double dir_in[3],double &xx,double &yy,bool IsLocal=false);
+   void GetOutDir(double imagexy[2],double dir_out[3],bool IsLocal=false);
 };
 
 #endif

@@ -26,6 +26,7 @@ HEADERS  += $(INCDIR)/ShowerPlot.h
 HEADERS  += $(INCDIR)/astro.h
 HEADERS  += $(INCDIR)/RotateDB.h
 HEADERS  += $(INCDIR)/CalibWFCTA.h
+HEADERS  += $(INCDIR)/CloudDB.h
 
 SOURCES  := $(SRCDIR)/common.C
 SOURCES  += $(SRCDIR)/CorsikaIO.C $(SRCDIR)/CorsikaChain.C $(SRCDIR)/CorsikaEvent.C 
@@ -46,6 +47,7 @@ SOURCES  += $(SRCDIR)/ShowerPlot.C
 SOURCES  += $(SRCDIR)/astro.C
 SOURCES  += $(SRCDIR)/RotateDB.C
 SOURCES  += $(SRCDIR)/CalibWFCTA.C
+SOURCES  += $(SRCDIR)/CloudDB.C
 SOURCES  += event.C
 SOURCES  += eventSort.C
 SOURCES  += eventSortMerge.C
@@ -76,6 +78,7 @@ OBJS     += $(OBJDIR)/ShowerPlot.o
 OBJS     += $(OBJDIR)/astro.o
 OBJS     += $(OBJDIR)/RotateDB.o
 OBJS     += $(OBJDIR)/CalibWFCTA.o
+OBJS     += $(OBJDIR)/CloudDB.o
 OBJS     += $(OBJDIR)/dictionary.o
 
 DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) -Islalib/include `root-config --cflags`

@@ -11,6 +11,7 @@ using std::vector;
 class WFTelescopeArray;
 class Cloud {
    public:
+   static bool DoTempCorr;
    static bool drawmoon;
    static int drawcircle;
    static double Cbintheta[Cntheta+1];
@@ -19,15 +20,17 @@ class Cloud {
    TH2Poly* cloudmap;
    int mapnbins;
    int time;
+   double temp0;
    double temp;
    double humi;
    vector<TGraph*> graphlist;
 
    public:
    static void SetBins();
-   static void Convert(int index,double &xx,double &yy);
+   static bool Convert(int index,double &xx,double &yy,double xyboun[][2]);
    static int FindBinIndex(double xx,double yy);
    static TGraph* TelView(WFTelescopeArray* pct,int iTel);
+   static void LoadTelSetting(char* filename);
 
    void Init();
    void Reset();
@@ -39,5 +42,17 @@ class Cloud {
    bool ReadTemp(char* filename=0);
    void AveTemp(double &avetemp,double &mintemp,TGraph* gr);
    void Draw(WFTelescopeArray* pct,char* opt=(char*)"colz");
+   double GetCorrected(double input);
+   double GetTemperature(int itemp);
+   double GetHumidity();
+   ///get the IB temperature at coor. (xx,yy)
+   double GetIBTemp(int ibin);
+   double GetIBTemp(double xx,double yy);
+   double GetTelAveIBTemp(int iTel);
+   double GetTelMinIBTemp(int iTel);
+   double GetAveIBTemp(double theta);
+   double GetMinIBTemp(double theta);
+   double GetAveIBTemp(TGraph* gr);
+   double GetMinIBTemp(TGraph* gr);
 };
 #endif

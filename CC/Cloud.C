@@ -9,6 +9,7 @@
 #include "TTree.h"
 #include "slalib.h"
 #include "astro.h"
+bool Cloud::DoTempCorr=false;
 bool Cloud::drawmoon=true;
 int Cloud::drawcircle=9;
 double Cloud::Cbintheta[Cntheta+1];
@@ -68,18 +69,25 @@ void Cloud::SetBins(){
       }
    }
 }
-void Cloud::Convert(int index,double &xx,double &yy){
+bool Cloud::Convert(int index,double &xx,double &yy,double xyboun[][2]){
+   bool findit=false;
    for(int ii=0;ii<Cntheta;ii++){
       if(index>0&&index<=Cnbinphi[ii]){
          xx=(Cbintheta[ii]+Cbintheta[ii+1])/2.;
          yy=(Cbinphi[ii][index-1]+Cbinphi[ii][index])/2.;
+         findit=true;
+         xyboun[0][0]=Cbintheta[ii];
+         xyboun[0][1]=Cbintheta[ii+1];
+         xyboun[1][0]=Cbinphi[ii][index-1];
+         xyboun[1][1]=Cbinphi[ii][index];
          break;
       }
       else index-=Cnbinphi[ii];
    }
+   return findit;
 }
 int Cloud::FindBinIndex(double xx,double yy){
-   if(xx>=Cbintheta[0]) return 0;
+   if(xx>Cbintheta[0]) return 0;
    else if(xx<Cbintheta[Cntheta]){
       int nbin=0;
       for(int ii=0;ii<Cntheta;ii++){
@@ -88,17 +96,17 @@ int Cloud::FindBinIndex(double xx,double yy){
       return nbin+1;
    }
    else{
-      yy=CommonTools::ProcessAngle(yy);
+      yy=CommonTools::ProcessAngle(yy,true);
 
       int nbin=0;
       bool findit=false;
       for(int ii=0;ii<Cntheta;ii++){
          double theta1=Cbintheta[ii+1];
          double theta2=Cbintheta[ii];
-         if(xx>=theta1&&xx<theta2){
+         if((xx>theta1&&xx<=theta2)||(xx==0&&(xx>=theta1&&xx<=theta2))){
             for(int jj=0;jj<Cnbinphi[ii];jj++){
-               double phi1=CommonTools::ProcessAngle((ii%2==0)?Cbinphi[ii][jj+1]:Cbinphi[ii][jj]);
-               double phi2=CommonTools::ProcessAngle((ii%2==0)?Cbinphi[ii][jj]:Cbinphi[ii][jj+1]);
+               double phi1=CommonTools::ProcessAngle((ii%2==0)?Cbinphi[ii][jj+1]:Cbinphi[ii][jj],true);
+               double phi2=CommonTools::ProcessAngle((ii%2==0)?Cbinphi[ii][jj]:Cbinphi[ii][jj+1],true);
                double phimin=TMath::Min(phi1,phi2);
                double phimax=TMath::Max(phi1,phi2);
                bool inside;
@@ -106,7 +114,7 @@ int Cloud::FindBinIndex(double xx,double yy){
                   inside=(yy>=0&&yy<=phimin)||(yy>phimax&&yy<=360);
                }
                else{
-                  inside=yy>=phimin&&yy<phimax;
+                  inside=yy>phimin&&yy<=phimax;
                }
                if(inside){ //break
                   findit=true;
@@ -126,12 +134,14 @@ void Cloud::Init(){
    cloudmap=0;
    mapnbins=0;
    time=0;
+   temp0=1000;
    temp=0;
    humi=-1;
    graphlist.clear();
 }
 void Cloud::Reset(){
    time=0;
+   temp0=1000;
    temp=0;
    humi=-1;
    if(cloudmap){
@@ -200,6 +210,7 @@ void Cloud::ReadCloudMap(char* filename){
    int index;
    double ti,xi;
    fin>>x0;
+   temp0=x0;
    while(!fin.eof()){
       fin>>index>>ti>>xi;
       double theta,phi;
@@ -217,18 +228,19 @@ bool Cloud::ReadTemp(char* filename){
       int time1;
       int hour=CommonTools::TimeFlag(time,4);
       int min=CommonTools::TimeFlag(time,5);
-      bool gt2005=(hour>=20&&min>5);
-      if(gt2005) time1=time+(24*3600*2);
-      else time1=time+(24*3600);
+      bool before2005=(hour*100+min)<2005;
+      if(before2005) time1=time+(24*3600);
+      else time1=time+(24*3600*2);
       int year=(CommonTools::TimeFlag(time1,1)%100)+2000;
       int month=CommonTools::TimeFlag(time1,2);
       int day=CommonTools::TimeFlag(time1,3);
       //filename=Form("/scratchfs/ybj/lix/laser-dat/Temp-humi/%02d/temp/12345_cloud_temp_%04d%02d%02d.txt",month,year,month,day);
-      filename=Form("/eos/lhaaso/raw/wfctalaser/%04d/%02d%02d/12345_cloud_temp_%04d%02d%02d.txt",year,month,day,year,month,day);
+      //filename=Form("/eos/lhaaso/raw/wfctalaser/%04d/%02d%02d/12345_cloud_temp_%04d%02d%02d.txt",year,month,day,year,month,day);
+      filename=Form("/eos/lhaaso/raw/wfctalaser/IBTemp/TempHumdata/%04d/%02d/temp/12345_cloud_temp_%04d%02d%02d.txt",year,month,year,month,day);
       printf("ReadTemp: time=%d filename=%s\n",time,filename);
    }
    ifstream fin(filename,std::ios::in);
-   if(!fin.is_open()) {temp=0; humi=0; return res;}
+   if(!fin.is_open()) {temp=0; humi=-1; return res;}
    double ti,tempi,hi;
    int index;
    while(!fin.eof()){
@@ -249,56 +261,59 @@ bool Cloud::ReadTemp(char* filename){
    fin.close();
    return res;
 }
+void Cloud::LoadTelSetting(char* filename){
+   WFTelescopeArray::GetHead(filename);
+}
 TGraph* Cloud::TelView(WFTelescopeArray* pct,int iTel){
    if(!pct) return 0;
    else{
-      TGraph* gr=pct->TelView(iTel);
+      TGraph* gr=pct->TelView(iTel,false);
       if(!gr) return 0;
-      TGraph* gr2=new TGraph();
-      //double PI=3.1415926;
-      for(int ii=0;ii<gr->GetN();ii++){
-         double xx=gr->GetX()[ii];
-         double yy=gr->GetY()[ii];
-         double zz=sqrt(1-xx*xx-yy*yy);
-         double theta=TMath::ACos(zz)/PI*180.;
-         double rr=sqrt(xx*xx+yy*yy);
-         double phi=acos(-yy/rr);
-         if(xx<0) phi=2*PI-phi;
-         gr2->SetPoint(ii,theta*cos(phi),theta*sin(phi));
-      }
-      delete gr;
-      return gr2;
+      return gr;
+      //TGraph* gr2=new TGraph();
+      ////double PI=3.1415926;
+      //for(int ii=0;ii<gr->GetN();ii++){
+      //   double xx=gr->GetX()[ii];
+      //   double yy=gr->GetY()[ii];
+      //   double zz=sqrt(1-xx*xx-yy*yy);
+      //   double theta=TMath::ACos(zz)/PI*180.;
+      //   double rr=sqrt(xx*xx+yy*yy);
+      //   double phi=acos(-yy/rr);
+      //   if(xx<0) phi=2*PI-phi;
+      //   gr2->SetPoint(ii,theta*cos(phi),theta*sin(phi));
+      //}
+      //delete gr;
+      //return gr2;
    }
 }
 void Cloud::AveTemp(double &avetemp,double &mintemp,TGraph* gr){
-   avetemp=-1;
-   mintemp=-1;
+   avetemp=1000;
+   mintemp=1000;
    if(!cloudmap) return;
    //if(!gr) return;
    int np=0;
-   double tempmin=100;
+   double tempmin=1000;
    double tempave=0;
 
    //double PI=3.1415926;
-   int nbins=0;
-   for(int ii=0;ii<Cntheta;ii++){
-      nbins+=Cnbinphi[ii];
-   }
+   int nbins=GetNbins();
    for(int ibin=1;ibin<=nbins;ibin++){
+      double xyboun[2][2];
       double theta,phi;
-      Convert(ibin,theta,phi);
+      Convert(ibin,theta,phi,xyboun);
       bool inside=(!gr)?true:gr->IsInside(theta*cos(phi/180*PI),theta*sin(phi/180*PI));
       if(inside){
          double xi=cloudmap->GetBinContent(ibin);
+         xi=GetCorrected(xi);
          if(xi<tempmin) tempmin=xi;
          tempave+=xi;
          np++;
       }
    }
-   if(np>0){
-      avetemp=tempave/np;
-      mintemp=tempmin;
-   }
+   if(np>0) tempave/=np;
+   else tempave=1000;
+   avetemp=tempave;
+   mintemp=tempmin;
 }
 void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    if(!cloudmap) return;
@@ -312,14 +327,16 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    for(int itel=0;itel<WFTelescopeArray::CTNumber&&pct;itel++){
       WFTelescope* pt=pct->pct[itel];
       if(!pt) continue;
-      TGraph* gr=TelView(pct,itel);
+      int iTel=pt->TelIndex_;
+      TGraph* gr=TelView(pct,iTel);
       if(!gr) continue;
       gr->Draw("l");
-      printf("Cloud::Draw: Draw Telescope %d\n",itel);
+      printf("Cloud::Draw: Draw Telescope %d\n",iTel);
       gr->SetLineColor(1);
       gr->SetLineWidth(2);
       AveTemp(tempave[itel],tempmin[itel],gr);
       graphlist.push_back(gr);
+      //printf("Cloud::Draw: iTel=%d(Tot=%d) avetemp=%.2lf tempmin=%.2lf\n",iTel,WFTelescopeArray::CTNumber,tempave[itel],tempmin[itel]);
 
       int telindex=pt->TelIndex_;
       double telzen=pt->TelZ_;
@@ -401,7 +418,7 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
       for(int ii =0;ii<npots;ii++){
          tree->GetEntry(ii);
          double time_entry=h*3600+min2*60+sec2;
-         //if((y==(year+2000)&mon==month&d==day)&&(time_entry<time_target&&el<PI/2)) {
+         //if((y==(year+2000)&mon==month&d==day)&&(time_entry<time_target&&el<PI/2)) 
          if((y==(year+2000)&mon==month&d==day)&&(time_entry*0<time_target)) {
             gm->SetPoint(gm->GetN(),(PI/2-el)*TMath::RadToDeg()*cos(PI/2-az),(PI/2-el)*TMath::RadToDeg()*sin(PI/2-az));
             printf("ii=%d time={%lf(%d-%d-%d),%lf(%d-%d-%d)} el=%lf az=%lf\n",ii,time_target,hour,min,sec,time_entry,h,min2,sec2,90-el/PI*180,90-az/PI*180);
@@ -418,7 +435,7 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    }
    if(WFTelescopeArray::CTNumber==0) cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image",year,month,day,hour,min));
    else if(WFTelescopeArray::CTNumber==1){
-      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d},Ave Temp={%.2f,%.2f},Min Temp={%.2f,%.2f})",year,month,day,hour,min,pct->pct[0]->TelIndex_,tempave[0],tempmin[0]));
+      cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d},Ave Temp={%.2f},Min Temp={%.2f})",year,month,day,hour,min,pct->pct[0]->TelIndex_,tempave[0],tempmin[0]));
    }
    else if(WFTelescopeArray::CTNumber==2){
       cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d},Ave Temp={%.2f,%.2f},Min Temp={%.2f,%.2f})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,tempave[0],tempave[1],tempmin[0],tempmin[1]));
@@ -435,5 +452,96 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    else if(WFTelescopeArray::CTNumber>=6){
       cloudmap->SetTitle(Form("20%02d-%02d-%02d %02d:%02d Sky IR Image (Tel No={%d,%d,%d,%d,%d,%d},Ave Temp={%.2f,%.2f,%.2f,%.2f,%.2lf,%.2lf},Min Temp={%.2f,%.2f,%.2f,%.2f,%.2lf,%.2lf})",year,month,day,hour,min,pct->pct[0]->TelIndex_,pct->pct[1]->TelIndex_,pct->pct[2]->TelIndex_,pct->pct[3]->TelIndex_,pct->pct[4]->TelIndex_,pct->pct[5]->TelIndex_,tempave[0],tempave[1],tempave[2],tempave[3],tempave[4],tempave[5],tempmin[0],tempmin[1],tempmin[2],tempmin[3],tempmin[4],tempmin[5]));
    }
+}
+
+double Cloud::GetCorrected(double input){
+   return (humi>=0)?(input-temp):input;
+}
+double Cloud::GetTemperature(int itemp){
+   return itemp==0?temp0:(itemp==1?temp:1000);
+}
+double Cloud::GetHumidity(){
+   return humi;
+}
+double Cloud::GetIBTemp(int ibin){
+   if(!cloudmap) return 1000;
+   if(ibin<1||ibin>GetNbins()) return 1000;
+   double res=cloudmap->GetBinContent(ibin);
+   return GetCorrected(res);
+}
+double Cloud::GetIBTemp(double xx,double yy){
+   if(!cloudmap) return 1000;
+   int binindex=FindBinIndex(xx,yy);
+   if(binindex<1||binindex>GetNbins()) return 1000;
+   double res=cloudmap->GetBinContent(binindex);
+   return GetCorrected(res);
+}
+double Cloud::GetTelAveIBTemp(int iTel){
+   TGraph* gr=TelView(WFTelescopeArray::GetHead(),iTel);
+   double min=1000,ave=1000;
+   if(!gr) return ave;
+   AveTemp(ave,min,gr);
+   return ave;
+}
+double Cloud::GetTelMinIBTemp(int iTel){
+   TGraph* gr=TelView(WFTelescopeArray::GetHead(),iTel);
+   double min=1000,ave=1000;
+   if(!gr) return min;
+   AveTemp(ave,min,gr);
+   return min;
+}
+double Cloud::GetAveIBTemp(double theta){
+   double min=1000,ave=0;
+   int np=0;
+   int nbins=GetNbins();
+   for(int ibin=1;ibin<=nbins;ibin++){
+      double xyboun[2][2];
+      double thetai,phii;
+      Convert(ibin,thetai,phii,xyboun);
+      bool inside=thetai<theta;
+      if(inside){
+         double xi=cloudmap->GetBinContent(ibin);
+         xi=GetCorrected(xi);
+         if(xi<min) min=xi;
+         ave+=xi;
+         np++;
+      }
+   }
+   if(np<=0) ave=1000;
+   else ave/=np;
+   return ave;
+}
+double Cloud::GetMinIBTemp(double theta){
+   double min=1000,ave=0;
+   int np=0;
+   int nbins=GetNbins();
+   for(int ibin=1;ibin<=nbins;ibin++){
+      double xyboun[2][2];
+      double thetai,phii;
+      Convert(ibin,thetai,phii,xyboun);
+      bool inside=thetai<theta;
+      if(inside){
+         double xi=cloudmap->GetBinContent(ibin);
+         xi=GetCorrected(xi);
+         if(xi<min) min=xi;
+         ave+=xi;
+         np++;
+      }
+   }
+   if(np<=0) ave=1000;
+   else ave/=np;
+   return min;
+}
+double Cloud::GetAveIBTemp(TGraph* gr){
+   double min=1000,ave=1000;
+   if(!gr) return ave;
+   AveTemp(ave,min,gr);
+   return ave;
+}
+double Cloud::GetMinIBTemp(TGraph* gr){
+   double min=1000,ave=1000;
+   if(!gr) return min;
+   AveTemp(ave,min,gr);
+   return min;
 }
 

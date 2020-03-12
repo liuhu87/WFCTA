@@ -51,7 +51,7 @@ class CommonTools {
    static void InitHArrival();
    static void ResetHArrival();
 
-   static double ProcessAngle(double angle);
+   static double ProcessAngle(double angle,bool IsDegree=false);
 };
 
 /// Max number of Telescopes

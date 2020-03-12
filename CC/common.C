@@ -382,14 +382,20 @@ void CommonTools::ResetHArrival(){
    }
 }
 
-double CommonTools::ProcessAngle(double angle){
-   if(angle>=0&&angle<(2*PI)) return angle;
+double CommonTools::ProcessAngle(double angle,bool IsDegree){
+   double scale=180./PI;
+   if(IsDegree) angle=angle/scale;
+   double res;
+   if(angle>=0&&angle<(2*PI)){
+      res=angle;
+   }
    else if(angle<0){
       int nn=int((angle)/(-2*PI)-1.0e-8);
-      return angle+(nn+1)*(2*PI);
+      res=angle+(nn+1)*(2*PI);
    }
    else{
       int nn=int((angle)/(2*PI));
-      return angle-nn*(2*PI);
+      res=angle-nn*(2*PI);
    }
+   return IsDegree?(res*scale):res;
 }

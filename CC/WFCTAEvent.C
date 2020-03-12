@@ -838,6 +838,10 @@ int WFCTAEvent::IsInside(double xx,double yy){
    double ImageX0,ImageY0;
    double dcell=GetImageXYCoo(PIX/2,ImageX0,ImageY0);
    int IndexY=-1,IndexX=-1;
+   double xmin=100,xmax=-100;
+   double ymin=100,ymax=-100;
+   double mindistx=1000,mindisty=1000;
+   int indexminx=-1,indexminy=-1;
    for(int Yi=0;Yi<PIX;Yi++){
       double ImageX,ImageY;
       GetImageXYCoo(PIX/2+Yi*PIX,ImageX,ImageY);
@@ -847,8 +851,38 @@ int WFCTAEvent::IsInside(double xx,double yy){
          IndexY=Yi;
          break;
       }
+      if(y1<ymin) ymin=y1;
+      if(y2>ymax) ymax=y2;
+      if(fabs(yy-ImageY)<mindisty){
+         mindisty=fabs(yy-ImageY);
+         indexminy=Yi;
+      }
    }
-   if(IndexY<0) return -1;
+   if(IndexY<0){
+      //printf("ymin=%.2lf ymax=%.2lf yy=%.2lf mindisty=%d(%.2lf)\n",ymin,ymax,yy,indexminy,mindisty);
+      if((yy>ymax||yy<ymin)||indexminy<0) return -1;
+      else{
+         for(int Xi=0;Xi<PIX;Xi++){
+            double ImageX,ImageY;
+            GetImageXYCoo(Xi+indexminy*PIX,ImageX,ImageY);
+            double x1=ImageX-dcell/2;
+            double x2=ImageX+dcell/2;
+            if(xx>=x1&&xx<=x2){
+               IndexX=Xi;
+               break;
+            }
+            if(x1<xmin) xmin=x1;
+            if(x2>xmax) xmax=x2;
+            if(fabs(xx-ImageX)<mindistx){
+               mindistx=fabs(xx-ImageX);
+               indexminx=Xi;
+            }
+         }
+         //printf("xmin=%.2lf xmax=%.2lf xx=%.2lf mindistx=%d(%.2lf)\n",xmin,xmax,xx,indexminx,mindistx);
+         if((xx>xmax||xx<xmin)||indexminx<0) return -1;
+         else return -2;
+      }
+   }
    for(int Xi=0;Xi<PIX;Xi++){
       double ImageX,ImageY;
       GetImageXYCoo(Xi+IndexY*PIX,ImageX,ImageY);
@@ -858,8 +892,18 @@ int WFCTAEvent::IsInside(double xx,double yy){
          IndexX=Xi;
          break;
       }
+      if(x1<xmin) xmin=x1;
+      if(x2>xmax) xmax=x2;
+      if(fabs(xx-ImageX)<mindistx){
+         mindistx=fabs(xx-ImageX);
+         indexminx=Xi;
+      }
    }
-   if(IndexX<0) return -1;
+   if(IndexX<0){
+      //printf("xmin=%.2lf xmax=%.2lf xx=%.2lf mindistx=%d(%.2lf)\n",xmin,xmax,xx,indexminx,mindistx);
+      if((xx>xmax||xx<xmin)||indexminx<0) return -1;
+      else return -2;
+   }
    else return IndexY*PIX+IndexX;
 }
 bool WFCTAEvent::GetRange(double CC,double phi,double XY1[4],double XY2[4]){

@@ -43,4 +43,6 @@
 #pragma link C++ class RotateDB+;
 
 #pragma link C++ class CalibWFCTA+;
+
+#pragma link C++ class CloudDB+;
 #endif
