@@ -90,7 +90,8 @@ CXXFLAGS := -O3 -fPIC
 
 LDFLAGS  := `root-config --libs`
 # -lRGL -lEve -lGeom -lMinuit -lTMVA -lXMLIO -lMLP -lTreePlayer -lXrdClient -lGpad -lNet -lHist -lHistPainter -lGraf -lMatrix -lRooFit
-LDFLAGS  += -L/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/slalib/lib -lsla
+CDir := $(shell pwd)
+LDFLAGS  += -L$(CDir)/slalib/lib -lsla
 
 all:event.exe eventSort.exe eventSortMerge.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe TelDir.exe $(LIBDIR)/lib.so
 
