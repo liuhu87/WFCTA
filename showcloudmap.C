@@ -59,11 +59,11 @@ int main(int argc,char** argv){
     }
     OutType[length-1-iloc]='\0';
 
-    WFTelescopeArray::jdebug=0;
-    WFTelescopeArray::DoSim=true;
-    WFTelescopeArray::GetHead(Form("default.inp"));
-    //WFTelescopeArray::GetHead(Form("/afs/ihep.ac.cn/users/h/hliu/public/WFDataDir/default.inp"));
+    //Cloud::LoadTelSetting(Form("default.inp"));
+    Cloud::LoadTelSetting(Form("/afs/ihep.ac.cn/users/h/hliu/public/WFDataDir/default.inp"));
+    //Cloud::LoadTelSetting(Form("/workfs/ybj/lix/WFCTA/default.inp"));
 
+    Cloud::drawmoon=true;
     Cloud::SetBins();
     Cloud showcloud;
     showcloud.Reset();
