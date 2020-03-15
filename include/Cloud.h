@@ -40,7 +40,7 @@ class Cloud {
    int GetNbins() {return mapnbins;}
    void ReadCloudMap(char* filename);
    bool ReadTemp(char* filename=0);
-   void AveTemp(double &avetemp,double &mintemp,TGraph* gr);
+   void AveTemp(double &avetemp,double &mintemp,double &rmstemp,TGraph* gr);
    void Draw(WFTelescopeArray* pct,char* opt=(char*)"colz");
    double GetCorrected(double input);
    double GetTemperature(int itemp);
@@ -50,9 +50,15 @@ class Cloud {
    double GetIBTemp(double xx,double yy);
    double GetTelAveIBTemp(int iTel);
    double GetTelMinIBTemp(int iTel);
+   double GetTelRmsIBTemp(int iTel);
    double GetAveIBTemp(double theta);
    double GetMinIBTemp(double theta);
+   double GetRmsIBTemp(double theta);
+   double GetAveIBTemp(double theta1,double theta2);
+   double GetMinIBTemp(double theta1,double theta2);
+   double GetRmsIBTemp(double theta1,double theta2);
    double GetAveIBTemp(TGraph* gr);
    double GetMinIBTemp(TGraph* gr);
+   double GetRmsIBTemp(TGraph* gr);
 };
 #endif

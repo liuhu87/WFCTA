@@ -102,6 +102,11 @@ double CloudDB::GetTelMinIBTemp(int Time,int iTel){
    if(!LoadIBFile(Time)) return temp;
    return cloud.GetTelMinIBTemp(iTel);
 }
+double CloudDB::GetTelRmsIBTemp(int Time,int iTel){
+   double temp=-1;
+   if(!LoadIBFile(Time)) return -1;
+   return cloud.GetTelRmsIBTemp(iTel);
+}
 double CloudDB::GetAveIBTemp(int Time,double theta){
    double temp=1000;
    if(!LoadIBFile(Time)) return temp;
@@ -112,6 +117,26 @@ double CloudDB::GetMinIBTemp(int Time,double theta){
    if(!LoadIBFile(Time)) return temp;
    return cloud.GetMinIBTemp(theta);
 }
+double CloudDB::GetRmsIBTemp(int Time,double theta){
+   double temp=-1;
+   if(!LoadIBFile(Time)) return temp;
+   return cloud.GetRmsIBTemp(theta);
+}
+double CloudDB::GetAveIBTemp(int Time,double theta1,double theta2){
+   double temp=1000;
+   if(!LoadIBFile(Time)) return temp;
+   return cloud.GetAveIBTemp(theta1,theta2);
+}
+double CloudDB::GetMinIBTemp(int Time,double theta1,double theta2){
+   double temp=1000;
+   if(!LoadIBFile(Time)) return temp;
+   return cloud.GetMinIBTemp(theta1,theta2);
+}
+double CloudDB::GetRmsIBTemp(int Time,double theta1,double theta2){
+   double temp=-1;
+   if(!LoadIBFile(Time)) return temp;
+   return cloud.GetRmsIBTemp(theta1,theta2);
+}
 double CloudDB::GetAveIBTemp(int Time,TGraph* gr){
    double temp=1000;
    if(!LoadIBFile(Time)) return temp;
@@ -121,5 +146,10 @@ double CloudDB::GetMinIBTemp(int Time,TGraph* gr){
    double temp=1000;
    if(!LoadIBFile(Time)) return temp;
    return cloud.GetMinIBTemp(gr);
+}
+double CloudDB::GetRmsIBTemp(int Time,TGraph* gr){
+   double temp=1000;
+   if(!LoadIBFile(Time)) return temp;
+   return cloud.GetRmsIBTemp(gr);
 }
 

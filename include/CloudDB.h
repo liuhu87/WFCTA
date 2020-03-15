@@ -21,9 +21,15 @@ class CloudDB{
    double GetIBTemp(int Time,double xx,double yy);
    double GetTelAveIBTemp(int Time,int iTel);
    double GetTelMinIBTemp(int Time,int iTel);
+   double GetTelRmsIBTemp(int Time,int iTel);
    double GetAveIBTemp(int Time,double theta);
    double GetMinIBTemp(int Time,double theta);
+   double GetRmsIBTemp(int Time,double theta);
+   double GetAveIBTemp(int Time,double theta1,double theta2);
+   double GetMinIBTemp(int Time,double theta1,double theta2);
+   double GetRmsIBTemp(int Time,double theta1,double theta2);
    double GetAveIBTemp(int Time,TGraph* gr);
    double GetMinIBTemp(int Time,TGraph* gr);
+   double GetRmsIBTemp(int Time,TGraph* gr);
 };
 #endif

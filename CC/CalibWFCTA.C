@@ -103,7 +103,7 @@ double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperatur
    double temp_ref=20.;
    if(UseSiPMCalibVer==1){ //use sipm=529 as reference
       int CalibType=(calibtype&0x3);
-      if(!sipmcalib_norm[iTel-1]) return -1;
+      if(!sipmcalib_norm[iTel-1]) return input;
       int isipm_ref=529;
       double norm_ref=sipmcalib_norm[iTel-1]->Eval(isipm_ref);
       double slope_ref=sipmcalib_slope[iTel-1]->Eval(isipm_ref);

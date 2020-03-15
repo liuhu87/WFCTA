@@ -1,5 +1,5 @@
 {
-   gSystem->Load("lib/lib.so");
+   gSystem->Load("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/lib/lib.so");
    Cloud::DoTempCorr=false;
    Cloud::LoadTelSetting((char*)"/afs/ihep.ac.cn/users/h/hliu/public/WFDataDir/default.inp");
    CloudDB::jdebug=0;
@@ -43,5 +43,6 @@
    gr->GetXaxis()->SetNdivisions(-203);
    gr->GetXaxis()->SetTimeFormat("%Ss/%Mm/%Hh/%d/%m%F1970-01-01 00:00:00s0");
    gr->SetName("IBTemp");
-   gr->SaveAs("IBTemp.root");
+   gr->Draw("apl");
+   //gr->SaveAs("IBTemp.root");
 }

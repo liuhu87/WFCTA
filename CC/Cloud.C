@@ -286,14 +286,16 @@ TGraph* Cloud::TelView(WFTelescopeArray* pct,int iTel){
       //return gr2;
    }
 }
-void Cloud::AveTemp(double &avetemp,double &mintemp,TGraph* gr){
+void Cloud::AveTemp(double &avetemp,double &mintemp,double &rmstemp,TGraph* gr){
    avetemp=1000;
    mintemp=1000;
+   rmstemp=0;
    if(!cloudmap) return;
    //if(!gr) return;
    int np=0;
    double tempmin=1000;
    double tempave=0;
+   double temp2=0;
 
    //double PI=3.1415926;
    int nbins=GetNbins();
@@ -307,13 +309,21 @@ void Cloud::AveTemp(double &avetemp,double &mintemp,TGraph* gr){
          xi=GetCorrected(xi);
          if(xi<tempmin) tempmin=xi;
          tempave+=xi;
+         temp2+=xi*xi;
          np++;
       }
    }
-   if(np>0) tempave/=np;
-   else tempave=1000;
+   if(np>0){
+      tempave/=np;
+      temp2=sqrt(temp2/np-tempave*tempave);
+   }
+   else{
+      tempave=1000;
+      temp2=-1;
+   }
    avetemp=tempave;
    mintemp=tempmin;
+   rmstemp=temp2;
 }
 void Cloud::Draw(WFTelescopeArray* pct,char* opt){
    if(!cloudmap) return;
@@ -334,7 +344,8 @@ void Cloud::Draw(WFTelescopeArray* pct,char* opt){
       printf("Cloud::Draw: Draw Telescope %d\n",iTel);
       gr->SetLineColor(1);
       gr->SetLineWidth(2);
-      AveTemp(tempave[itel],tempmin[itel],gr);
+      double rms;
+      AveTemp(tempave[itel],tempmin[itel],rms,gr);
       graphlist.push_back(gr);
       //printf("Cloud::Draw: iTel=%d(Tot=%d) avetemp=%.2lf tempmin=%.2lf\n",iTel,WFTelescopeArray::CTNumber,tempave[itel],tempmin[itel]);
 
@@ -485,17 +496,24 @@ double Cloud::GetIBTemp(double xx,double yy){
 }
 double Cloud::GetTelAveIBTemp(int iTel){
    TGraph* gr=TelView(WFTelescopeArray::GetHead(),iTel);
-   double min=1000,ave=1000;
+   double min=1000,ave=1000,rms=-1;
    if(!gr) return ave;
-   AveTemp(ave,min,gr);
+   AveTemp(ave,min,rms,gr);
    return ave;
 }
 double Cloud::GetTelMinIBTemp(int iTel){
    TGraph* gr=TelView(WFTelescopeArray::GetHead(),iTel);
-   double min=1000,ave=1000;
+   double min=1000,ave=1000,rms=-1;
    if(!gr) return min;
-   AveTemp(ave,min,gr);
+   AveTemp(ave,min,rms,gr);
    return min;
+}
+double Cloud::GetTelRmsIBTemp(int iTel){
+   TGraph* gr=TelView(WFTelescopeArray::GetHead(),iTel);
+   double min=1000,ave=1000,rms=-1;
+   if(!gr) return rms;
+   AveTemp(ave,min,rms,gr);
+   return rms;
 }
 double Cloud::GetAveIBTemp(double theta){
    double min=1000,ave=0;
@@ -539,16 +557,126 @@ double Cloud::GetMinIBTemp(double theta){
    else ave/=np;
    return min;
 }
+double Cloud::GetRmsIBTemp(double theta){
+   double min=1000,ave=0,rms=0;
+   int np=0;
+   int nbins=GetNbins();
+   for(int ibin=1;ibin<=nbins;ibin++){
+      double xyboun[2][2];
+      double thetai,phii;
+      Convert(ibin,thetai,phii,xyboun);
+      bool inside=thetai<theta;
+      if(inside){
+         double xi=cloudmap->GetBinContent(ibin);
+         xi=GetCorrected(xi);
+         if(xi<min) min=xi;
+         ave+=xi;
+         rms+=xi*xi;
+         np++;
+      }
+   }
+   if(np<=0) rms=-1;
+   else{
+      ave/=np;
+      rms=sqrt(rms/np-ave*ave);
+   }
+   return rms;
+}
+double Cloud::GetAveIBTemp(double theta1,double theta2){
+   double min=1000,ave=0;
+   int np=0;
+   int nbins=GetNbins();
+   for(int ibin=1;ibin<=nbins;ibin++){
+      double xyboun[2][2];
+      double thetai,phii;
+      Convert(ibin,thetai,phii,xyboun);
+      double boun0=TMath::Min(xyboun[0][0],xyboun[0][1]);
+      double boun1=TMath::Max(xyboun[0][0],xyboun[0][1]);
+      boun0=TMath::Max(boun0,theta1);
+      boun1=TMath::Min(boun1,theta2);
+      bool inside=(boun0<boun1);
+      if(inside){
+         double xi=cloudmap->GetBinContent(ibin);
+         xi=GetCorrected(xi);
+         if(xi<min) min=xi;
+         ave+=xi;
+         np++;
+      }
+   }
+   if(np<=0) ave=1000;
+   else ave/=np;
+   return ave;
+}
+double Cloud::GetMinIBTemp(double theta1,double theta2){
+   double min=1000,ave=0;
+   int np=0;
+   int nbins=GetNbins();
+   for(int ibin=1;ibin<=nbins;ibin++){
+      double xyboun[2][2];
+      double thetai,phii;
+      Convert(ibin,thetai,phii,xyboun);
+      double boun0=TMath::Min(xyboun[0][0],xyboun[0][1]);
+      double boun1=TMath::Max(xyboun[0][0],xyboun[0][1]);
+      boun0=TMath::Max(boun0,theta1);
+      boun1=TMath::Min(boun1,theta2);
+      bool inside=(boun0<boun1);
+      if(inside){
+         double xi=cloudmap->GetBinContent(ibin);
+         xi=GetCorrected(xi);
+         if(xi<min) min=xi;
+         ave+=xi;
+         np++;
+      }
+   }
+   if(np<=0) ave=1000;
+   else ave/=np;
+   return min;
+}
+double Cloud::GetRmsIBTemp(double theta1,double theta2){
+   double min=1000,ave=0,rms=0;
+   int np=0;
+   int nbins=GetNbins();
+   for(int ibin=1;ibin<=nbins;ibin++){
+      double xyboun[2][2];
+      double thetai,phii;
+      Convert(ibin,thetai,phii,xyboun);
+      double boun0=TMath::Min(xyboun[0][0],xyboun[0][1]);
+      double boun1=TMath::Max(xyboun[0][0],xyboun[0][1]);
+      boun0=TMath::Max(boun0,theta1);
+      boun1=TMath::Min(boun1,theta2);
+      bool inside=(boun0<boun1);
+      if(inside){
+         double xi=cloudmap->GetBinContent(ibin);
+         xi=GetCorrected(xi);
+         if(xi<min) min=xi;
+         ave+=xi;
+         rms+=xi*xi;
+         np++;
+      }
+   }
+   if(np<=0) rms=-1;
+   else{
+      ave/=np;
+      rms=sqrt(rms/np-ave*ave);
+   }
+   return rms;
+}
 double Cloud::GetAveIBTemp(TGraph* gr){
-   double min=1000,ave=1000;
+   double min=1000,ave=1000,rms=-1;
    if(!gr) return ave;
-   AveTemp(ave,min,gr);
+   AveTemp(ave,min,rms,gr);
    return ave;
 }
 double Cloud::GetMinIBTemp(TGraph* gr){
-   double min=1000,ave=1000;
+   double min=1000,ave=1000,rms=-1;
    if(!gr) return min;
-   AveTemp(ave,min,gr);
+   AveTemp(ave,min,rms,gr);
    return min;
+}
+double Cloud::GetRmsIBTemp(TGraph* gr){
+   double min=1000,ave=1000,rms=-1;
+   if(!gr) return rms;
+   AveTemp(ave,min,rms,gr);
+   return rms;
 }
 
