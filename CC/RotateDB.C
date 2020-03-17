@@ -1713,10 +1713,32 @@ double RotateDB::GetEref(int Li_in,int iTel,int type,int iangle){
    int itel=GetTi(iTel);
    if(itel<0||itel>=ntel) return -1;
    if(type==1){
-      return 1.3e6;
+      const int nangle1=4;
+      double npe[6][nangle1];
+      for(int ii=0;ii<6;ii++){
+         for(int jj=0;jj<nangle1;jj++){
+            npe[ii][jj]=1.31e6;
+         }
+      }
+      if(iangle<0||iangle>=nangle1) return -1;
+      else return npe[itel][iangle];
    }
    else if(type==2){
-      return 1.31e6;
+      const int nangle2=6;
+      double npe2[6][nangle2];
+      for(int ii=0;ii<6;ii++){
+         for(int jj=0;jj<nangle2;jj++){
+            npe2[ii][jj]=1.31e6;
+         }
+      }
+      npe2[0][0]=2.34e6;
+      npe2[0][1]=1.31e6;
+      npe2[0][2]=9.53e5;
+      npe2[0][3]=7.74e5;
+      npe2[0][4]=6.89e5;
+      npe2[0][5]=6.1e5;
+      if(iangle<0||iangle>=nangle2) return -1;
+      else return npe2[itel][iangle];
    }
    else return -1;
 }
