@@ -11,6 +11,7 @@ class RotateDB {
    static RotateDB* _Head;
    public:
    static int jdebug;
+   static bool UseGPSTime;
    static int ntotmin;
    static int nsidemin;
    static int nrot;

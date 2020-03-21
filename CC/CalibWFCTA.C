@@ -97,7 +97,7 @@ CalibWFCTA* CalibWFCTA::GetHead(char* dirname){
    }
    return _Head;
 }
-double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperature,int calibtype){
+double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperature,int Time,int calibtype){
    if(iTel<1||iTel>CalibMaxTel) return -1.;
    if(isipm<0||isipm>1023) return -1;
    double temp_ref=20.;
@@ -119,6 +119,7 @@ double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperatur
       if(CalibType==0x1) res=input/Qi_Ti*Qref_Ti; //uniform correction
       if(CalibType==0x2) res=input/Qi_Ti*Qi_Tref; //temperature correction
       if(CalibType==0x3) res=input/Qi_Ti*Qref_Tref; //both correction
+      if(Time<1573876800) res*=(8.e5/1.1e6);
       return res;
    }
    else if(UseSiPMCalibVer==2){
@@ -134,6 +135,7 @@ double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperatur
          res=-Ncell*log(1-res/Ncell);
       }
       //printf("CalibWFCTA::DoCalibSiPM2: iTel=%d isipm=%d temp=%lf, unif=%lf delt=%lf\n",iTel,isipm,temperature,unif_factor[iTel-1][isipm],deltag_20[iTel-1][isipm]);
+      if(Time<1573876800) res*=(8.e5/1.1e6);
       return res;
    }
    return -1;

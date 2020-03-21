@@ -23,7 +23,7 @@ class CalibWFCTA {
    CalibWFCTA(char* dirname) {Init(); LoadCalibSiPM(-1,dirname);}
    ~CalibWFCTA() {Release();}
    static CalibWFCTA* GetHead(char* dirname=0);
-   double DoCalibSiPM(int iTel,int isipm,double input,double temperature,int calibtype=0x7);
+   double DoCalibSiPM(int iTel,int isipm,double input,double temperature,int Time,int calibtype=0x7);
 };
 
 #endif

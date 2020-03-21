@@ -548,7 +548,7 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
                if(nn>0) temperature=sum/nn;
             }
             if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) temp=%lf cont_before=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),temperature,content);
-            if(temperature>-100) content=CalibWFCTA::GetHead()->DoCalibSiPM(iTel,iSiPM.at(ii),content,temperature,CalibType);
+            if(temperature>-100) content=CalibWFCTA::GetHead()->DoCalibSiPM(iTel,iSiPM.at(ii),content,temperature,rabbitTime,CalibType);
             if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) temp=%lf cont_after=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),temperature,content);
             if(gdir) gdir->cd();
          }
@@ -3073,7 +3073,8 @@ bool WFCTAEvent::IsLed(int nfire_threshold){
    return nfire>=nfire_threshold;
 }
 bool WFCTAEvent::IsLaser(){
-   return (abs(rabbittime*20-990022580)<1600*20);
+   int irot=RotateDB::GetLi(rabbittime);
+   return (irot>=0);
 }
 void WFCTAEvent::CalInfo(double result[100]){
    double MAX=0;

@@ -1,11 +1,12 @@
 {
    gSystem->Load("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/lib/lib.so");
    RotateDB::jdebug=0;
+   RotateDB::UseGPSTime=false;
 
    int Li=2;
 
-   double time1=20200307200000; //from 20XX-XX-XX XX:XX:XX
-   double time2=20200308070000; //to   20XX-XX-XX XX:XX:XX
+   double time1=20191203145200; //from 20XX-XX-XX XX:XX:XX
+   double time2=20191203145300; //to   20XX-XX-XX XX:XX:XX
    int Time1=CommonTools::Convert(time1);
    int Time2=CommonTools::Convert(time2);
    TGraph* gr=new TGraph();

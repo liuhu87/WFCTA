@@ -6,6 +6,7 @@
 #include <stdio.h>
 RotateDB* RotateDB::_Head=0;
 int RotateDB::jdebug=0;
+bool RotateDB::UseGPSTime=true;
 int RotateDB::ntotmin=5;
 int RotateDB::nsidemin=2;
 int RotateDB::nrot=2;
@@ -110,7 +111,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    int irot=GetLi(Li_in);
    if(irot<0) return -5;
    int pirot=GetLi(pLi);
-   int time_new=time_in-timedelay[irot];
+   int time_new=UseGPSTime?(time_in-timedelay[irot]):time_in;
    int year=CommonTools::TimeFlag(time_new,1);
    year=2000+(year%100);
    int month=CommonTools::TimeFlag(time_new,2);
@@ -124,7 +125,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    if(jdebug>0) printf("RotateDB::LoadData: filename=%s\n",filename);
    bool sameday=false;
    if(ptime>0&&pLi>0&&pirot>=0){
-      int ptime_new=ptime-timedelay[pirot];
+      int ptime_new=UseGPSTime?(ptime-timedelay[pirot]):ptime;
       int pyear=CommonTools::TimeFlag(ptime_new,1);
       pyear=2000+(pyear%100);
       int pmonth=CommonTools::TimeFlag(ptime_new,2);
@@ -147,6 +148,7 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    long int pose=fin.tellg();
    long int linelength=pos1-poss;
    if(jdebug>0) printf("RotateDB::LoadData: file opened. pos={%ld,%ld,%ld},linelength=%ld\n",poss,pos1,pose,linelength);
+   fin.seekg(0,std::ios::beg);
 
    //locate the initial position
    bool located=false;
@@ -257,74 +259,121 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
 }
 int RotateDB::ProcessTime(){
    int size=strlen(buff);
-   char buff0[10];
 
    int count;
    int nchar1,nchar2,nchar3;
-   //Get GPS Time information
    char hour[10],min[10],sec[10];
    for(int i1=0;i1<10;i1++){
       hour[i1]='\0';
       min[i1]='\0';
       sec[i1]='\0';
    }
-   int index_time1=0;
-   int index_time2=0;
-   count=0;
-   nchar1=0;nchar2=0;nchar3=0;
-   for(int ii=size-1;ii>=0;ii--){
-      if(buff[ii]==':'){
-         count++;
-         if(count==1) index_time2=ii+3;
-         else if(count==2) index_time1=ii-4;
-         continue;
-      }
-      if(count==1){
-         min[nchar1++]=buff[ii];
-      }
-      else if(count==2){
-         if(buff[ii]==' ') break;
-         hour[nchar2++]=buff[ii];
-      }
-   }
-   //reverse
-   for(int ii=nchar1-1;ii>=0;ii--) buff0[nchar1-1-ii]=min[ii];
-   for(int ii=0;ii<nchar1;ii++) min[ii]=buff0[ii];
-   for(int ii=nchar2-1;ii>=0;ii--) buff0[nchar2-1-ii]=hour[ii];
-   for(int ii=0;ii<nchar2;ii++) hour[ii]=buff0[ii];
-   if(index_time2<=size) {sec[0]=buff[index_time2-2]; sec[1]=buff[index_time2-1];}
-
    char year[10],month[10],day[10];
    for(int i1=0;i1<10;i1++){
       year[i1]='\0';
       month[i1]='\0';
       day[i1]='\0';
    }
-   count=0;
-   nchar1=0;nchar2=0;nchar3=0;
-   for(int ii=index_time1;ii>=0;ii--){
-      if(buff[ii]=='-'){
-         count++;
-         continue;
+
+   int index_time1=0;
+   int index_time2=0;
+   if(!UseGPSTime){
+      count=0;
+      nchar1=0;nchar2=0;nchar3=0;
+      for(int ii=0;ii<TMath::Min(30,size);ii++){
+         if(buff[ii]=='-'||buff[ii]==' '){
+            count++;
+            if(buff[ii]==' ') {index_time1=ii+1; break;}
+            continue;
+         }
+         if(count==0){
+            year[nchar1++]=buff[ii];
+         }
+         else if(count==1){
+            month[nchar2++]=buff[ii];
+         }
+         else if(count==2){
+            day[nchar3++]=buff[ii];
+         }
       }
-      if(count==0){
-         day[nchar1++]=buff[ii];
+      count=0;
+      nchar1=0;nchar2=0;nchar3=0;
+      for(int ii=index_time1;ii<TMath::Min(35,size);ii++){
+         char buff3[4];
+         for(int i2=0;i2<4;i2++) buff3[i2]='\0';
+         for(int i2=0;i2<3;i2++){
+            if(i2+ii<TMath::Min(35,size)) buff3[i2]=buff[i2+ii];
+         }
+         if(buff[ii]==':' || (strstr(buff3,"开")||strstr(buff3,"关")) ){
+            count++;
+            if(strstr(buff3,"开")||strstr(buff3,"关")) {break;}
+            continue;
+         }
+         if(count==0){
+            hour[nchar1++]=buff[ii];
+         }
+         else if(count==1){
+            min[nchar2++]=buff[ii];
+         }
+         else if(count==2){
+            sec[nchar3++]=buff[ii];
+         }
       }
-      if(count==1){
-         month[nchar2++]=buff[ii];
-      }
-      else if(count==2){
-         if(nchar3>=4) break;
-         year[nchar3++]=buff[ii];
-      }
+      //printf("%s-%s-%s %s:%s:%s\n",year,month,day,hour,min,sec);
    }
-   //reverse
-   for(int ii=nchar1-1;ii>=0;ii--) buff0[nchar1-1-ii]=day[ii];
-   for(int ii=0;ii<nchar1;ii++) day[ii]=buff0[ii];
-   for(int ii=nchar2-1;ii>=0;ii--) buff0[nchar2-1-ii]=month[ii];
-   for(int ii=0;ii<nchar2;ii++) month[ii]=buff0[ii];
-   for(int ii=nchar3-1;ii>=0;ii--) buff0[nchar3-1-ii]=year[ii];
-   for(int ii=0;ii<nchar3;ii++) year[ii]=buff0[ii];
+   else{
+      //Get GPS Time information
+      char buff0[10];
+      count=0;
+      nchar1=0;nchar2=0;nchar3=0;
+      for(int ii=size-1;ii>=0;ii--){
+         if(buff[ii]==':'){
+            count++;
+            if(count==1) index_time2=ii+3;
+            else if(count==2) index_time1=ii-4;
+            continue;
+         }
+         if(count==1){
+            min[nchar1++]=buff[ii];
+         }
+         else if(count==2){
+            if(buff[ii]==' ') break;
+            hour[nchar2++]=buff[ii];
+         }
+      }
+      //reverse
+      for(int ii=nchar1-1;ii>=0;ii--) buff0[nchar1-1-ii]=min[ii];
+      for(int ii=0;ii<nchar1;ii++) min[ii]=buff0[ii];
+      for(int ii=nchar2-1;ii>=0;ii--) buff0[nchar2-1-ii]=hour[ii];
+      for(int ii=0;ii<nchar2;ii++) hour[ii]=buff0[ii];
+      if(index_time2<=size) {sec[0]=buff[index_time2-2]; sec[1]=buff[index_time2-1];}
+
+      count=0;
+      nchar1=0;nchar2=0;nchar3=0;
+      for(int ii=index_time1;ii>=0;ii--){
+         if(buff[ii]=='-'){
+            count++;
+            continue;
+         }
+         if(count==0){
+            day[nchar1++]=buff[ii];
+         }
+         if(count==1){
+            month[nchar2++]=buff[ii];
+         }
+         else if(count==2){
+            if(nchar3>=4) break;
+            year[nchar3++]=buff[ii];
+         }
+      }
+      //reverse
+      for(int ii=nchar1-1;ii>=0;ii--) buff0[nchar1-1-ii]=day[ii];
+      for(int ii=0;ii<nchar1;ii++) day[ii]=buff0[ii];
+      for(int ii=nchar2-1;ii>=0;ii--) buff0[nchar2-1-ii]=month[ii];
+      for(int ii=0;ii<nchar2;ii++) month[ii]=buff0[ii];
+      for(int ii=nchar3-1;ii>=0;ii--) buff0[nchar3-1-ii]=year[ii];
+      for(int ii=0;ii<nchar3;ii++) year[ii]=buff0[ii];
+   }
 
    double time0=atoi(year)*10000000000+atoi(month)*100000000+atoi(day)*1000000+atoi(hour)*10000+atoi(min)*100+atoi(sec);
    int result=CommonTools::Convert(time0);
@@ -847,7 +896,7 @@ long int RotateDB::LoadData2(int time_in,int Li_in,int pLi,int ptime1,int ptime2
       if(cpos>=0) return cpos;
    }
    int pirot=GetLi(pLi);
-   int time_new=time_in-timedelay[irot];
+   int time_new=UseGPSTime?(time_in-timedelay[irot]):time_in;
    int year=CommonTools::TimeFlag(time_new,1);
    year=2000+(year%100);
    int month=CommonTools::TimeFlag(time_new,2);
@@ -862,7 +911,7 @@ long int RotateDB::LoadData2(int time_in,int Li_in,int pLi,int ptime1,int ptime2
    if(jdebug>0) printf("RotateDB::LoadData2: filename=%s\n",filename);
    bool sameday=false;
    if((ptime[0]>0&&ptime[1]>0)&&pLi>0&&pirot>=0){
-      int ptime_new=(ptime[0]+ptime[1])/2-timedelay[pirot];
+      int ptime_new=UseGPSTime?((ptime[0]+ptime[1])/2-timedelay[pirot]):((ptime[0]+ptime[1])/2);
       int pyear=CommonTools::TimeFlag(ptime_new,1);
       pyear=2000+(pyear%100);
       int pmonth=CommonTools::TimeFlag(ptime_new,2);
@@ -1189,7 +1238,7 @@ void RotateDB::ProcessAll2(){
 int RotateDB::ProcessEnv(int time_in,int Li_in){
    int irot=GetLi(Li_in);
    if(irot<0) return -4;
-   int time_new=time_in-timedelay[irot];
+   int time_new=UseGPSTime?(time_in-timedelay[irot]):time_in;
    int year=CommonTools::TimeFlag(time_new,1);
    year=2000+(year%100);
    int month=CommonTools::TimeFlag(time_new,2);
@@ -1533,8 +1582,8 @@ int RotateDB::GetEleAzi2(int time_in,int Li_in,int iTel){
 
    int timei0=abs(ProcessTime2(0));
    int timei1=abs(ProcessTime2(1));
-   int ncount1=(time_in-timedelay[irot])-timei0;
-   int ncount2=timei1-(time_in-timedelay[irot]);
+   int ncount1=UseGPSTime?((time_in-timedelay[irot])-timei0):(time_in-timei0);
+   int ncount2=UseGPSTime?(timei1-(time_in-timedelay[irot])):(timei1-time_in);
    int ncount=ncount1+ncount2+1;
 
    if(ncount<ntotmin) return -4;
@@ -1544,7 +1593,7 @@ int RotateDB::GetEleAzi2(int time_in,int Li_in,int iTel){
 int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
    int irot=GetLi(Li_in);
    if(irot<0) return -10;
-   int time_new=time_in-timedelay[irot];
+   int time_new=UseGPSTime?(time_in-timedelay[irot]):time_in;
    int year=CommonTools::TimeFlag(time_new,1);
    year=2000+(year%100);
    int month=CommonTools::TimeFlag(time_new,2);
