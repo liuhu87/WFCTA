@@ -2,7 +2,7 @@
    gSystem->Load("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/lib/lib.so");
    RotateDB::jdebug=0;
    RotateDB::UseGPSTime=false;
-   RotateDB::SetDirName("/scratchfs/lhaaso/hliu/rotate_log");
+   //RotateDB::SetDirName("/scratchfs/lhaaso/hliu/rotate_log");
 
    int Li=2;
 
