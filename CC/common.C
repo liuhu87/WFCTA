@@ -114,6 +114,19 @@ int CommonTools::TimeFlag(int time,int type){
    double time0=InvConvert(time);
    return TimeFlag(time0,type);
 }
+int CommonTools::GetTelDay(int time){
+   int hour=TimeFlag(time,4);
+   int min=TimeFlag(time,5);
+   int sec=TimeFlag(time,6);
+   int year=(TimeFlag(time,1)%100)+2000;
+   int month=TimeFlag(time,2);
+   int day=TimeFlag(time,3);
+   int pyear=(TimeFlag(time-24*3600,1)%100)+2000;
+   int pmonth=TimeFlag(time-24*3600,2);
+   int pday=TimeFlag(time-24*3600,3);
+   if(hour*10000+min*100+sec<120000) return pyear*10000+pmonth*100+pday;
+   else return year*10000+month*100+day;
+}
 int CommonTools::GetFirstLastLine(const char* filename,char* firstline,char * lastline){
    if(!filename) return 0;
    const int maxlen=300;

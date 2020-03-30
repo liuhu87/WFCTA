@@ -503,7 +503,7 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
          else content=-1;
       }
       if(type==9){
-         if(ii<LaserAdcH.size()&&ii<eSatH.size()) content=(LaserAdcH.at(ii)>60000||eSatH.at(ii))?1.:-1.;
+         if(ii<LaserAdcH.size()&&ii<eSatH.size()) content=(LaserAdcH.at(ii)>6000||eSatH.at(ii))?1.:-1.;
          else content=-2;
       }
       if(type==10){
@@ -511,13 +511,13 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
          else content=-2;
       }
       if(type==11){
-         if(ii<eSatH.size()&&ii<LaserAdcH.size()) content=(LaserAdcH.at(ii)>60000||eSatH.at(ii))?(LaserAdcL.at(ii)/WFCTAMCEvent::fAmpLow):(LaserAdcH.at(ii)/WFCTAMCEvent::fAmpHig);
+         if(ii<eSatH.size()&&ii<LaserAdcH.size()) content=(LaserAdcH.at(ii)>6000||eSatH.at(ii))?(LaserAdcL.at(ii)/WFCTAMCEvent::fAmpLow):(LaserAdcH.at(ii)/WFCTAMCEvent::fAmpHig);
          else content=-1;
       }
       if(type==12){
          if((ii<eSatH.size()&&ii<eSatL.size())&&ii<LaserAdcH.size()){
             if(eSatL.at(ii)) content=-1;
-            else if(LaserAdcH.at(ii)>60000||eSatH.at(ii)) content=(LaserAdcL.at(ii)/WFCTAMCEvent::fAmpLow);
+            else if(LaserAdcH.at(ii)>6000||eSatH.at(ii)) content=(LaserAdcL.at(ii)/WFCTAMCEvent::fAmpLow);
             else content=(LaserAdcH.at(ii)/WFCTAMCEvent::fAmpHig);
          }
          else content=-1;

@@ -9,6 +9,7 @@ class WFCTAEvent;
 class RotateDB {
    private:
    static RotateDB* _Head;
+   static char RotateLogDir[200];
    public:
    static int jdebug;
    static bool UseGPSTime;
@@ -55,7 +56,10 @@ class RotateDB {
    RotateDB(RotateDB* pr_in);
    ~RotateDB() {Release();}
    void Copy(RotateDB* pr_in);
+   static char* GetDirName();
+   static bool SetDirName(char* dirname);
    static RotateDB* GetHead();
+   static RotateDB* GetHead(char* dirname);
    static bool LocateFirst(ifstream* fin);
    void CleanLog(int ilog);
    long int LoadData(int time_in,int Li_in,int pLi=0,int ptime=-1,long int cpos=-1);

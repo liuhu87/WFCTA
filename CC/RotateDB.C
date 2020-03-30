@@ -5,6 +5,7 @@
 #include <string>
 #include <stdio.h>
 RotateDB* RotateDB::_Head=0;
+char RotateDB::RotateLogDir[200]="/eos/lhaaso/raw/wfctalaser";
 int RotateDB::jdebug=0;
 bool RotateDB::UseGPSTime=true;
 int RotateDB::ntotmin=5;
@@ -85,9 +86,23 @@ void RotateDB::Copy(RotateDB* pr_in){
    for(int ii=0;ii<NSWITH;ii++) allswith[ii]=pr_in->allswith[ii];
    for(int ii=0;ii<NVALUE;ii++) varinfo[ii]=pr_in->varinfo[ii];
 }
+char* RotateDB::GetDirName(){
+   return RotateLogDir;
+}
+bool RotateDB::SetDirName(char* dirname){
+   if(!dirname) return false;
+   else{
+      if(strcpy(RotateLogDir,dirname)) return true;
+      else return false;
+   }
+}
 RotateDB* RotateDB::GetHead(){
    if(!_Head) _Head=new RotateDB();
    return _Head;
+}
+RotateDB* RotateDB::GetHead(char* dirname){
+   SetDirName(dirname);
+   return GetHead();
 }
 bool RotateDB::LocateFirst(ifstream* fin){
    if(!fin) return false;
@@ -119,8 +134,9 @@ long int RotateDB::LoadData(int time_in,int Li_in,int pLi,int ptime,long int cpo
    int hour=CommonTools::TimeFlag(time_new,4);
    int min=CommonTools::TimeFlag(time_new,5);
    int sec=CommonTools::TimeFlag(time_new,6);
-   char filename[100]="/scratchfs/lhaaso/hliu/rotate_log/";
-   char* namebuff=Form("L%d/%d-%02d-%02d.txt.utf8",Li_in,year,month,day);
+   char filename[200]="";
+   strcpy(filename,RotateLogDir);
+   char* namebuff=Form("/Laser%02d/L%d_SCdata/L%d/%d-%02d-%02d.txt.utf8",Li_in,Li_in,Li_in,year,month,day);
    strcat(filename,namebuff);
    if(jdebug>0) printf("RotateDB::LoadData: filename=%s\n",filename);
    bool sameday=false;
@@ -809,8 +825,9 @@ int RotateDB::ReadData2(ifstream* fin,bool godown,bool IsRotate,int Li_in){
          nyear=2000+(nyear%100);
          int nmonth=CommonTools::TimeFlag(timei+24*3600,2);
          int nday=CommonTools::TimeFlag(timei+24*3600,3);
-         char nfilename[150]="/scratchfs/lhaaso/hliu/rotate_log/";
-         strcat(nfilename,Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,nyear,nmonth,nmonth,nday));
+         char nfilename[200]="";
+         strcpy(nfilename,RotateLogDir);
+         strcat(nfilename,Form("/Laser%02d/L%d_SCdata/%d/%02d/log_%02d%02d.txt",Li_in,Li_in,nyear,nmonth,nmonth,nday));
          ifstream fin2;
          fin2.open(nfilename,std::ios::in);
          char buffer1[500];
@@ -847,8 +864,9 @@ int RotateDB::ReadData2(ifstream* fin,bool godown,bool IsRotate,int Li_in){
          pyear=2000+(pyear%100);
          int pmonth=CommonTools::TimeFlag(timei-24*3600,2);
          int pday=CommonTools::TimeFlag(timei-24*3600,3);
-         char pfilename[150]="/scratchfs/lhaaso/hliu/rotate_log/";
-         strcat(pfilename,Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,pyear,pmonth,pmonth,pday));
+         char pfilename[200]="";
+         strcpy(pfilename,RotateLogDir);
+         strcat(pfilename,Form("Laser%02d/L%d_SCdata/%d/%02d/log_%02d%02d.txt",Li_in,Li_in,pyear,pmonth,pmonth,pday));
          ifstream fin2;
          fin2.open(pfilename,std::ios::in);
          fin2.seekg(0,std::ios::end);
@@ -905,8 +923,9 @@ long int RotateDB::LoadData2(int time_in,int Li_in,int pLi,int ptime1,int ptime2
    int min=CommonTools::TimeFlag(time_new,5);
    int sec=CommonTools::TimeFlag(time_new,6);
 
-   char filename[150]="/scratchfs/lhaaso/hliu/rotate_log/";
-   char* namebuff=Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,year,month,month,day);
+   char filename[200]="";
+   strcpy(filename,RotateLogDir);
+   char* namebuff=Form("/Laser%02d/L%d_SCdata/%d/%02d/log_%02d%02d.txt",Li_in,Li_in,year,month,month,day);
    strcat(filename,namebuff);
    if(jdebug>0) printf("RotateDB::LoadData2: filename=%s\n",filename);
    bool sameday=false;
@@ -1243,8 +1262,9 @@ int RotateDB::ProcessEnv(int time_in,int Li_in){
    year=2000+(year%100);
    int month=CommonTools::TimeFlag(time_new,2);
    int day=CommonTools::TimeFlag(time_new,3);
-   char filename[100]="/scratchfs/lhaaso/hliu/rotate_log/";
-   char* namebuff=Form("L%d/rotate/%04d/%02d/var_%02d%02d.txt",Li_in,year,month,month,day);
+   char filename[200]="";
+   strcpy(filename,RotateLogDir);
+   char* namebuff=Form("/Laser%02d/L%d_SCdata/%04d/%02d/var_%02d%02d.txt",Li_in,Li_in,year,month,month,day);
    strcat(filename,namebuff);
    if(jdebug>0) printf("RotateDB::ProcessEnv: filename=%s\n",filename);
    ifstream fin;
@@ -1444,6 +1464,7 @@ double RotateDB::GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,
          }
       }
    }
+
    const int nangle2=7;
    double elelist[nangle2]={10,20,30,40,50,55,60};
    double azilist[2][6][nangle2]={{{23.7,19,15,10,1,-5,-1000},
@@ -1470,6 +1491,22 @@ double RotateDB::GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,
          index=2*10+ii;
       }
    }
+
+   const int nangle3=7;
+   double elelist3=20.;
+   double azilist3[nangle3]={19.,19.1,19.2,19.5,18.9,18.8,18.5};
+   for(int ii=0;ii<nangle3&&(rotindex[irot]==2&&telindex[itel]==1);ii++){
+      double dist1=fabs(ele_in-elelist3);
+      double dist2=fabs(azi_in-azilist3[ii]);
+      double dist=TMath::Max(dist1,dist2);
+      if(dist<result){
+         minele=dist1;
+         minazi=dist2;
+         result=dist;
+         index=3*10+ii;
+      }
+   }
+
    return result;
 }
 int RotateDB::IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel){
@@ -1601,12 +1638,11 @@ int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
 
    char name1[300]="";
    char name2[300]="";
-   char filename[100]="/scratchfs/lhaaso/hliu/rotate_log/";
-   char* namebuff1=Form("L%d/%d-%02d-%02d.txt.utf8",Li_in,year,month,day);
-   char* namebuff2=Form("L%d/rotate/%d/%02d/log_%02d%02d.txt",Li_in,year,month,month,day);
-   strcat(name1,filename);
+   char* namebuff1=Form("/Laser%02d/L%d_SCdata/L%d/%d-%02d-%02d.txt.utf8",Li_in,Li_in,Li_in,year,month,day);
+   char* namebuff2=Form("/Laser%02d/L%d_SCdata/%d/%02d/log_%02d%02d.txt",Li_in,Li_in,year,month,month,day);
+   strcpy(name1,RotateLogDir);
    strcat(name1,namebuff1);
-   strcat(name2,filename);
+   strcpy(name2,RotateLogDir);
    strcat(name2,namebuff2);
 
    ifstream fin1;
@@ -1815,12 +1851,11 @@ bool RotateDB::GetEnv(int time_in,int Li_in,double *temp){
 
    char name1[300]="";
    char name2[300]="";
-   char filename[100]="/scratchfs/lhaaso/hliu/rotate_log/";
-   char* namebuff1=Form("L%d/%d-%02d-%02d.txt.utf8",Li_in,year,month,day);
-   char* namebuff2=Form("L%d/rotate/%d/%02d/var_%02d%02d.txt",Li_in,year,month,month,day);
-   strcat(name1,filename);
+   char* namebuff1=Form("/Laser%02d/L%d_SCdata/L%d/%d-%02d-%02d.txt.utf8",Li_in,Li_in,Li_in,year,month,day);
+   char* namebuff2=Form("/Laser%02d/L%d_SCdata/%d/%02d/log_%02d%02d.txt",Li_in,Li_in,year,month,month,day);
+   strcpy(name1,RotateLogDir);
    strcat(name1,namebuff1);
-   strcat(name2,filename);
+   strcpy(name2,RotateLogDir);
    strcat(name2,namebuff2);
 
    ifstream fin1;

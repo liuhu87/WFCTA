@@ -37,6 +37,7 @@ class CommonTools {
    static double InvConvert(int time);
    static int TimeFlag(double time,int type);
    static int TimeFlag(int time,int type);
+   static int GetTelDay(int time);
    static int GetFirstLastLine(const char* filename,char* firstline,char * lastline);
    static void GetFileType(char* Type,const char* filename);
    static int GetTimeFromFileName(const char* filename);
