@@ -20,6 +20,8 @@ using std::vector;
 const double hplank=6.62607015e-34; //in J*s
 const double hplank_gev=4.1356676969e-24; //in GeV*s
 const double vlight=2.998e10;
+const int MJD19700101=40587;
+const int TAI2UTC=37;
 extern int Nuse;
   ///convert time
 class CommonTools {
@@ -35,6 +37,10 @@ class CommonTools {
    static bool Is366(int year);
    static int Convert(double time);
    static double InvConvert(int time);
+   static double ConvertMJD(double mjdtime);
+   static int ConvertMJD2Time(double mjdtime);
+   static int ConvertMJD2time(double mjdtime);
+   static double InvConvertMJD(int time);
    static int TimeFlag(double time,int type);
    static int TimeFlag(int time,int type);
    static int GetTelDay(int time);

@@ -45,4 +45,7 @@
 #pragma link C++ class CalibWFCTA+;
 
 #pragma link C++ class CloudDB+;
+
+#pragma link C++ class WFCTASCDB+;
+#pragma link C++ class CalibLED+;
 #endif

@@ -7,7 +7,7 @@
 double WCamera::D_SiPM=15.0;
 double WCamera::D_Cell = 2.5e-2;
 int WCamera::NCell=600;
-double WCamera::SiPMMAP[NSIPM][2];
+double WCamera::SiPMMAP[NSIPM][2]={{0}};
 float WCamera::NSB=0;
 WCamera::WCamera()
 {

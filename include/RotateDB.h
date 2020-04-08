@@ -21,6 +21,7 @@ class RotateDB {
    static double rottime[10];
    static int ntel;
    static int telindex[20];
+   static int TargetIndex;
    static double aglmargin;
    static double phimargin;
    static double ccmargin;
@@ -71,7 +72,7 @@ class RotateDB {
    int ReadData2(ifstream* fin,bool godown,bool IsRotate=true,int Li_in=2);
    long int LoadData2(int time_in,int Li_in,int pLi=0,int ptime1=0,int ptime2=0,long int cpos=-1);
    int ProcessTime2(int itime);
-   void ProcessAll2();
+   void ProcessAll2(int item=0);
    int ProcessEnv(int time_in,int Li_in);
    void DumpInfo();
    bool GetLaserSwith();

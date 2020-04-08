@@ -18,7 +18,7 @@ bool CommonTools::Is366(int year){
 int CommonTools::Convert(double time){
    int year=int(time*1.e-10);
    double time1=(time-year*10000000000);
-   if(year>=100) year=(year%100);
+   year=(year%100);
    int month=int(time1/100000000);
    int time2=int(time1-month*100000000);
    int day=(time2%100000000)/1000000;
@@ -83,7 +83,7 @@ double CommonTools::InvConvert(int time){
    sec=time0;
 
    double res=0;
-   res+=year*10000000000;
+   res+=(year+2000.)*10000000000.;
    res+=month*100000000;
    res+=day*1000000;
    res+=h*10000;
@@ -91,11 +91,28 @@ double CommonTools::InvConvert(int time){
    res+=sec;
    return res;
 }
+
+double CommonTools::ConvertMJD(double mjdtime){
+  double time = (( mjdtime - MJD19700101 ) * 86400 + TAI2UTC);
+  return time;
+}
+int CommonTools::ConvertMJD2Time(double mjdtime){
+  return ((int)ConvertMJD(mjdtime));
+}
+int CommonTools::ConvertMJD2time(double mjdtime){
+  double time = ConvertMJD(mjdtime);
+  int Time=((int)time);
+  return (int)((time-Time)/(2.0e-8));
+}
+double CommonTools::InvConvertMJD(int time){
+   double mjd=MJD19700101 + (time - TAI2UTC)/86400.;
+   return mjd;
+}
 ///return the year/month/day/hour/minute/second
 int CommonTools::TimeFlag(double time,int type){
    int year=int(time/10000000000);
-   if(year>=100) year=year%100;
    double time1=(time-year*10000000000);
+   year=(year%100)+2000;
    int month=int(time1/100000000);
    int time2=int(time1-month*100000000);
    int day=(time2%100000000)/1000000;
@@ -260,34 +277,23 @@ bool CommonTools::GetStatusFile(char* statusfile,char* eventfile){
    return true;
 }
 int CommonTools::GetBins(int start,int end,double step,double bins[100000]){
-   int h1=7,h2=18;
+   const int maxbins=100000;
+   int h1=8*3600,h2=17*3600+30*60;
    int nbin=0;
-   int hour1=TimeFlag(start,4);
-   int hour2=TimeFlag(end,4);
-   if(hour1>=h1&&hour1<=h2){
-      int min=TimeFlag(start,5);
-      int sec=TimeFlag(start,6);
-      start+=(h2+1-hour1)*3600+(0-min)*60+(0-sec);
-   }
-   if(hour2>=h1&&hour2<=h2){
-      int min=TimeFlag(end,5);
-      int sec=TimeFlag(end,6);
-      end-=((hour2-h1)*3600+min*60+sec);
-   }
+   int hour1=TimeFlag(start,4)*3600+TimeFlag(start,5)*60+TimeFlag(start,6);
+   int hour2=TimeFlag(end,4)*3600+TimeFlag(end,5)*60+TimeFlag(end,6);
    bins[nbin++]=start;
    while(nbin<100000){
       double newbin=bins[nbin-1]+step;
-      int hour=TimeFlag((int)(newbin+0.5),4);
-      //printf("hour=%d\n",hour);
+      int hour=TimeFlag((int)(newbin+0.5),4)*3600+TimeFlag((int)(newbin+0.5),5)*60+TimeFlag((int)(newbin+0.5),6);
       if(hour>=h1&&hour<=h2){
-         int min=TimeFlag((int)(newbin+0.5),5);
-         int sec=TimeFlag((int)(newbin+0.5),6);
-         newbin+=(h2+1-hour)*3600+(0-min)*60+(0-sec);
-         //printf("nbin=%d bins={%lf,%lf}\n",nbin,bins[nbin-1]+step,newbin);
+         newbin+=(h2-hour);
       }
       bins[nbin++]=(newbin>=end)?end:newbin;
-      //printf("nbin=%d bins=%lf\n",nbin-1,bins[nbin-1]);
+      //int bintime=(int)(bins[nbin-1]+0.5);
+      //printf("nbin=%d bins=%lf %04d-%02d-%02d %02d:%02d:%02d\n",nbin-1,bins[nbin-1],CommonTools::TimeFlag(bintime,1),CommonTools::TimeFlag(bintime,2),CommonTools::TimeFlag(bintime,3),CommonTools::TimeFlag(bintime,4),CommonTools::TimeFlag(bintime,5),CommonTools::TimeFlag(bintime,6));
       if(newbin>=end) break;
+      if(nbin>=maxbins) break;
    }
    return nbin-1;
 }

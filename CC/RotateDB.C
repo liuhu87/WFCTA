@@ -12,6 +12,7 @@ int RotateDB::ntotmin=5;
 int RotateDB::nsidemin=2;
 int RotateDB::nrot=2;
 int RotateDB::rotindex[10]={2,3,0,0,0,0,0,0,0,0};
+int RotateDB::TargetIndex=-1;
 int RotateDB::timedelay[10]={35,37,0,0,0,0,0,0,0,0};
 double RotateDB::rottime[10]={990016000,990845000,0,0,0,0,0,0,0,0};
 int RotateDB::ntel=6;
@@ -1112,12 +1113,12 @@ int RotateDB::ProcessTime2(int itime){
    int result=CommonTools::Convert(time00);
    return (time0[0]=='+')?result:(-result);
 }
-void RotateDB::ProcessAll2(){
+void RotateDB::ProcessAll2(int item){
    if(time2<=0) return;
-   int size=strlen(buff2[0]);
-   if(jdebug>0) printf("RotateDB::ProcessAll2: %s(size=%d)\n",buff2[0],size);
+   int size=strlen(buff2[item]);
+   if(jdebug>0) printf("RotateDB::ProcessAll2: %s(size=%d)\n",buff2[item],size);
    char tokens[14][20];
-   sscanf(buff2[0],"%s %s %s %s %s %s %s %s %s %s %s %s %s %s",tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],tokens[7],tokens[8],tokens[9],tokens[10],tokens[11],tokens[12],tokens[13]);
+   sscanf(buff2[item],"%s %s %s %s %s %s %s %s %s %s %s %s %s %s",tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],tokens[7],tokens[8],tokens[9],tokens[10],tokens[11],tokens[12],tokens[13]);
    int count;
    int nchar1,nchar2,nchar3;
    if(strcmp(tokens[0],"Rotate")==0){
@@ -1439,13 +1440,90 @@ double RotateDB::GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,
    if(irot<0||irot>=2) return result;
    if(itel<0||itel>=6) return result;
 
+   const int nangle1=4;
+   double AngleList1[nangle1][2];
+   AngleList1[0][0]=40; AngleList1[0][1]=42;
+   AngleList1[1][0]=40; AngleList1[1][1]=29;
+   AngleList1[2][0]=40; AngleList1[2][1]=19;
+   AngleList1[3][0]=40; AngleList1[3][1]=4;
+
+   const int nangle2=7;
+   double elelist[nangle2]={10,20,30,40,50,55,60};
+   double azilist[2][6][nangle2]={{{23.7,19,15,10,1,-5,-1000},
+                                   {23.7,17,11,0,-12,-18,-1000},
+                                   {24.5,22,19,15,10,3,-1000},
+                                   {27,26,26,26,25,24,-1000},
+                                   {30.5,33,35,38,42,44,-1000},
+                                   {32,38,43,47,54,61,-1000}},
+                                  {{-71,-67,-63,-57,-52,-42,-37},
+                                   {-74,-72,-72,-69,-67,-66,-65},
+                                   {-69,-64,-57,-47,-37,-27,-17},
+                                   {-67,-62,-54,-47,-32,-17,-2},
+                                   {-68,-63,-57,-48,-32,-13,3},
+                                   {-71,-67,-62,-57,-52,-42,-37}}
+                                 };
+
+   const int nangle3=7;
+   double elelist3=20.;
+   double azilist3[nangle3]={19.,19.1,19.2,19.5,18.9,18.8,18.5};
+
+   if(TargetIndex>=0){
+      if(irot!=GetLi(TargetIndex/100)) return result;
+      int itype=((TargetIndex%100)/10);
+      int iangle=(TargetIndex%10);
+      if(itype==1){
+         for(int ii=0;ii<nangle1;ii++){
+            if(ii!=iangle) continue;
+            bool isfine=false;
+            if(ii==0&&(telindex[itel]==5||telindex[itel]==6)) isfine=true;
+            if(ii==1&&(telindex[itel]==4||telindex[itel]==5)) isfine=true;
+            if(ii==2&&(telindex[itel]==3||telindex[itel]==4)) isfine=true;
+            if(ii==3&&(telindex[itel]==1||telindex[itel]==2||telindex[itel]==3)) isfine=true;
+            if(!isfine) continue;
+            double dist1=fabs(ele_in-AngleList1[ii][0]);
+            double dist2=fabs(azi_in-AngleList1[ii][1]);
+            double dist=TMath::Max(dist1,dist2);
+            if(dist<result){
+               minele=dist1;
+               minazi=dist2;
+               result=dist;
+               index=1*10+ii;
+            }
+         }
+      }
+      else if(itype==2){
+         for(int ii=0;ii<nangle2;ii++){
+            if(ii!=iangle) continue;
+            double dist1=fabs(ele_in-elelist[ii]);
+            double dist2=fabs(azi_in-azilist[irot][itel][ii]);
+            double dist=TMath::Max(dist1,dist2);
+            if(dist<result){
+               minele=dist1;
+               minazi=dist2;
+               result=dist;
+               index=2*10+ii;
+            }
+         }
+      }
+      //else if(itype==3){
+      //   for(int ii=0;ii<nangle3&&(rotindex[irot]==2&&telindex[itel]==1);ii++){
+      //      if(ii!=iangle) continue;
+      //      double dist1=fabs(ele_in-elelist3);
+      //      double dist2=fabs(azi_in-azilist3[ii]);
+      //      double dist=TMath::Max(dist1,dist2);
+      //      if(dist<result){
+      //         minele=dist1;
+      //         minazi=dist2;
+      //         result=dist;
+      //         index=3*10+ii;
+      //      }
+      //   }
+      //}
+
+      return result;
+   }
+
    if(rotindex[irot]==2){
-      const int nangle1=4;
-      double AngleList1[nangle1][2];
-      AngleList1[0][0]=40; AngleList1[0][1]=42;
-      AngleList1[1][0]=40; AngleList1[1][1]=29;
-      AngleList1[2][0]=40; AngleList1[2][1]=19;
-      AngleList1[3][0]=40; AngleList1[3][1]=4;
       for(int ii=0;ii<nangle1;ii++){
          bool isfine=false;
          if(ii==0&&(telindex[itel]==5||telindex[itel]==6)) isfine=true;
@@ -1465,21 +1543,6 @@ double RotateDB::GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,
       }
    }
 
-   const int nangle2=7;
-   double elelist[nangle2]={10,20,30,40,50,55,60};
-   double azilist[2][6][nangle2]={{{23.7,19,15,10,1,-5,-1000},
-                                   {23.7,17,11,0,-12,-18,-1000},
-                                   {24.5,22,19,15,10,3,-1000},
-                                   {27,26,26,26,25,24,-1000},
-                                   {30.5,33,35,38,42,44,-1000},
-                                   {32,38,43,47,54,61,-1000}},
-                                  {{-71,-67,-63,-57,-52,-42,-37},
-                                   {-74,-72,-72,-69,-67,-66,-65},
-                                   {-69,-64,-57,-47,-37,-27,-17},
-                                   {-67,-62,-54,-47,-32,-17,-2},
-                                   {-68,-63,-57,-48,-32,-13,3},
-                                   {-71,-67,-62,-57,-52,-42,-37}}
-                                 };
    for(int ii=0;ii<nangle2;ii++){
       double dist1=fabs(ele_in-elelist[ii]);
       double dist2=fabs(azi_in-azilist[irot][itel][ii]);
@@ -1492,20 +1555,17 @@ double RotateDB::GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,
       }
    }
 
-   const int nangle3=7;
-   double elelist3=20.;
-   double azilist3[nangle3]={19.,19.1,19.2,19.5,18.9,18.8,18.5};
-   for(int ii=0;ii<nangle3&&(rotindex[irot]==2&&telindex[itel]==1);ii++){
-      double dist1=fabs(ele_in-elelist3);
-      double dist2=fabs(azi_in-azilist3[ii]);
-      double dist=TMath::Max(dist1,dist2);
-      if(dist<result){
-         minele=dist1;
-         minazi=dist2;
-         result=dist;
-         index=3*10+ii;
-      }
-   }
+   //for(int ii=0;ii<nangle3&&(rotindex[irot]==2&&telindex[itel]==1);ii++){
+   //   double dist1=fabs(ele_in-elelist3);
+   //   double dist2=fabs(azi_in-azilist3[ii]);
+   //   double dist=TMath::Max(dist1,dist2);
+   //   if(dist<result){
+   //      minele=dist1;
+   //      minazi=dist2;
+   //      result=dist;
+   //      index=3*10+ii;
+   //   }
+   //}
 
    return result;
 }
@@ -1590,8 +1650,8 @@ int RotateDB::GetEleAzi1(int time_in,int Li_in,int iTel){
    //int nside2=((ncount%2)==0)?((ncount/2)-13):(((ncount-1)/2)-13);
    //if(jdebug>0) printf("RotateDB::GetEleAzi: ncount={%d,%d} nside={%d,%d}\n",ncount1,ncount2,nside1,nside2);
 
-   if(ncount<ntotmin) return -4;
-   if(ncount1<=nsidemin||ncount2<=nsidemin) return -5;
+   if(ncount<ntotmin) return -(Li_in*100+retval);
+   if(ncount1<=nsidemin||ncount2<=nsidemin) return -(Li_in*100+retval);
    else return (Li_in*100+retval);
 }
 int RotateDB::GetEleAzi2(int time_in,int Li_in,int iTel){
@@ -1623,8 +1683,8 @@ int RotateDB::GetEleAzi2(int time_in,int Li_in,int iTel){
    int ncount2=UseGPSTime?(timei1-(time_in-timedelay[irot])):(timei1-time_in);
    int ncount=ncount1+ncount2+1;
 
-   if(ncount<ntotmin) return -4;
-   if(ncount1<=nsidemin||ncount2<=nsidemin) return -5;
+   if(ncount<ntotmin) return -(Li_in*100+retval);
+   if(ncount1<=nsidemin||ncount2<=nsidemin) return -(Li_in*100+retval);
    else return (Li_in*100+retval);
 }
 int RotateDB::GetEleAzi(int time_in,int Li_in,int iTel){
@@ -1832,7 +1892,7 @@ int RotateDB::LaserIsFine(WFCTAEvent* pev){
    if(jdebug>0) printf("RotateDB::LaserIsFine: EleAziIndex=%d\n",EleAziIndex);
    if(EleAziIndex<=0) return EleAziIndex;
 
-   bool fitted=pev->DoFit(0,3);
+   bool fitted=pev->DoFit(0,4);
    if(jdebug>1) printf("RotateDB::LaserIsFine: Fit=%d\n",fitted);
    bool image=IsFineImage(pev,EleAziIndex);
    if(jdebug>1) printf("RotateDB::LaserIsFine: FineImage=%d\n",image);

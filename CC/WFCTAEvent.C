@@ -180,6 +180,8 @@ void WFCTAEvent::Init()
    minimizer=0;
    htlong=0;
 
+   type=0;
+
    mcevent.Init();
    ledevent.Init();
    laserevent.Init();
@@ -253,6 +255,8 @@ void WFCTAEvent::EventInitial()
 	if(gDrawErr) {delete gDrawErr; gDrawErr=0;}
 	if(minimizer) {delete minimizer; minimizer=0;}
         if(htlong) {delete htlong; htlong=0;}
+
+	type=0;
 
 	mcevent.Reset();
 	ledevent.Reset();
@@ -386,6 +390,7 @@ void WFCTAEvent::CalculateDataVar(int itel){
 }
 double WFCTAEvent::GetImageXYCoo(int isipm,double &ImageX,double &ImageY,double focus,bool Isdegree){
    if(isipm<0||isipm>=NSIPM) return -1;
+   if(WCamera::SiPMMAP[0][0]==0) WCamera::SetSiPMMAP();
    ImageX=WCamera::GetSiPMX(isipm);
    ImageY=WCamera::GetSiPMY(isipm);
    double numcon=Isdegree?(180./PI):1.;
@@ -803,7 +808,7 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
    #endif
    minimizer->SetFunction(f);
    minimizer->SetFixedVariable(0,"iTel",0);
-   minimizer->SetFixedVariable(1,"Type",3);
+   minimizer->SetFixedVariable(1,"Type",4);
    //minimizer->SetLimitedVariable(2,"bb",b,fabs(0.01*b),-1.e6,1.e6);
    //minimizer->SetLimitedVariable(3,"kk",a,fabs(0.01*a),-1.e6,1.e6);
    double cc0=a>=0?b/sqrt(1+a*a):-b/sqrt(1+a*a);
@@ -2623,7 +2628,7 @@ TGraph* WFCTAEvent::DrawTimeLine(double ele_rotate,double azi_rotate,double ele_
       incoo0[1]=incoo[1]+dir0[1]*dl;
       incoo0[2]=0;
    }
-   DoFit(0,3);
+   DoFit(0,4);
    double phi=minimizer->X()[3];
    double CC=minimizer->X()[2];
    TGraph* gr=new TGraph();

@@ -107,6 +107,9 @@ class WFCTAEvent : public TSelector
                 /// for the time vs long axis
                 TH1F* htlong; //!
 
+                ///Event Type: 1:laser 2:led 3:CRs
+                int type; //!
+
 	public:
 		double mjd;  //!
 		int year;  //!
