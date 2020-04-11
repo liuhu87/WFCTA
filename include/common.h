@@ -23,6 +23,10 @@ const double vlight=2.998e10;
 const int MJD19700101=40587;
 const int TAI2UTC=37;
 extern int Nuse;
+
+#define NCTMax 20
+#define MAXPMT 1024
+
   ///convert time
 class CommonTools {
    public:

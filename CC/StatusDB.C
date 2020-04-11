@@ -16,11 +16,11 @@ char StatusDB::DBPath[200];
 //TTree* StatusDB::tree=0;
 //
 //int StatusDB::currentday=0;
-//int StatusDB::nfiles[MAXTel];
-//int StatusDB::telindex[MAXTel];
-//int StatusDB::filetime[MAXTel][1000];
-//int StatusDB::fileindex[MAXTel][1000];
-//char StatusDB::filename[MAXTel][1000][200];
+//int StatusDB::nfiles[NCTMax];
+//int StatusDB::telindex[NCTMax];
+//int StatusDB::filetime[NCTMax][1000];
+//int StatusDB::fileindex[NCTMax][1000];
+//char StatusDB::filename[NCTMax][1000][200];
 //
 //int StatusDB::currentfile=-1;
 //int StatusDB::currenttime=0;
@@ -47,19 +47,19 @@ int StatusDB::MaxFileTime=3600;
 //int StatusDB::fired_tube;
 //Long64_t StatusDB::status_readback_Time;
 //double StatusDB::status_readback_time;
-//int StatusDB::sipm[1024];
-//int StatusDB::mask[1024];
-//short StatusDB::single_thresh[1024];
-//short StatusDB::record_thresh[1024];
-//Long64_t StatusDB::single_count[1024];
-//Long64_t StatusDB::single_time[1024];
-//float StatusDB::DbTemp[1024];
-//float StatusDB::HV[1024];
-//float StatusDB::PreTemp[1024];
-//float StatusDB::BigResistence[1024];
-//float StatusDB::SmallResistence[1024];
-//Long64_t StatusDB::ClbTime[1024];
-//float StatusDB::ClbTemp[1024];
+//int StatusDB::sipm[MAXPMT];
+//int StatusDB::mask[MAXPMT];
+//short StatusDB::single_thresh[MAXPMT];
+//short StatusDB::record_thresh[MAXPMT];
+//Long64_t StatusDB::single_count[MAXPMT];
+//Long64_t StatusDB::single_time[MAXPMT];
+//float StatusDB::DbTemp[MAXPMT];
+//float StatusDB::HV[MAXPMT];
+//float StatusDB::PreTemp[MAXPMT];
+//float StatusDB::BigResistence[MAXPMT];
+//float StatusDB::SmallResistence[MAXPMT];
+//Long64_t StatusDB::ClbTime[MAXPMT];
+//float StatusDB::ClbTemp[MAXPMT];
 
 void StatusDB::Init(){
    if(UseDecodeData){
@@ -94,7 +94,7 @@ void StatusDB::Reset(){
    fired_tube=0;
    status_readback_Time=0;
    status_readback_time=0;
-   for(int ii=0;ii<1024;ii++){
+   for(int ii=0;ii<MAXPMT;ii++){
    single_thresh[ii]=-1000;
    record_thresh[ii]=-1000;
    single_count[ii]=-1000;
@@ -130,7 +130,7 @@ StatusDB* StatusDB::GetHead(){
 }
 int StatusDB::LocateTel(int iTel0){
    int rectel=-1;
-   for(int ii=0;ii<MAXTel;ii++){
+   for(int ii=0;ii<NCTMax;ii++){
       if(telindex[ii]==100||telindex[ii]==iTel0){
          rectel=ii;
          break;
@@ -147,7 +147,7 @@ int StatusDB::LoadFile(int whichday,char* filename_in){
    if(whichday==currentday){
       if(type==1){
          int nsum=0;
-         for(int ii=0;ii<MAXTel;ii) nsum+=nfiles[ii];
+         for(int ii=0;ii<NCTMax;ii) nsum+=nfiles[ii];
          return nsum;
       }
       if(type==2) return currentfile>=-1?1:0;
@@ -184,13 +184,13 @@ int StatusDB::LoadFile(int whichday,char* filename_in){
    strcat(dirname,Form("/%02d%02d",month,day));
    string dirpath(dirname);
 
-   int telindex0[MAXTel];
-   for(int ii=0;ii<MAXTel;ii++){
+   int telindex0[NCTMax];
+   for(int ii=0;ii<NCTMax;ii++){
       telindex0[ii]=telindex[ii];
       telindex[ii]=0;
    }
-   int nfiles0[MAXTel];
-   for(int ii=0;ii<MAXTel;ii++) nfiles0[ii]=0;
+   int nfiles0[NCTMax];
+   for(int ii=0;ii<NCTMax;ii++) nfiles0[ii]=0;
    //list all the status files
    vector<string> namebuff;
    CommonTools::getFiles(dirpath,namebuff);
@@ -238,7 +238,7 @@ int StatusDB::LoadFile(int whichday,char* filename_in){
          }
       }
       int rectel=(itel==100)?0:(itel-1);
-      if(rectel<0||rectel>MAXTel) continue;
+      if(rectel<0||rectel>NCTMax) continue;
       //printf("index=%d %s %s time=%d\n",ii,dirpath.data(),namebuff.at(ii).data(),cfiletime);
       if(jdebug>2) printf("StatusDB::LoadFile: whichday=%d ii=%d(nfiles=%d) filename=%s\n",whichday,ii,nfiles0[rectel],namebuff.at(ii).data());
 
@@ -292,10 +292,10 @@ int StatusDB::LoadFile(int whichday,char* filename_in){
       nloaded++;
    }
    if(nloaded>0){
-      for(int ii=0;ii<MAXTel;ii++) nfiles[ii]=nfiles0[ii];
+      for(int ii=0;ii<NCTMax;ii++) nfiles[ii]=nfiles0[ii];
       currentday=year*10000+month*100+day;
       if(jdebug>3){
-         for(int itel=0;itel<MAXTel;itel++){
+         for(int itel=0;itel<NCTMax;itel++){
             for(int ii=0;ii<nfiles[itel];ii++){
                printf("itel=%d ifile=%d(nfile=%d) whichday=%d time=%d filename=%s\n",itel,ii,nfiles[itel],whichday,filetime[itel][ii],filename[itel][ii]);
             }
@@ -303,7 +303,7 @@ int StatusDB::LoadFile(int whichday,char* filename_in){
       }
    }
    else{
-      for(int ii=0;ii<MAXTel;ii++) telindex[ii]=telindex0[ii];
+      for(int ii=0;ii<NCTMax;ii++) telindex[ii]=telindex0[ii];
    }
    return nloaded;
 }
@@ -675,14 +675,14 @@ void StatusDB::Fill(){
                  wfctaDecode->GetHV(buf,packSize,(float *)HV);
                  imax=-1;
                  max=-1000;
-                 for(int jj=0;jj<1024;jj++) if(HV[jj]>max) {imax=jj; max=HV[jj];}
+                 for(int jj=0;jj<MAXPMT;jj++) if(HV[jj]>max) {imax=jj; max=HV[jj];}
                  if(jdebug>3) printf("StatusDB::Fill: Fill HV max=%f(%d)\n",max,imax);
                  continue;
                case 0x82:
                  wfctaDecode->GetPreTemp(buf,packSize,(float *)PreTemp);
                  imax=-1;
                  max=-1000;
-                 for(int jj=0;jj<1024;jj++) if(PreTemp[jj]>max) {imax=jj; max=PreTemp[jj];}
+                 for(int jj=0;jj<MAXPMT;jj++) if(PreTemp[jj]>max) {imax=jj; max=PreTemp[jj];}
                  if(jdebug>3) printf("StatusDB::Fill: Fill PreTemp max=%f(%d)\n",max,imax);
                  continue;
                //case 0x83:
@@ -695,7 +695,7 @@ void StatusDB::Fill(){
                  wfctaDecode->GetClbTemp(buf,packSize,(float *)ClbTemp);
                  imax=-1;
                  max=-1000;
-                 for(int jj=0;jj<1024;jj++) if(ClbTemp[jj]>max) {imax=jj; max=ClbTemp[jj];}
+                 for(int jj=0;jj<MAXPMT;jj++) if(ClbTemp[jj]>max) {imax=jj; max=ClbTemp[jj];}
                  if(jdebug>3) printf("StatusDB::Fill: Fill ClbTemp max=%f(%d)\n",max,imax);
                  continue;
                case 0x9:

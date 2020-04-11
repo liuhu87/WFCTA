@@ -1,8 +1,10 @@
 #ifndef __CalibWFCTA__
 #define __CalibWFCTA__
-#define CalibMaxTel 20
 
 #include "TGraphErrors.h"
+#include "TFile.h"
+#include "TTree.h"
+#include "common.h"
 //#include "camera.h"
 
 class CalibWFCTA {
@@ -28,36 +30,36 @@ class CalibWFCTA {
    ///rabbit Time
    Long64_t rabbitTime;
    ///BaseH_RMS
-   Float_t mBaseH_RMS[1024];
+   Float_t mBaseH_RMS[MAXPMT];
    ///BaseL_RMS
-   Float_t mBaseL_RMS[1024];
+   Float_t mBaseL_RMS[MAXPMT];
    ///mBaseH
-   Float_t mBaseH[1024];
+   Float_t mBaseH[MAXPMT];
    ///mBaseL
-   Float_t mBaseL[1024];
+   Float_t mBaseL[MAXPMT];
    ///AdcH
-   Float_t mAdcH[1024];
+   Float_t mAdcH[MAXPMT];
    ///AdcL
-   Float_t mAdcL[1024];
+   Float_t mAdcL[MAXPMT];
    ///AdcL_RMS
-   Float_t mAdcL_RMS[1024];
+   Float_t mAdcL_RMS[MAXPMT];
    ///AdcH_RMS
-   Float_t mAdcH_RMS[1024];
+   Float_t mAdcH_RMS[MAXPMT];
    ///Low_Flag
-   Short_t Low_Flag[1024];
+   Short_t Low_Flag[MAXPMT];
    ///HGain
-   Double_t H_Gain_Factor[1024];
+   Double_t H_Gain_Factor[MAXPMT];
    ///LGain
-   Double_t L_Gain_Factor[1024];
+   Double_t L_Gain_Factor[MAXPMT];
    ///Gain
-   Double_t Gain_Factor[1024];
+   Double_t Gain_Factor[MAXPMT];
 
    //Version 2
-   TGraphErrors* sipmcalib_norm[CalibMaxTel];
-   TGraphErrors* sipmcalib_slope[CalibMaxTel];
+   TGraphErrors* sipmcalib_norm[NCTMax];
+   TGraphErrors* sipmcalib_slope[NCTMax];
    //Version 3
-   double unif_factor[CalibMaxTel][1024];
-   double deltag_20[CalibMaxTel][1024];
+   double unif_factor[NCTMax][MAXPMT];
+   double deltag_20[NCTMax][MAXPMT];
 
    void Init();
    void Reset();
@@ -76,7 +78,7 @@ class CalibWFCTA {
    int LoadFromrabbitTime(double time,int iTel);
    int LoadEntry(long int entry);
    void Dump(int isipm=16*32);
-   double DoCalibSiPM(int iTel,int isipm,double input,double temperature,double Time,int calibtype=0x7,bool IsLED=false);
+   double DoCalibSiPM(int iTel,int isipm,double input,double temperature,double Time,int calibtype=0x7,int type=0);
 };
 
 #endif

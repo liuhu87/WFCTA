@@ -1,5 +1,6 @@
 #include "Readparam.h"
 static int  WLFlag = 0;                        //@< flag of wavelength
+static double lhaaso_coo[3]={0,0,0};           //@< lhaaso coordinate
 static int  CTNumber = 1;                      //@< number of telescopes 
 static int ThinFlag = 0;                       //@< flag of thin option
 static float **CT_Position;                    //@< the positions and pointings of telescopes
@@ -91,6 +92,9 @@ void WReadConfig::readparam(char * filename)
          sscanf(line, "%s  %s", token, token2);
          if(strcmp(token2,"T")==0||strcmp(token2,"TRUE")==0)
            FilterFlag = TRUE;
+         break;
+     case lhaaso_position:
+         sscanf(line, "%s  %lf %lf %lf", token, &lhaaso_coo[0],&lhaaso_coo[1],&lhaaso_coo[2]);
          break;
      case ct_number:
          sscanf(line, "%s  %d", token, &k);
@@ -205,6 +209,10 @@ void WReadConfig::readparam(char * filename)
  return; 
 }
 
+double WReadConfig::GetLHAASOCoo(int i){
+   if(i<0||i>2) return 0;
+   return lhaaso_coo[i];
+}
 
 int WReadConfig::GetCTNumber()
 {

@@ -11,6 +11,7 @@
 #include "TTree.h"
 #include "TBranch.h"
 #include "TH2Poly.h"
+#include "common.h"
 
 #include "WFCTAMCEvent.h"
 #include "WFCTALedEvent.h"
@@ -21,7 +22,6 @@
 #include "Math/Functor.h"
 
 using namespace std;
-const int MAXPMT=1024;
 class LHChain;
 class WFCTAEvent : public TSelector
 {
@@ -108,7 +108,7 @@ class WFCTAEvent : public TSelector
                 TH1F* htlong; //!
 
                 ///Event Type: 1:laser 2:led 3:CRs
-                int type; //!
+                int Type; //!
 
 	public:
 		double mjd;  //!
@@ -163,6 +163,7 @@ class WFCTAEvent : public TSelector
                 int GetPeakADCBin(int isipm,int itel=0);
                 int GetMaxTimeBin(int itel=0);
                 int GetMinTimeBin(int itel=0);
+                bool IsSaturated(int isipm,int itel=0,bool IsHigh=true,bool IsIndex=false);
                 double GetContent(int isipm,int itel=0,int type=3,bool IsIndex=false,bool IsFit=false);
                 double GetContentError(int isipm,int itel=0,int type=3,bool IsIndex=false,bool IsFit=false);
                 double GetTotalPe(double &error,int &ncontent,int itel,int type,bool DoClean=true,bool IsFit=false);

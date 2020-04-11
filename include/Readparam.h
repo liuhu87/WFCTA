@@ -8,6 +8,7 @@
 
 #define PM_ITEM_LIST   /* LIST OF ITEMS IN THE PARAMETERS FILE */  \
 T(SIMMODE),           /*The simulation mode*/\
+T(lhaaso_position),    /*lhaaso center coordinates*/\
 T(ct_number),          /* number of CT, which is number of reflector files */ \
 T(ct_position),          /* number of CT, which is number of reflector files */ \
 T(mirror_size),    /*total size of the reflector mirror*/\
@@ -64,6 +65,7 @@ public:
     WReadConfig();
    ~WReadConfig();
    void readparam(char * filename);
+   double GetLHAASOCoo(int i);
    int GetCTNumber();
    float GetCTPosition(int ict, int i);
    int GetMirrorGeometry();

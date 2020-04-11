@@ -77,8 +77,8 @@ class Laser {
       static double lengthmin2;
       static double lengthmax2;
       static TH1D* hdenu;
-      static TH1D* hprob[NCTMax][1024];
-      static TH1D* hleng[NCTMax][1024];
+      static TH1D* hprob[NCTMax][MAXPMT];
+      static TH1D* hleng[NCTMax][MAXPMT];
 
       ///position of the laser generator
       double lasercoo[3];	//in cm

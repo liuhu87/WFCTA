@@ -48,4 +48,6 @@
 
 #pragma link C++ class WFCTASCDB+;
 #pragma link C++ class CalibLED+;
+
+#pragma link C++ class TelGeoFit+;
 #endif

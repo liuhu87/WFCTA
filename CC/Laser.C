@@ -416,8 +416,8 @@ double Laser::lengthmax=2000;
 double Laser::lengthmin2=400;
 double Laser::lengthmax2=4000;
 TH1D* Laser::hdenu;
-TH1D* Laser::hprob[NCTMax][1024];
-TH1D* Laser::hleng[NCTMax][1024];
+TH1D* Laser::hprob[NCTMax][MAXPMT];
+TH1D* Laser::hleng[NCTMax][MAXPMT];
 void Laser::Init(int seed){
    if(!prandom) prandom = new TRandom3();
    prandom->SetSeed(seed);

@@ -4,7 +4,7 @@ bool CalibLED::ForceCorr=false;
 int CalibLED::TimeDelay=0;
 int CalibLED::jdebug=0;
 CalibLED* CalibLED::_Head=0;
-char* CalibLED::DirName[200]="/eos/lhaaso/rec/wfcta/LED_Driver_Correct_Factor_new";
+char CalibLED::DirName[200]="/eos/lhaaso/rec/wfcta/LED_Driver_Correct_Factor_new";
 void CalibLED::Init(){
    curTel=0;
    fin=0;
@@ -24,8 +24,14 @@ void CalibLED::Clear(){
    if(tree) {delete tree; tree=0;}
    if(fin) {fin->Close(); fin=0;}
 }
-CalibLED* CalibLED::GetHead(){
-   if(!_Head) _Head=new CalibLED();
+void CalibLED::SetDirName(char* dirname){
+   if(dirname) strcpy(DirName,dirname);
+}
+CalibLED* CalibLED::GetHead(char* dirname){
+   if(!_Head){
+      _Head=new CalibLED();
+      if(dirname) SetDirName(dirname);
+   }
    return _Head;
 }
 void CalibLED::SetBranchAddress(){
@@ -240,7 +246,7 @@ double CalibLED::DoLedDriveTempCorr(double input,int isipm,double time,int iTel)
    WFCTAEvent::GetImageXYCoo(isipm,ImageX,ImageY,-1,false);
    double angle=sqrt(pow(ImageX,2)+pow(ImageY,2));
    double corr=pow(cos(angle),4);
-   double res=input*corr;
+   double res=input/corr;
    if(!tree) return ForceCorr?-1.:res;
    if(!tree->GetBranchStatus("LED_DRF")) return ForceCorr?-1.:res;
    return (res*LED_DRF);

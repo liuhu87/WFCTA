@@ -2,6 +2,8 @@
 //#include "camera.h"
 extern void SC_Channel2SiPM(short F_DB, short mChannel, short *mSiPM);
 #include "TFile.h"
+#include "TString.h"
+#include "CalibLED.h"
 #include <iostream>
 using namespace std;
 
@@ -12,10 +14,10 @@ int CalibWFCTA::jdebug=0;
 char CalibWFCTA::DirName[3][200]={"/eos/user/y/yangmj/wfcta/decode/led_calibrate/LED_Calibrate_End2End_Factor","/afs/ihep.ac.cn/users/h/hliu/public/WFDataDir","/workfs/ybj/yinlq/LHAASO/WFCTA/WFCTA_Info_Parameter"};
 
 void CalibWFCTA::Init(){
-   for(int ii=0;ii<CalibMaxTel;ii++){
+   for(int ii=0;ii<NCTMax;ii++){
       sipmcalib_norm[ii]=0;
       sipmcalib_slope[ii]=0;
-      for(int jj=0;jj<1024;jj++){
+      for(int jj=0;jj<MAXPMT;jj++){
          unif_factor[ii][jj]=0;
          deltag_20[ii][jj]=0;
       }
@@ -30,7 +32,7 @@ void CalibWFCTA::Init(){
 void CalibWFCTA::Reset(){
    curTel=0;
    rabbitTime=0;
-   for(int ii=0;ii<1024;ii++){
+   for(int ii=0;ii<MAXPMT;ii++){
       mBaseH_RMS[ii]=0;
       mBaseL_RMS[ii]=0;
       mBaseH[ii]=0;
@@ -46,7 +48,7 @@ void CalibWFCTA::Reset(){
    }
 }
 void CalibWFCTA::Release(){
-   for(int ii=0;ii<CalibMaxTel;ii++){
+   for(int ii=0;ii<NCTMax;ii++){
       if(sipmcalib_norm[ii]) {delete sipmcalib_norm[ii]; sipmcalib_norm[ii]=0;}
       if(sipmcalib_slope[ii]) {delete sipmcalib_slope[ii]; sipmcalib_slope[ii]=0;}
    }
@@ -62,7 +64,7 @@ int CalibWFCTA::LoadCalibSiPM(int version,char* dirname){
       strcat(filename,Form("%s/temp_corr_v2.root",dirname?dirname:DirName[1]));
       TFile* fin0=TFile::Open(filename,"READ");
       if(!fin0) return 0;
-      for(int ii=0;ii<CalibMaxTel;ii++){
+      for(int ii=0;ii<NCTMax;ii++){
          sipmcalib_norm[ii]=(TGraphErrors*)fin0->Get(Form("Norm_Tel%d",ii+1));
          sipmcalib_slope[ii]=(TGraphErrors*)fin0->Get(Form("Slope_Tel%d",ii+1));
          if(sipmcalib_norm[ii]) ndata++;
@@ -70,12 +72,12 @@ int CalibWFCTA::LoadCalibSiPM(int version,char* dirname){
       fin0->Close();
    }
    if(version==3||version<=0){
-      for(int itel=1;itel<=CalibMaxTel;itel++){
+      for(int itel=1;itel<=NCTMax;itel++){
          char filename[200]="";
          TString ss(dirname?dirname:DirName[2]); if(ss.BeginsWith("/eos/")) strcpy(filename,"root:://eos01.ihep.ac.cn/");
          strcat(filename,Form("%s/Uniform_Factor/WFCTA_%02d.txt",dirname?dirname:DirName[2],itel));
          char filename2[200]="";
-         TString ss(dirname?dirname:DirName[2]); if(ss.BeginsWith("/eos/")) strcpy(filename2,"root:://eos01.ihep.ac.cn/");
+         TString ss2(dirname?dirname:DirName[2]); if(ss2.BeginsWith("/eos/")) strcpy(filename2,"root:://eos01.ihep.ac.cn/");
          strcat(filename2,Form("%s/Tempature_Factor/W%02d_Tempature_Factor.txt",dirname?dirname:DirName[2],itel));
          FILE *fp_gt, *fp_unif;
          fp_unif=fopen(filename,"r");
@@ -84,7 +86,7 @@ int CalibWFCTA::LoadCalibSiPM(int version,char* dirname){
          if(fp_gt==NULL) { cerr<<"Can not open W"<<itel<<"_Tempature_Factor.txt"<<endl;}
          if(fp_unif==NULL||fp_gt==NULL) continue;
 
-         //float deltag_20[1024];
+         //float deltag_20[MAXPMT];
          float temp = 0;
          short F_DB, mChannel, mSiPM;
          for(int i=1;i<9;i++){
@@ -139,7 +141,7 @@ void CalibWFCTA::SetBranchAddress(){
    if(tree->GetBranchStatus("L_Gain_Factor")) tree->SetBranchAddress("L_Gain_Factor",&L_Gain_Factor);
    if(tree->GetBranchStatus("Gain_Factor")) tree->SetBranchAddress("Gain_Factor",&Gain_Factor);
 }
-long int CalibLED::LoadDay(int Day,int iTel){
+long int CalibWFCTA::LoadDay(int Day,int iTel){
    if(fin){
       char filename0[200]="";
       strcpy(filename0,fin->GetName());
@@ -304,7 +306,7 @@ int CalibWFCTA::LoadTime(int time){
       curentry=entry_test;
       tree->GetEntry(curentry);
       int time_test=rabbitTime;
-      if(jdebug>3) printf("CalibWFCTA::LoadTime: loop%d,entry=%ld(%ld) Time=%d(%d) MJD=%.4lf\n",nloop,curentry,entries,time_test,time,T1MJD);
+      if(jdebug>3) printf("CalibWFCTA::LoadTime: loop%d,entry=%ld(%ld) Time=%d(%d)\n",nloop,curentry,entries,time_test,time);
       if(IsTimeEqual(time_test,time)==0){
          if(jdebug>1) printf("CalibWFCTA::LoadTime: loop%d,return currrent entry. entry=%ld(%ld) Time=%d(%d)\n",nloop,curentry,entries,time_test,time);
          return 1;
@@ -353,22 +355,26 @@ void CalibWFCTA::Dump(int isipm){
    printf("Gain Factor={%.1lf %.1lf %.1lf}\n",H_Gain_Factor[isipm],L_Gain_Factor[isipm],Gain_Factor[isipm]);
 }
 
-double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperature,double Time,int calibtype,bool IsLED){
+double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperature,double Time,int calibtype,int type){
    double res=-1;
-   if(iTel<1||iTel>CalibMaxTel) return res;
+   if(iTel<1||iTel>NCTMax) return res;
    if(isipm<0||isipm>1023) return res;
    double temp_ref=20.;
-   if(UseSiPMCalibVer==0){
-      bool ishig=(bool)calibtype;
-      int status=LoadFromrabbitTime((double)Time,iTel);
-      if(status>0){
-         double corr=ishig?H_Gain_Factor[isipm]:L_Gain_Factor[isipm];
-         if(corr<=0) res=ForceCorr?res:input;
-         else res=input/corr;
+   if(UseSiPMCalibVer==1){
+      int CalibType=(calibtype&0x3);
+      if(CalibType==0x0) res=input;
+      else{
+         bool ishig=(bool)(type>10);
+         int status=LoadFromrabbitTime((double)Time,iTel);
+         if(status>0){
+            double corr=ishig?H_Gain_Factor[isipm]:L_Gain_Factor[isipm];
+            if(corr<=0) res=ForceCorr?res:input;
+            else res=input/corr;
+         }
+         else res=ForceCorr?res:input;
       }
-      else res=ForceCorr?res:input;
    }
-   if(UseSiPMCalibVer==1){ //use sipm=529 as reference
+   if(UseSiPMCalibVer==2){ //use sipm=529 as reference
       int CalibType=(calibtype&0x3);
       if(!sipmcalib_norm[iTel-1]) res=ForceCorr?res:input;
       else{
@@ -389,7 +395,7 @@ double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperatur
       if(Time<1573876800) res*=(8.e5/1.1e6);
       }
    }
-   else if(UseSiPMCalibVer==2){
+   else if(UseSiPMCalibVer==3){
       if(unif_factor[iTel-1][isipm]==0||deltag_20[iTel-1][isipm]==0) res=ForceCorr?res:input;
       else{
       int CalibType=(calibtype&0x7);
@@ -408,8 +414,9 @@ double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperatur
    }
 
    //additional specific correction for LED
-   if(IsLED){
-      res=CalibLed::GetHead()->DoLedDriveTempCorr(res,isipm,(double)time,iTel);
+   if((type%10)==2&&UseSiPMCalibVer>=1&&UseSiPMCalibVer<=3){
+      int CalibType=(calibtype&0x8);
+      if(CalibType==0x8) res=CalibLED::GetHead()->DoLedDriveTempCorr(res,isipm,(double)Time,iTel);
    }
 
    return res;

@@ -29,6 +29,7 @@ HEADERS  += $(INCDIR)/CalibWFCTA.h
 HEADERS  += $(INCDIR)/CloudDB.h
 HEADERS  += $(INCDIR)/WFCTASCDB.h
 HEADERS  += $(INCDIR)/CalibLED.h
+HEADERS  += $(INCDIR)/TelGeoFit.h
 
 SOURCES  := $(SRCDIR)/common.C
 SOURCES  += $(SRCDIR)/CorsikaIO.C $(SRCDIR)/CorsikaChain.C $(SRCDIR)/CorsikaEvent.C 
@@ -52,6 +53,7 @@ SOURCES  += $(SRCDIR)/CalibWFCTA.C
 SOURCES  += $(SRCDIR)/CloudDB.C
 SOURCES  += $(SRCDIR)/WFCTASCDB.C
 SOURCES  += $(SRCDIR)/CalibLED.C
+SOURCES  += $(SRCDIR)/TelGeoFit.C
 SOURCES  += event.C
 SOURCES  += eventSort.C
 SOURCES  += eventSortMerge.C
@@ -85,6 +87,7 @@ OBJS     += $(OBJDIR)/CalibWFCTA.o
 OBJS     += $(OBJDIR)/CloudDB.o
 OBJS     += $(OBJDIR)/WFCTASCDB.o
 OBJS     += $(OBJDIR)/CalibLED.o
+OBJS     += $(OBJDIR)/TelGeoFit.o
 OBJS     += $(OBJDIR)/dictionary.o
 
 DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) -Islalib/include `root-config --cflags`

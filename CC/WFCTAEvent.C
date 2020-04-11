@@ -180,7 +180,7 @@ void WFCTAEvent::Init()
    minimizer=0;
    htlong=0;
 
-   type=0;
+   Type=0;
 
    mcevent.Init();
    ledevent.Init();
@@ -256,7 +256,7 @@ void WFCTAEvent::EventInitial()
 	if(minimizer) {delete minimizer; minimizer=0;}
         if(htlong) {delete htlong; htlong=0;}
 
-	type=0;
+	Type=0;
 
 	mcevent.Reset();
 	ledevent.Reset();
@@ -312,6 +312,7 @@ bool WFCTAEvent::GetAllContents(int _Entry){
 	if(bmcevent) bmcevent->GetEntry(_Entry);
 	if(bledevent) bledevent->GetEntry(_Entry);
 	if(blaserevent) blaserevent->GetEntry(_Entry);
+        Type=0;
 	return ncount>0;
 }
 const char* WFCTAEvent::GetFileName(){
@@ -462,6 +463,26 @@ int WFCTAEvent::GetMinTimeBin(int itel){
 	return res;
 }
 
+bool WFCTAEvent::IsSaturated(int isipm,int itel,bool IsHigh,bool IsIndex){
+   int size=iSiPM.size();
+   int start=IsIndex?isipm:0;
+   int end=IsIndex?isipm:(size-1);
+   double content=2;
+   for(int ii=start;ii<=end;ii++){
+      if((!IsIndex)&&(iSiPM.at(ii)!=isipm)) continue;
+      if(IsHigh){
+         double baseh=LaserBaseH.at(ii);
+         if(ii<LaserAdcH.size()&&ii<LaserBaseH.size()&&ii<winsum.size()){
+            content=(LaserAdcH.at(ii)>6000||(winsum.at(ii)+LaserBaseH.at(ii)*4)>9000)?1.:-1.;
+         }
+         //if(ii<LaserAdcH.size()&&ii<eSatH.size()) content=(LaserAdcH.at(ii)>6000||eSatH.at(ii))?1.:-1.;
+      }
+      else{
+         if(ii<eSatL.size()) content=(eSatL.at(ii))?1.:-1.;
+      }
+   }
+   return (content>0);
+}
 double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFit){
    itel=0;
    double content=0;
@@ -471,6 +492,7 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
    if(IsIndex&&(isipm<0||isipm>=size)) return content;
    for(int ii=start;ii<=end;ii++){
       if((!IsIndex)&&(iSiPM.at(ii)!=isipm)) continue;
+      bool ishig=false;
       if(type==0){
          if(ii<ADC_Cut.size()) content=ADC_Cut.at(ii);
          else content=-1;
@@ -478,6 +500,7 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
       if(type==1){
          if(ii<eAdcH.size()) content=eAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
          else content=-1;
+         ishig=true;
       }
       if(type==2){
          if(ii<eAdcL.size()) content=eAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
@@ -486,6 +509,7 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
       if(type==3){
          if(ii<LaserAdcH.size()) content=LaserAdcH.at(ii)/WFCTAMCEvent::fAmpHig;
          else content=-1;
+         ishig=true;
       }
       if(type==4){
          if(ii<LaserAdcL.size()) content=LaserAdcL.at(ii)/WFCTAMCEvent::fAmpLow;
@@ -494,6 +518,7 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
       if(type==5){
          if(ii<PeakPosH.size()) content=PeakPosH.at(ii);
          else content=-1;
+         ishig=true;
       }
       if(type==6){
          if(ii<PeakPosL.size()) content=PeakPosL.at(ii);
@@ -502,59 +527,64 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
       if(type==7){
          if(ii<PeakAmH.size()) content=PeakAmH.at(ii);
          else content=-1;
+         ishig=true;
       }
       if(type==8){
          if(ii<PeakAmL.size()) content=PeakAmL.at(ii);
          else content=-1;
       }
       if(type==9){
-         if(ii<LaserAdcH.size()&&ii<eSatH.size()) content=(LaserAdcH.at(ii)>6000||eSatH.at(ii))?1.:-1.;
-         else content=-2;
+         content=IsSaturated(ii,itel,true,true)?1:-1;
+         ishig=true;
       }
       if(type==10){
-         if(ii<eSatL.size()) content=(eSatL.at(ii))?1.:-1.;
-         else content=-2;
+         content=IsSaturated(ii,itel,false,true)?1:-1;
       }
       if(type==11){
-         if(ii<eSatH.size()&&ii<LaserAdcH.size()) content=(LaserAdcH.at(ii)>6000||eSatH.at(ii))?(LaserAdcL.at(ii)/WFCTAMCEvent::fAmpLow):(LaserAdcH.at(ii)/WFCTAMCEvent::fAmpHig);
-         else content=-1;
+         ishig=(!IsSaturated(ii,itel,true,true));
+         if(ishig) content=(ii<LaserAdcH.size())?(LaserAdcH.at(ii)/WFCTAMCEvent::fAmpHig):-1;
+         else      content=(ii<LaserAdcL.size())?(LaserAdcL.at(ii)/WFCTAMCEvent::fAmpLow):-1;
       }
       if(type==12){
-         if((ii<eSatH.size()&&ii<eSatL.size())&&ii<LaserAdcH.size()){
-            if(eSatL.at(ii)) content=-1;
-            else if(LaserAdcH.at(ii)>6000||eSatH.at(ii)) content=(LaserAdcL.at(ii)/WFCTAMCEvent::fAmpLow);
-            else content=(LaserAdcH.at(ii)/WFCTAMCEvent::fAmpHig);
-         }
-         else content=-1;
+         ishig=(!IsSaturated(ii,itel,true,true));
+         bool satl=IsSaturated(ii,itel,false,true);
+         if((!ishig)&&satl) content=-1;
+         else if(!ishig) content=(ii<LaserAdcL.size())?(LaserAdcL.at(ii)/WFCTAMCEvent::fAmpLow):-1;
+         else content=(ii<LaserAdcH.size())?(LaserAdcH.at(ii)/WFCTAMCEvent::fAmpHig):-1;
       }
       if(type==13){
-         if(ii<AdcH.size()) content=AdcH.at(ii)/WFCTAMCEvent::fAmpHig;
-         else content=-1;
+         content=(ii<AdcH.size())?(AdcH.at(ii)/WFCTAMCEvent::fAmpHig):-1;
+         ishig=true;
       }
       if(type==14){
-         if(ii<AdcL.size()) content=AdcL.at(ii)/WFCTAMCEvent::fAmpLow;
-         else content=-1;
+         content=(ii<AdcL.size())?(AdcL.at(ii)/WFCTAMCEvent::fAmpLow):-1;
       }
       if(((CalibType&0x3)!=0&&content>0)&&(!IsFit)){
          if((type>=1&&type<=4)||(type>=7&&type<=8)||(type>=11&&type<=14)){
             TDirectory* gdir=gDirectory;
-            char filename[200]="";
-            bool exist=CommonTools::GetStatusFile(filename,(char*)GetFileName());
-            double temperature=StatusDB::GetHead()->GetPreTemp(iTel,rabbitTime,iSiPM.at(ii),exist?filename:0);
-            if(CalibWFCTA::UseSiPMCalibVer==2){
-               double sum=0;
-               int nn=0;
-               for(int i0=0;i0<1024;i0++){
-                  double itemp=StatusDB::GetHead()->PreTemp[i0];
-                  if(itemp<-100) continue;
-                  sum+=itemp;
-                  nn++;
-               }
-               if(nn>0) temperature=sum/nn;
+            if(CalibWFCTA::UseSiPMCalibVer==1){
+               content*=(ishig?WFCTAMCEvent::fAmpHig:WFCTAMCEvent::fAmpLow);
+               content=CalibWFCTA::GetHead()->DoCalibSiPM(iTel,iSiPM.at(ii),content,0,rabbitTime+rabbittime*2.0e-8,CalibType,ishig?(Type+10):Type);
             }
-            if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) temp=%lf cont_before=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),temperature,content);
-            if(temperature>-100) content=CalibWFCTA::GetHead()->DoCalibSiPM(iTel,iSiPM.at(ii),content,temperature,rabbitTime,CalibType);
-            if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) temp=%lf cont_after=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),temperature,content);
+            else if(CalibWFCTA::UseSiPMCalibVer>1){
+               char filename[200]="";
+               bool exist=CommonTools::GetStatusFile(filename,(char*)GetFileName());
+               double temperature=StatusDB::GetHead()->GetPreTemp(iTel,rabbitTime,iSiPM.at(ii),exist?filename:0);
+               if(CalibWFCTA::UseSiPMCalibVer==2){
+                  double sum=0;
+                  int nn=0;
+                  for(int i0=0;i0<1024;i0++){
+                     double itemp=StatusDB::GetHead()->PreTemp[i0];
+                     if(itemp<-100) continue;
+                     sum+=itemp;
+                     nn++;
+                  }
+                  if(nn>0) temperature=sum/nn;
+               }
+               if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) temp=%lf cont_before=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),temperature,content);
+               if(temperature>-100) content=CalibWFCTA::GetHead()->DoCalibSiPM(iTel,iSiPM.at(ii),content,temperature,rabbitTime,CalibType,Type);
+               if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) temp=%lf cont_after=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),temperature,content);
+            }
             if(gdir) gdir->cd();
          }
       }
@@ -627,8 +657,7 @@ bool WFCTAEvent::CleanImage(int isipm,int itel,bool IsIndex,bool IsFit){
       if((!IsIndex)&&(isipm0!=isipm)) continue;
       double content0=GetContent(IsIndex?ii:isipm0,itel,0,IsIndex,IsFit);
       //bool sat0=(GetContent(IsIndex?ii:isipm0,itel,9,IsIndex,IsFit)>0.5);
-      //double content=sat0?GetContent(IsIndex?ii:isipm0,itel,4,IsIndex,IsFit):GetContent(IsIndex?ii:isipm0,itel,3,IsIndex,IsFit);
-      double content=GetContent(IsIndex?ii:isipm0,itel,3,IsIndex,IsFit);
+      double content=GetContent(IsIndex?ii:isipm0,itel,11,IsIndex,IsFit);
       //if(ADC_Cut.size()>ii) {if(content0>0&&content0<trig0) continue;}
       //else{if(content<trig1) continue;}
       if(content<trig1) continue;
@@ -643,8 +672,7 @@ bool WFCTAEvent::CleanImage(int isipm,int itel,bool IsIndex,bool IsFit){
          if(dist>0.6) continue;
          bool sat1=(GetContent(jj,itel,9,true,IsFit)>0.5);
          double contentj0=GetContent(jj,itel,0,true,IsFit);
-         //double contentj=sat1?GetContent(jj,itel,4,true,IsFit):GetContent(jj,itel,3,true,IsFit);
-         double contentj=GetContent(jj,itel,3,true,IsFit);
+         double contentj=GetContent(jj,itel,11,true,IsFit);
          //if(ADC_Cut.size()>jj) {if(contentj0<trig0) continue;}
          //else{if(contentj<trig1) continue;}
          if(contentj<trig1) continue;
@@ -2704,6 +2732,7 @@ TGraph* WFCTAEvent::DrawImageLine(double zenith,double azimuth,double incoo[3],d
 
    double CC,phi;
    GetCCphi(zenith,azimuth,incoo,indir,CC,phi);
+   printf("CC=%.2lf phi=%.2lf\n",CC/PI*180,phi/PI*180);
 
    int np=100;
    TGraph* gr=new TGraph();
@@ -2712,7 +2741,7 @@ TGraph* WFCTAEvent::DrawImageLine(double zenith,double azimuth,double incoo[3],d
       double xx,yy;
       bool res=GetImageXYCoo(zenith,azimuth,incoo,indir,PHI,xx,yy);
       if(!res) continue;
-      //printf("line: %d,xy={%lf,%lf}\n",gr->GetN(),xx/PI*180,yy/PI*180);
+      printf("line: %d,xy={%lf,%lf}\n",gr->GetN(),xx/PI*180,yy/PI*180);
       gr->SetPoint(gr->GetN(),xx/PI*180,yy/PI*180);
    }
    gr->SetLineColor(1);

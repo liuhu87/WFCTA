@@ -6,11 +6,11 @@
 #include "WFCTADecode.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "common.h"
 using namespace std;
 
 #define BUF_LEN 41552
 #define STATUS_BUF_LEN 41552
-#define MAXTel 25
 
 class StatusDB {
    private:
@@ -31,11 +31,11 @@ class StatusDB {
 
    //to locate the filename
    int currentday;
-   int nfiles[MAXTel];
-   int telindex[MAXTel];
-   int filetime[MAXTel][1000];
-   int fileindex[MAXTel][1000];
-   char filename[MAXTel][1000][200];
+   int nfiles[NCTMax];
+   int telindex[NCTMax];
+   int filetime[NCTMax][1000];
+   int fileindex[NCTMax][1000];
+   char filename[NCTMax][1000][200];
    //to read data containt
    int currentfile;
    int currenttime;
@@ -62,19 +62,19 @@ class StatusDB {
    int fired_tube;
    Long64_t status_readback_Time;
    double status_readback_time;
-   int sipm[1024];
-   int mask[1024];
-   short single_thresh[1024];
-   short record_thresh[1024];
-   Long64_t single_count[1024];
-   Long64_t single_time[1024];
-   float DbTemp[1024];
-   float HV[1024];
-   float PreTemp[1024];
-   float BigResistence[1024];
-   float SmallResistence[1024];
-   Long64_t ClbTime[1024];
-   float ClbTemp[1024];
+   int sipm[MAXPMT];
+   int mask[MAXPMT];
+   short single_thresh[MAXPMT];
+   short record_thresh[MAXPMT];
+   Long64_t single_count[MAXPMT];
+   Long64_t single_time[MAXPMT];
+   float DbTemp[MAXPMT];
+   float HV[MAXPMT];
+   float PreTemp[MAXPMT];
+   float BigResistence[MAXPMT];
+   float SmallResistence[MAXPMT];
+   Long64_t ClbTime[MAXPMT];
+   float ClbTemp[MAXPMT];
 
    void Init();
    void Reset();
