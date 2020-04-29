@@ -1,9 +1,10 @@
 #include "Readparam.h"
+#include "common.h"
 static int  WLFlag = 0;                        //@< flag of wavelength
 static double lhaaso_coo[3]={0,0,0};           //@< lhaaso coordinate
 static int  CTNumber = 1;                      //@< number of telescopes 
 static int ThinFlag = 0;                       //@< flag of thin option
-static float **CT_Position;                    //@< the positions and pointings of telescopes
+static float **CT_Position=0;                  //@< the positions and pointings of telescopes
 static int FilterFlag = 0;                     //@< Will the Filter be added 
 static int PointErrorFlag = 0;                 //@< Will the Point error of each miror be added 
 static int PointError = 0;                     //@< the value of the point error (1 sigma) 
@@ -18,8 +19,9 @@ static float aod_air = 0.;                     //@< extinction coefficient of ai
 static float aod_aerosol = 0;                  //@<extinction coefficient of aerosol
 static float scat_air = 0;                     //@<scattering coefficient of air
 static float scat_aerosol = 0;                 //@<scattering coefficient of aerosol
-static float laser_coo[3]={0,0,0};             //@<laser generate position (in cm)
-static float laser_dir[2]={0,0};               //@<laser generate direction (in degree)
+//static int  RotNumber = 1;                     //@<laser rotate number
+static float **laser_coo=0;                    //@<laser generate position (in cm)
+static float **laser_dir=0;                    //@<laser generate direction (in degree)
 static float laser_intensity[2] = {0,0};       //@<laser intensity (in mJ)
 static float laser_wavelength[2] = {0,0};      //@<laser wavelength (in nm)
 static float laser_frequency = 1;              //@<laser frequency (in Hz)
@@ -32,6 +34,16 @@ WReadConfig::WReadConfig()
 }
 WReadConfig::~WReadConfig()
 {
+   for(int ii=0;ii<NCTMax;ii++){
+      delete CT_Position[ii];
+   }
+   delete CT_Position;
+   for(int ii=0;ii<NRotMax;ii++){
+      delete laser_coo[ii];
+      delete laser_dir[ii];
+   }
+   delete laser_coo;
+   delete laser_dir;
 }
 void WReadConfig::readparam(char * filename)
 {
@@ -43,11 +55,19 @@ void WReadConfig::readparam(char * filename)
   float x, y, z, azi, zen;
   ifstream ifile;  
 
-  CT_Position = new float *[MAX_NUMBER_OF_CTS];
-  for (i = 0; i < MAX_NUMBER_OF_CTS ; i++){
+  CT_Position = new float *[NCTMax];
+  for (i = 0; i < NCTMax ; i++){
      CT_Position[i] = new float[5];
      CT_Position[i][3]=-1;
   }  
+  laser_coo = new float *[NRotMax];
+  laser_dir = new float *[NRotMax];
+  for (i = 0; i < NRotMax ; i++){
+     laser_coo[i] = new float[3];
+     laser_coo[i][2]=-1.0e15;
+     laser_dir[i] = new float[2];
+     laser_dir[i][0]=-1;
+  }
 
   if ( filename != NULL )
      ifile.open( filename );
@@ -162,15 +182,15 @@ void WReadConfig::readparam(char * filename)
          scat_aerosol = x;
          break;
      case Laser_coo:
-         sscanf(line,"%s %f %f %f",token,&x,&y,&z);
-         laser_coo[0] = x;
-         laser_coo[1] = y;
-         laser_coo[2] = z;
+         sscanf(line,"%s %d %f %f %f",token,&j,&x,&y,&z);
+         laser_coo[j-1][0] = x;
+         laser_coo[j-1][1] = y;
+         laser_coo[j-1][2] = z;
          break;
      case Laser_dir:
-         sscanf(line,"%s %f %f",token,&x,&y);
-         laser_dir[0] = x;
-         laser_dir[1] = y;
+         sscanf(line,"%s %d %f %f",token,&j,&x,&y);
+         laser_dir[j-1][0] = x;
+         laser_dir[j-1][1] = y;
          break;
      case Laser_intensity:
          sscanf(line,"%s %f %f",token,&x,&y);
@@ -293,11 +313,13 @@ float WReadConfig::Getscat_air(){
 float WReadConfig::Getscat_aerosol(){
   return scat_aerosol;
 }
-float WReadConfig::GetLaserCoo(int i){
-  return laser_coo[i];
+float WReadConfig::GetLaserCoo(int iRot,int i){
+  if(iRot<1||iRot>NRotMax) return -1.0e15;
+  return laser_coo[iRot-1][i];
 }
-float WReadConfig::GetLaserDir(int i){
-  return laser_dir[i];
+float WReadConfig::GetLaserDir(int iRot,int i){
+  if(iRot<1||iRot>NRotMax) return -1.0e15;
+  return laser_dir[iRot-1][i];
 }
 float WReadConfig::GetLaserIntensity(){
   return laser_intensity[0];

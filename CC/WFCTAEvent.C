@@ -31,6 +31,7 @@ TBranch* WFCTAEvent::bAll=0;
 TBranch* WFCTAEvent::bmcevent=0;
 TBranch* WFCTAEvent::bledevent=0;
 TBranch* WFCTAEvent::blaserevent=0;
+int WFCTAEvent::_Entry=-1;
 int WFCTAEvent::jdebug=0;
 bool WFCTAEvent::DoDraw=false;
 double WFCTAEvent::adccuttrigger=350.;
@@ -39,6 +40,7 @@ int WFCTAEvent::nfiretrigger=3;
 int WFCTAEvent::CalibType=0;
 WFCTAEvent::WFCTAEvent():TSelector()
 {
+	packCheck.reserve(MAXPMT);
 	eevent.reserve(MAXPMT);
 	zipmod.reserve(MAXPMT);
 	iSiPM.reserve(MAXPMT);
@@ -140,6 +142,7 @@ void WFCTAEvent::Init()
    n_fired=-1;
    n_Channel=-1;
    iSiPM.clear();
+   packCheck.clear();
    eevent.clear();
    zipmod.clear();
    gain_marker.clear();
@@ -212,6 +215,7 @@ void WFCTAEvent::EventInitial()
 	n_fired=-1;
 	n_Channel=-1;
 	iSiPM.clear();
+	packCheck.clear();
 	eevent.clear();
 	zipmod.clear();
 	gain_marker.clear();
@@ -300,7 +304,10 @@ void WFCTAEvent::GetBranch(TTree *fChain){
 	bledevent=fChain->GetBranch("ledevent");
 	blaserevent=fChain->GetBranch("laserevent");
 }
-bool WFCTAEvent::GetAllContents(int _Entry){
+bool WFCTAEvent::GetAllContents(int entry){
+	if(entry<0) entry=_Entry;
+	else _Entry=entry;
+	if(_Entry<0) return false;
 	EventInitial();
 	bool exist=true;
 	if(!bAll) exist=false;
@@ -559,12 +566,21 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
       if(type==14){
          content=(ii<AdcL.size())?(AdcL.at(ii)/WFCTAMCEvent::fAmpLow):-1;
       }
+      if(type==15){
+         ishig=(!IsSaturated(ii,itel,true,true));
+         bool satl=IsSaturated(ii,itel,false,true);
+         if((!ishig)&&satl) content=-1;
+         else if(!ishig) content=(ii<PeakPosL.size())?PeakPosL.at(ii):-1;
+         else content=(ii<PeakPosH.size())?PeakPosH.at(ii):-1;
+      }
       if(((CalibType&0x3)!=0&&content>0)&&(!IsFit)){
          if((type>=1&&type<=4)||(type>=7&&type<=8)||(type>=11&&type<=14)){
             TDirectory* gdir=gDirectory;
             if(CalibWFCTA::UseSiPMCalibVer==1){
+               if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) cont_before=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),content);
                content*=(ishig?WFCTAMCEvent::fAmpHig:WFCTAMCEvent::fAmpLow);
                content=CalibWFCTA::GetHead()->DoCalibSiPM(iTel,iSiPM.at(ii),content,0,rabbitTime+rabbittime*2.0e-8,CalibType,ishig?(Type+10):Type);
+               if(jdebug>5) printf("WFCTAEvent::GetContent: iTel=%d Time=%ld SiPM=%d(%d of %d) cont_after=%lf\n",iTel,rabbitTime,iSiPM.at(ii),ii,iSiPM.size(),content);
             }
             else if(CalibWFCTA::UseSiPMCalibVer>1){
                char filename[200]="";
@@ -724,6 +740,7 @@ double WFCTAEvent::Interface(const double* par){
       int isipm=iSiPM.at(ii);
       double ImageX,ImageY;
       double dcell=GetImageXYCoo(isipm,ImageX,ImageY,WFTelescope::FOCUS,false);
+      ImageX*=-1;
       if(dcell<0) continue;
       double distance=(ImageX*sin(par[3])-ImageY*cos(par[3])+par[2]);
       double probi=content[ii]/allcontent;
@@ -795,6 +812,7 @@ bool WFCTAEvent::DoFit(int itel,int type,bool force){
       if(content<=0) continue;
       double ImageX,ImageY;
       GetImageXYCoo(isipm0,ImageX,ImageY,-1,false);
+      ImageX*=-1;
 
       mx += ImageX*content;
       my += ImageY*content;
@@ -1171,7 +1189,7 @@ TH1F* WFCTAEvent::GetDistribution(bool IsLong,int itel,int type,bool IsWidth,boo
    double margin=24.;
    const int nbin=48;
    static int ihist=0;
-   TH1F* hh=new TH1F(Form("%sdis_%s%s_h%d",IsLong?"long":"short",(type>=5&&type<=6)?"time":"npe",IsWidth?"_width":"",ihist++),Form(";%s axis [degree];%s",IsLong?"Long":"Short",IsWidth?"Width [degree]":((type>=5&&type<=6)?"Time [ns]":"Npe [pe]")),IsWidth?24:nbin,IsLong?-12.:-6.,IsLong?12.:6.);
+   TH1F* hh=new TH1F(Form("%sdis_%s%s_h%d",IsLong?"long":"short",((type>=5&&type<=6)||type==15)?"time":"npe",IsWidth?"_width":"",ihist++),Form(";%s axis [degree];%s",IsLong?"Long":"Short",IsWidth?"Width [degree]":(((type>=5&&type<=6)||type==15)?"Time [ns]":"Npe [pe]")),IsWidth?24:nbin,IsLong?-12.:-6.,IsLong?12.:6.);
    double nfill[nbin];
    //double nmark[nbin];
    for(int ii=0;ii<nbin;ii++){
@@ -1280,7 +1298,7 @@ TH1F* WFCTAEvent::GetDistribution(bool IsLong,int itel,int type,bool IsWidth,boo
       return hh;
    }
 
-   bool IsTime=(type>=5&&type<=6);
+   bool IsTime=((type>=5&&type<=6)||type==15);
    const int ndivide=30;
    for(int ii=0;ii<size;ii++){
       int isipm0=iSiPM.at(ii);
@@ -2732,7 +2750,7 @@ TGraph* WFCTAEvent::DrawImageLine(double zenith,double azimuth,double incoo[3],d
 
    double CC,phi;
    GetCCphi(zenith,azimuth,incoo,indir,CC,phi);
-   printf("CC=%.2lf phi=%.2lf\n",CC/PI*180,phi/PI*180);
+   //printf("CC=%.2lf phi=%.2lf\n",CC/PI*180,phi/PI*180);
 
    int np=100;
    TGraph* gr=new TGraph();

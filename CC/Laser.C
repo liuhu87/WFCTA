@@ -18,9 +18,26 @@ double Atmosphere::scat_aerosol = 0;
 TGraph* Atmosphere::gRayScatAngle=0;
 TGraph* Atmosphere::gMieScatAngle=0;
 double Atmosphere::scale=1.0;
+//double Atmosphere::Radius=637139300.; //in cm
+int Atmosphere::ATMRayModel=0;
+int Atmosphere::ATMMieModel=0;
 
 void Atmosphere::Init(int seed){
-;
+   nmodel[0]=0;
+   nmodel[1]=0;
+   for(int ii=0;ii<MaxATMModel;ii++){
+      nlayer[ii]=0;
+      for(int jj=0;jj<MaxATMLayer;jj++){
+         ai[ii][jj]=0;
+         bi[ii][jj]=0;
+         ci[ii][jj]=1;
+         layerboun[ii][jj]=0;
+      }
+      mixlayer[ii][0]=0;
+      mixlayer[ii][1]=0;
+      mie_atten_length[ii]=25.*1.0e5;
+      mie_scale_height[ii]=1.2*1.0e5;
+   }
 }
 void Atmosphere::Release(){
    if(gRayScatAngle) {delete gRayScatAngle; gRayScatAngle=0;}
@@ -281,6 +298,150 @@ bool Atmosphere::MieScatterAnglePhi(double wavelength, double &phi,double angler
    }
 }
 
+double Atmosphere::GetRayMaxGrammage(){
+   if(ATMRayModel<0||ATMRayModel>=MaxATMModel) return -1;
+   return ai[ATMRayModel][0]+bi[ATMRayModel][0]*exp(-layerboun[ATMRayModel][0]/ci[ATMRayModel][0]);
+}
+double Atmosphere::GetMieMaxAbs(){
+   if(ATMMieModel<0||ATMMieModel>=MaxATMModel) return -1;
+   double Abs1=mie_scale_height[ATMMieModel]/mie_atten_length[ATMMieModel];
+   double Abs2=fabs(mixlayer[ATMMieModel][1]-mixlayer[ATMMieModel][0])/mie_atten_length[ATMMieModel];
+   return Abs1+Abs2;
+}
+double Atmosphere::GetRayGrammage(double z){
+   if(ATMRayModel<0||ATMRayModel>=MaxATMModel) return -1;
+   int nlay=nlayer[ATMRayModel];
+   double maxz=ai[ATMRayModel][nlay-1]*ci[ATMRayModel][nlay-1]/bi[ATMRayModel][nlay-1];
+   double maxamount=GetRayMaxGrammage();
+   if(z<layerboun[ATMRayModel][0]) return maxamount;
+
+   int ilayer=-1;
+   for(int ii=0;ii<nlay;ii++){
+      double boun_low=layerboun[ATMRayModel][ii];
+      double boun_up=(ii+1)<nlay?layerboun[ATMRayModel][ii+1]:maxz;
+      if(z>=boun_low&&z<boun_up) {ilayer=ii; break;}
+   }
+   if(ilayer<0) return 0;
+   else if(ilayer==nlay-1) return ai[ATMRayModel][ilayer]-bi[ATMRayModel][ilayer]*z/ci[ATMRayModel][ilayer];
+   else return ai[ATMRayModel][ilayer]+bi[ATMRayModel][ilayer]*exp(-z/ci[ATMRayModel][ilayer]);
+}
+double Atmosphere::GetMieAbs(double z){
+   if(ATMMieModel<0||ATMMieModel>=MaxATMModel) return -1;
+   double maxamount=GetMieMaxAbs();
+   if(z<mixlayer[ATMMieModel][0]) return maxamount;
+   else if(z>=mixlayer[ATMMieModel][0]&&z<mixlayer[ATMMieModel][1]) return (mie_scale_height[ATMMieModel]/mie_atten_length[ATMMieModel])+fabs(mixlayer[ATMMieModel][1]-z)/mie_atten_length[ATMMieModel];
+   else return (mie_scale_height[ATMMieModel]/mie_atten_length[ATMMieModel])*exp(-(z-mixlayer[ATMMieModel][1])/mie_scale_height[ATMMieModel]);
+}
+double Atmosphere::GetRayDensity(double z){
+   if(ATMRayModel<0||ATMRayModel>=MaxATMModel) return -1;
+   int nlay=nlayer[ATMRayModel];
+   double maxz=ai[ATMRayModel][nlay-1]*ci[ATMRayModel][nlay-1]/bi[ATMRayModel][nlay-1];
+   if(z<layerboun[ATMRayModel][0]||z>=maxz) return 0;
+   double maxdensity=bi[ATMRayModel][0]/ci[ATMRayModel][0]*exp(-layerboun[ATMRayModel][0]/ci[ATMRayModel][0]);
+
+   int ilayer=-1;
+   for(int ii=0;ii<nlay;ii++){
+      double boun_low=layerboun[ATMRayModel][ii];
+      double boun_up=(ii+1)<nlay?layerboun[ATMRayModel][ii+1]:maxz;
+      if(z>=boun_low&&z<boun_up) {ilayer=ii; break;}
+   }
+   if(ilayer<0) return 0;
+   else if(ilayer==nlay-1) return bi[ATMRayModel][ilayer]/ci[ATMRayModel][ilayer];
+   else return bi[ATMRayModel][ilayer]/ci[ATMRayModel][ilayer]*exp(-z/ci[ATMRayModel][ilayer]);
+}
+double Atmosphere::GetMieCoeff(double z){
+   if(ATMMieModel<0||ATMMieModel>=MaxATMModel) return -1;
+   if(z<mixlayer[ATMMieModel][0]) return 0;
+   else if(z>=mixlayer[ATMMieModel][0]&&z<mixlayer[ATMMieModel][1]) return 1./mie_atten_length[ATMMieModel];
+   else return (1./mie_atten_length[ATMMieModel])*exp(-(z-mixlayer[ATMMieModel][1])/mie_scale_height[ATMMieModel]);
+}
+double Atmosphere::GetRayZFromGrammage(double grammage){
+   if(ATMRayModel<0||ATMRayModel>=MaxATMModel) return -1;
+   int nlay=nlayer[ATMRayModel];
+   double maxz=ai[ATMRayModel][nlay-1]*ci[ATMRayModel][nlay-1]/bi[ATMRayModel][nlay-1];
+   if(grammage<=0) return maxz;
+   double maxamount=GetRayMaxGrammage();
+   if(grammage>=maxamount) return ci[ATMRayModel][0]*log(bi[ATMRayModel][0]/(grammage-ai[ATMRayModel][0]));
+
+   int ilayer=-1;
+   for(int ii=0;ii<nlay;ii++){
+      double boun_low=layerboun[ATMRayModel][ii];
+      double boun_up=(ii+1)<nlay?layerboun[ATMRayModel][ii+1]:maxz;
+      double amount_low,amount_up;
+      if(ii<nlay-1){
+         amount_low=ai[ATMRayModel][ii]+bi[ATMRayModel][ii]*exp(-boun_up/ci[ATMRayModel][ii]);
+         amount_up=ai[ATMRayModel][ii]+bi[ATMRayModel][ii]*exp(-boun_low/ci[ATMRayModel][ii]);
+      }
+      else{
+         amount_low=ai[ATMRayModel][ii]-bi[ATMRayModel][ii]*boun_up/ci[ATMRayModel][ii];
+         amount_up=ai[ATMRayModel][ii]-bi[ATMRayModel][ii]*boun_low/ci[ATMRayModel][ii];
+      }
+      if(amount_up<amount_low){
+         double amount_buff=amount_low;
+         amount_low=amount_up;
+         amount_up=amount_buff;
+      }
+      if(grammage>=amount_low&&grammage<amount_up) {ilayer=ii; break;}
+   }
+   if(ilayer<0) return -1;
+   else if(ilayer==nlay-1) return (ai[ATMRayModel][ilayer]-grammage)*ci[ATMRayModel][ilayer]/bi[ATMRayModel][ilayer];
+   else return ci[ATMRayModel][ilayer]*log(bi[ATMRayModel][ilayer]/(grammage-ai[ATMRayModel][ilayer]));
+}
+double Atmosphere::GetMieZFromAbs(double Mie_Abs){
+   if(ATMMieModel<0||ATMMieModel>=MaxATMModel) return -1;
+   double Abs1=mie_scale_height[ATMMieModel]/mie_atten_length[ATMMieModel];
+   double maxamount=GetMieMaxAbs();
+   if(Mie_Abs>=maxamount) return mixlayer[ATMMieModel][0]-(Mie_Abs-maxamount)*mie_atten_length[ATMMieModel];
+   else if(Mie_Abs>=Abs1) return mixlayer[ATMMieModel][1]-(Mie_Abs-Abs1)*mie_atten_length[ATMMieModel];
+   else if(Mie_Abs>0) return mixlayer[ATMMieModel][1]-log(Mie_Abs*mie_atten_length[ATMMieModel]/mie_scale_height[ATMMieModel])*mie_scale_height[ATMMieModel];
+   else return 1.0e15;
+}
+double Atmosphere::GetRayGrammage(double length,double z0,double zenith){
+   double zenith_margin=0.05;
+   double z=length*cos(zenith)+z0;
+   if(fabs(cos(zenith))>zenith_margin){
+      return GetRayGrammage(z)/cos(zenith);
+   }
+   else{
+      double density=GetRayDensity(z0);
+      return density*length;
+   }
+}
+double Atmosphere::GetMieAbs(double length,double z0,double zenith){
+   double zenith_margin=0.05;
+   double z=length*cos(zenith)+z0;
+   if(fabs(cos(zenith))>zenith_margin){
+      return GetMieAbs(z)/cos(zenith);
+   }
+   else{
+      double coeff=GetMieCoeff(z0);
+      return coeff*length;
+   }
+}
+double Atmosphere::GetRayLengthFromGrammage(double grammage,double z0,double zenith){
+   double zenith_margin=0.05;
+   if(fabs(cos(zenith))>zenith_margin){
+      double grammage_z=grammage*cos(zenith);
+      double z=GetRayZFromGrammage(grammage_z);
+      return (z-z0)/cos(zenith);
+   }
+   else{
+      double density=GetRayDensity(z0);
+      return grammage/density;
+   }
+}
+double Atmosphere::GetMieLengthFromAbs(double Mie_Abs,double z0,double zenith){
+   double zenith_margin=0.05;
+   if(fabs(cos(zenith))>zenith_margin){
+      double abs_z=Mie_Abs*cos(zenith);
+      double z=GetMieZFromAbs(abs_z);
+      return (z-z0)/cos(zenith);
+   }
+   else{
+      double coeff=GetMieCoeff(z0);
+      return Mie_Abs/coeff;
+   }
+}
 double Atmosphere::ZDependence(double z,int type){
    return 1;
 }
@@ -501,8 +662,8 @@ void Laser::SetParameters(char* filename){
    WReadConfig read;
    WReadConfig* readconfig=&read;
    readconfig->readparam(filename);
-   for(int i=0;i<3;i++) lasercoo[i] = readconfig->GetLaserCoo(i);
-   for(int i=0;i<2;i++) laserdir[i] = readconfig->GetLaserDir(i);
+   for(int i=0;i<3;i++) lasercoo[i] = readconfig->GetLaserCoo(-1,i);
+   for(int i=0;i<2;i++) laserdir[i] = readconfig->GetLaserDir(-1,i);
    intensity = readconfig->GetLaserIntensity();
    intensity_err = readconfig->GetLaserIntensityErr();
    wavelength0 = readconfig->GetLaserWavelength();

@@ -3,6 +3,7 @@
 
 #include "WFCTAEvent.h"
 #include "TChain.h"
+#include "TFile.h"
 
 const unsigned int _UINT_MAX=4294967295;
 class LHChain : public TChain {
@@ -18,6 +19,11 @@ class LHChain : public TChain {
    const char* _NAME;
    Int_t _TREENUMBER;
 
+   ///Clone Tree
+   TTree* wfctanew;
+   ///Output 
+   TFile* fout;
+
    ///Get WFCTAEvent in entry number "entry", if kLocal is false the entry number is "global", if true the entry number is local w.r.t. curret tree
    WFCTAEvent* _getevent(Int_t entry, Bool_t kLocal=false);
 
@@ -27,9 +33,9 @@ class LHChain : public TChain {
    int get_tree_entry()const {return m_tree_entry;}
    /// Default constructor (it builds automatically the WFCTAEvent object)
    LHChain(const char* name="eventShow", unsigned int thr=1,unsigned int size=sizeof(WFCTAEvent))
-    :TChain(name),m_chain_Entries(0),m_tree_entry(-1),fThreads(thr),fSize(size),_EVENT(NULL),_ENTRY(-1),_NAME(name),_TREENUMBER(-1){}
+    :TChain(name),m_chain_Entries(0),m_tree_entry(-1),fThreads(thr),fSize(size),_EVENT(NULL),_ENTRY(-1),_NAME(name),_TREENUMBER(-1),wfctanew(0),fout(0){}
    /// Destructor
-   virtual ~LHChain(){ if (_EVENT) delete _EVENT; }
+   virtual ~LHChain(){ if(fout) CloseOutputFile(); if (_EVENT) delete _EVENT;}
    using TChain::Add;
    int AddFromFile(const char* rootfilelist,int beg=0,int end=_UINT_MAX);
    ///Set event branch and links; called after reading of all trees; called automatically in GetEvent
@@ -71,6 +77,13 @@ class LHChain : public TChain {
 
    ///Get the name of current file
    const char* GetFileName();
+
+   ///Open output file
+   int OpenOutputFile(const char* filename);
+   ///Save selected event
+   void SaveCurrentEvent();
+   ///Close output file
+   void CloseOutputFile();
 
    ClassDef(LHChain,5);
 };

@@ -16,15 +16,16 @@ class RotateDB {
    static int ntotmin;
    static int nsidemin;
    static int nrot;
-   static int rotindex[10];
-   static int timedelay[10];
-   static double rottime[10];
+   static int rotindex[NRotMax];
+   static int timedelay[NRotMax];
+   static double rottime[NRotMax];
    static int ntel;
-   static int telindex[20];
+   static int telindex[NCTMax];
    static int TargetIndex;
    static double aglmargin;
    static double phimargin;
    static double ccmargin;
+   static bool SearchAllAngle;
 
    //log version: v1(save the status for every second), v2(save the change of status)
    int version;

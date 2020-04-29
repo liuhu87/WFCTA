@@ -35,6 +35,7 @@ class WFCTAEvent : public TSelector
 		static TBranch* bmcevent;
 		static TBranch* bledevent;
 		static TBranch* blaserevent;
+		static int _Entry;
 
    public:
    static int jdebug;
@@ -58,6 +59,7 @@ class WFCTAEvent : public TSelector
 		short n_fired;
 		short n_Channel;
 
+		vector<short> packCheck;
 		vector<long> eevent;
 		vector<short> zipmod;
 		vector<short> iSiPM;
@@ -153,7 +155,7 @@ class WFCTAEvent : public TSelector
                 static void SetLHChain(LHChain* chain);
 		void CreateBranch(TTree *tree, int branchSplit);
 		void GetBranch(TTree *fChain);
-		bool GetAllContents(int _Entry);
+		bool GetAllContents(int entry=-1);
                 const char* GetFileName();
                 bool CheckLaser();
                 bool CheckMC();

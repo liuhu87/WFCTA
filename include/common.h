@@ -25,6 +25,7 @@ const int TAI2UTC=37;
 extern int Nuse;
 
 #define NCTMax 20
+#define NRotMax 5
 #define MAXPMT 1024
 
   ///convert time

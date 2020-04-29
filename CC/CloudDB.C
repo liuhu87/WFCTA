@@ -62,9 +62,11 @@ bool CloudDB::LoadIBFile(int Time){
       if(!exist) return false;
       else{
          ctime=(year%100)*((long int)100000000)+month*1000000+day*10000+hour*100+min;
+         if(jdebug>5) printf("CloudDB::LoadIBFile: ctime=%12ld\n",ctime);
          cloud.ReadCloudMap(filename1);
          char filename2[400]="";
          strcpy(filename2,Form("/eos/lhaaso/raw/wfctalaser/IBTemp/TempHumdata/%4d/%02d/temp/12345_cloud_temp_%4d%02d%02d.txt",year2,month2,year2,month2,day2));
+         if(jdebug>5) printf("CloudDB::LoadIBFile: filename=%s\n",filename2);
          bool readed=cloud.ReadTemp(filename2);
          if(jdebug>1) printf("CloudDB::LoadIBFile: read humi: Time=%d readed=%d humi=%.2lf(temp=%.2lf,%.2lf) filename=%s\n",Time,readed,cloud.humi,cloud.temp0,cloud.temp,filename2);
          return true;

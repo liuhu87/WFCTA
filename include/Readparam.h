@@ -53,13 +53,15 @@ const char *const ITEM_NAMES[] = {
 #define LINE_MAX_LENGTH  400
 #define ITEM_MAX_LENGTH  40
 #define PATH_MAX_LENGTH  256
-#define MAX_NUMBER_OF_CTS 100
+//#define MAX_NUMBER_OF_CTS 100
+//#define MAX_NUMBER_OF_Rot 10
 #define FALSE 0
 #define TRUE 1
 
 class WReadConfig
 {
- 
+   public:
+
 public:
 
     WReadConfig();
@@ -84,8 +86,8 @@ public:
    float Getaod_aerosol();
    float Getscat_air();
    float Getscat_aerosol();
-   float GetLaserCoo(int i);
-   float GetLaserDir(int i);
+   float GetLaserCoo(int iRot,int i);
+   float GetLaserDir(int iRot,int i);
    float GetLaserIntensity();
    float GetLaserIntensityErr();
    float GetLaserWavelength();

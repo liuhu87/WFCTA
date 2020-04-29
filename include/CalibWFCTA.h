@@ -21,10 +21,15 @@ class CalibWFCTA {
    ///info for the tree
    TFile* fin;
    TTree* tree;
+   TTree* tree2;
    long int entries;
    long int curentry;
 
    ///variables in the tree
+   ///HL Gain Ratio
+   Double_t Ratio_HL[MAXPMT];
+   ///Dead Channel
+   Short_t Dead_Channel_Flag[MAXPMT];
    ///Tel No.
    Short_t curTel;
    ///rabbit Time
@@ -73,7 +78,7 @@ class CalibWFCTA {
    static CalibWFCTA* GetHead();
    void SetBranchAddress();
    long int LoadDay(int Day,int iTel);
-   int IsTimeEqual(int time1,int time2);
+   static int IsTimeEqual(int time1,int time2);
    int LoadTime(int time);
    int LoadFromrabbitTime(double time,int iTel);
    int LoadEntry(long int entry);

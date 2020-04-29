@@ -11,15 +11,16 @@ bool RotateDB::UseGPSTime=true;
 int RotateDB::ntotmin=5;
 int RotateDB::nsidemin=2;
 int RotateDB::nrot=2;
-int RotateDB::rotindex[10]={2,3,0,0,0,0,0,0,0,0};
+int RotateDB::rotindex[NRotMax]={2,3,0,0,0};
 int RotateDB::TargetIndex=-1;
-int RotateDB::timedelay[10]={35,37,0,0,0,0,0,0,0,0};
-double RotateDB::rottime[10]={990016000,990845000,0,0,0,0,0,0,0,0};
+int RotateDB::timedelay[NRotMax]={35,37,0,0,0};
+double RotateDB::rottime[NRotMax]={990016000,990845000,0,0,0};
 int RotateDB::ntel=6;
 int RotateDB::telindex[20]={1,2,3,4,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 double RotateDB::aglmargin=0.02;
 double RotateDB::phimargin=10.;
 double RotateDB::ccmargin=1.;
+bool RotateDB::SearchAllAngle=false;
 RotateDB::RotateDB(RotateDB* pr_in){
    Copy(pr_in);
 }
@@ -1494,9 +1495,18 @@ double RotateDB::GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,
       else if(itype==2){
          for(int ii=0;ii<nangle2;ii++){
             if(ii!=iangle) continue;
-            double dist1=fabs(ele_in-elelist[ii]);
-            double dist2=fabs(azi_in-azilist[irot][itel][ii]);
-            double dist=TMath::Max(dist1,dist2);
+            double dist1,dist2,dist;
+            dist1=fabs(ele_in-elelist[ii]);
+            if(SearchAllAngle){
+               dist2=1000;
+               for(int jj=0;jj<ntel;jj++){
+                  dist2=TMath::Min(dist2,fabs(azi_in-azilist[irot][jj][ii]));
+               }
+            }
+            else{
+               dist2=fabs(azi_in-azilist[irot][itel][ii]);
+            }
+            dist=TMath::Max(dist1,dist2);
             if(dist<result){
                minele=dist1;
                minazi=dist2;
@@ -1544,9 +1554,18 @@ double RotateDB::GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,
    }
 
    for(int ii=0;ii<nangle2;ii++){
-      double dist1=fabs(ele_in-elelist[ii]);
-      double dist2=fabs(azi_in-azilist[irot][itel][ii]);
-      double dist=TMath::Max(dist1,dist2);
+      double dist1,dist2,dist;
+      dist1=fabs(ele_in-elelist[ii]);
+      if(SearchAllAngle){
+         dist2=1000;
+         for(int jj=0;jj<ntel;jj++){
+            dist2=TMath::Min(dist2,fabs(azi_in-azilist[irot][jj][ii]));
+         }
+      }
+      else{
+         dist2=fabs(azi_in-azilist[irot][itel][ii]);
+      }
+      dist=TMath::Max(dist1,dist2);
       if(dist<result){
          minele=dist1;
          minazi=dist2;
@@ -1801,9 +1820,11 @@ void RotateDB::GetMinDistFit(WFCTAEvent* pev,int EleAziIndex,int Li_in,double &m
          }
       }
 
-      double dist1=TMath::Min(fabs(phi-phi1[itel][index]),fabs(phi+180-phi1[itel][index]));
-      dist1=TMath::Min(dist1,fabs(phi-180-phi1[itel][index]));
-      double dist2=fabs(cc-cc1[itel][index]);
+      double phi0=180-phi1[itel][index];
+      double cc0=-cc1[itel][index];
+      double dist1=TMath::Min(fabs(phi-phi0),fabs(phi+180-phi0));
+      dist1=TMath::Min(dist1,fabs(phi-180-phi0));
+      double dist2=fabs(cc-cc0);
       if(dist1<minphi) minphi=dist1;
       if(dist2<mincc) mincc=dist2;
    }
@@ -1840,9 +1861,11 @@ void RotateDB::GetMinDistFit(WFCTAEvent* pev,int EleAziIndex,int Li_in,double &m
                                   {1.16,-0.21,-1.11,-0.39,1.36,-1.30,-10000}
                                  }
                                 };
-      double dist1=TMath::Min(fabs(phi-phi2[irot][itel][index]),fabs(phi+180-phi2[irot][itel][index]));
-      dist1=TMath::Min(dist1,fabs(phi-180-phi2[irot][itel][index]));
-      double dist2=fabs(cc-cc2[irot][itel][index]);
+      double phi0=(180-phi2[irot][itel][index]);
+      double cc0=-cc2[irot][itel][index];
+      double dist1=TMath::Min(fabs(phi-phi0),fabs(phi+180-phi0));
+      dist1=TMath::Min(dist1,fabs(phi-180-phi0));
+      double dist2=fabs(cc-cc0);
       if(dist1<minphi) minphi=dist1;
       if(dist2<mincc) mincc=dist2;
    }
@@ -1892,7 +1915,7 @@ int RotateDB::LaserIsFine(WFCTAEvent* pev){
    if(jdebug>0) printf("RotateDB::LaserIsFine: EleAziIndex=%d\n",EleAziIndex);
    if(EleAziIndex<=0) return EleAziIndex;
 
-   bool fitted=pev->DoFit(0,4);
+   bool fitted=pev->DoFit(0,3);
    if(jdebug>1) printf("RotateDB::LaserIsFine: Fit=%d\n",fitted);
    bool image=IsFineImage(pev,EleAziIndex);
    if(jdebug>1) printf("RotateDB::LaserIsFine: FineImage=%d\n",image);

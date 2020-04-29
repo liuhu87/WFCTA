@@ -149,3 +149,48 @@ const char* LHChain::GetFileName(){
   TFile* curf=((TChain*)this)->GetFile();
   return curf?((const char*)curf->GetName()):0;
 }
+
+int LHChain::OpenOutputFile(const char* filename){
+  if(fout&&wfctanew) return 0;
+  TDirectory* gdir=gDirectory;
+  fout= TFile::Open(filename,"RECREATE");
+  if(!fout){
+    cout <<" LHChain::OpenOutpuFile-E- Cannot open "<<filename<<" for output"<<endl;
+    return -1;
+  }
+  fout->cd();
+  //TChain::InvalidateCurrentTree();
+  wfctanew = CloneTree(0);
+  gdir->cd();
+  return 0;
+}
+void LHChain::SaveCurrentEvent(){
+  if(!fout) OpenOutputFile("root:://eos01.ihep.ac.cn//eos/user/h/hliu/SelectedEvents.root");
+  if(!fout){
+    cout <<" LHChain::SaveCurrentEntry-E- Cannot open file  for output no events are saved"<<endl;
+    return;
+  }
+  TDirectory* gdir=gDirectory;
+  if(_EVENT){
+    _EVENT->GetAllContents();
+    fout->cd();
+    wfctanew->Fill();
+  }
+  gdir->cd();
+  return;
+}
+void LHChain::CloseOutputFile(){
+  if(!fout) return;
+  cout << "LHChain::CloseOutputFile WFCTA ROOT file \"";
+  cout << fout->GetName() << "\" with " << wfctanew->GetEntries();
+  cout << " selected events" << endl;
+  if(wfctanew){
+     fout->cd();
+     //wfctanew->SetDirectory(fout);
+     wfctanew->Write();
+  }
+  fout->Close();
+  fout=0;
+  return;
+}
+

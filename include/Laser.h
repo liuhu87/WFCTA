@@ -15,6 +15,9 @@
 
 class WFCTAEvent;
 
+#define MaxATMModel 5
+#define MaxATMLayer 5
+
 /*
 The class for absorbtion and scatter process calculation
 */
@@ -28,12 +31,37 @@ class Atmosphere {
       static TGraph* gRayScatAngle;
       static TGraph* gMieScatAngle;
       static double scale;
+      static int ATMRayModel;
+      static int ATMMieModel;
+      ///parameters about atmosphere
+      int nmodel[2];
+      int nlayer[MaxATMModel];
+      double ai[MaxATMModel][MaxATMLayer];
+      double bi[MaxATMModel][MaxATMLayer];
+      double ci[MaxATMModel][MaxATMLayer];
+      double layerboun[MaxATMModel][MaxATMLayer];
+      ///parameters about aerosol
+      double mixlayer[MaxATMModel][2];
+      double mie_atten_length[MaxATMModel];
+      double mie_scale_height[MaxATMModel];
    public:
       void Init(int seed=0);
       void Release();
       Atmosphere(int seed=0) {Init(seed);}
       ~Atmosphere() {Release();}
       static void SetParameters(char* filename=0);
+      double GetRayMaxGrammage();
+      double GetMieMaxAbs();
+      double GetRayGrammage(double z);
+      double GetMieAbs(double z);
+      double GetRayDensity(double z);
+      double GetMieCoeff(double z);
+      double GetRayZFromGrammage(double grammage);
+      double GetMieZFromAbs(double Mie_Abs);
+      double GetRayGrammage(double length,double z0,double zenith);
+      double GetMieAbs(double length,double z0,double zenith);
+      double GetRayLengthFromGrammage(double grammage,double z0,double zenith);
+      double GetMieLengthFromAbs(double Mie_Abs,double z0,double zenith);
       static double ZDependence(double z,int type=0);
       static double DeltaZ(double z);
       static double ProbTransform(double xx,double yy[2],double &weight,bool IsCenter);

@@ -241,10 +241,14 @@ bool Cloud::ReadTemp(char* filename){
    }
    ifstream fin(filename,std::ios::in);
    if(!fin.is_open()) {temp=0; humi=-1; return res;}
+   char buffer[200];
    double ti,tempi,hi;
    int index;
    while(!fin.eof()){
-      fin>>ti>>index>>tempi>>index>>hi>>index;
+      fin.getline(buffer,200);
+      sscanf(buffer,"%lf %d %lf %d %lf %d",&ti,&index,&tempi,&index,&hi,&index);
+      //fin>>ti>>index>>tempi>>index>>hi>>index;
+      if(!(tempi>-1000)) continue;
       int time1=CommonTools::Convert(ti*100);
       //printf("time=%d time1=%d temp=%lf hi=%lf\n",time,time1,tempi,hi);
       if(abs(time-time1)<100){

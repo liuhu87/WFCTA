@@ -403,18 +403,18 @@ void CommonTools::ResetHArrival(){
 
 double CommonTools::ProcessAngle(double angle,bool IsDegree){
    double scale=180./PI;
-   if(IsDegree) angle=angle/scale;
+   double input=IsDegree?(angle/scale):angle;
    double res;
-   if(angle>=0&&angle<(2*PI)){
-      res=angle;
+   if(input>=0&&input<(2*PI)){
+      res=input;
    }
-   else if(angle<0){
-      int nn=int((angle)/(-2*PI)-1.0e-8);
-      res=angle+(nn+1)*(2*PI);
+   else if(input<0){
+      res=input;
+      while(res<0) res+=(PI*2);
    }
    else{
-      int nn=int((angle)/(2*PI));
-      res=angle-nn*(2*PI);
+      res=input;
+      while(res>=(2*PI)) res-=(PI*2);
    }
    return IsDegree?(res*scale):res;
 }
