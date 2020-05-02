@@ -66,11 +66,16 @@ class Atmosphere {
       static double DeltaZ(double z);
       static double ProbTransform(double xx,double yy[2],double &weight,bool IsCenter);
       static bool RayScatterAngleTheta(double wavelength, double &theta, double anglerange[2],double &weight);
-      static bool RayScatterAnglePhi(double wavelength, double &phi,double anglerange[2],double &weight);
+      static bool RayScatterAngleTheta(double wavelength, double &theta, int ntel, int* telindex, double anglerange[NCTMax][2],double &weight);
       static bool MieScatterAngleTheta(double wavelength, double &theta, double anglerange[2],double &weight);
-      static bool MieScatterAnglePhi(double wavelength, double &phi,double anglerange[2],double &weight);
+      static bool MieScatterAngleTheta(double wavelength, double &theta, int ntel, int* telindex, double anglerange[NCTMax][2],double &weight);
+      static bool TestScatterAngleTheta(double wavelength, double &theta, double anglerange[2],double &weight);
+      static bool TestScatterAngleTheta(double wavelength, double &theta, int ntel, int* telindex, double anglerange[NCTMax][2],double &weight);
+      static bool UniformScatterAnglePhi(double wavelength, double &phi,double anglerange[2],double &weight);
+      static bool UniformScatterAnglePhi(double wavelength, double &phi, int ntel, int* telindex, double anglerange[NCTMax][2],double &weight);
       static double FreeIntgLength(double lengthrange[2],double &weight);
       static double FreePathLength(double z0,double dir0[3],double lengthrange[2],double &weight);
+      static double FreePathLength(double z0,double dir0[3],int ntel,int* telindex,double lengthrange[NCTMax][2],double &weight);
       static int IsScattering(double z0);
 };
 
@@ -163,9 +168,14 @@ class Laser {
       void GetAveTelPos(double zero[3]);
       bool InitialGen();
       long int EventGen(int &Time,double &time,bool SimPulse=false);
+      int FindAllRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double allrange[2],int type,double length=0,double theta_scat=0,double phi_scat=0);
       int FindLengthRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double lengthrange[2]);
-      int FindThetaRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double freelength,double thetarange[2]);
-      int FindPhiRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double freelength,double theta_scat,double phirange[2]);
+      int FindLengthRange(double cooout[3],double dirout[3],int* telindex,double lengthrange[NCTMax][2]);
+      int FindThetaRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double thetarange[2],double freelength);
+      int FindThetaRange(double cooout[3],double dirout[3],int* telindex,double thetarange[NCTMax][2],double freelength);
+      int FindPhiRange(double zero[3],double cooout[3],double dirout[3],double dirin[3],double phirange[2],double freelength,double theta_scat);
+      int FindPhiRange(double cooout[3],double dirout[3],int* telindex,double phirange[NCTMax][2],double freelength,double theta_scat);
+      int FindWhichTel(double cooout[3],double dirout[3],double freelength,double theta_scat,double phi_scat);
       int Propagate(double &distance,double &weight);
       bool DoWFCTASim();
       void Add(double coorin1[4],double coorin2[4],int type,double weight);

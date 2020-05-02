@@ -28,6 +28,9 @@ extern int Nuse;
 #define NRotMax 5
 #define MAXPMT 1024
 
+#define InfPNumber 1.0e20
+#define InfNNumber (-1.0e20)
+
   ///convert time
 class CommonTools {
    public:
@@ -64,6 +67,7 @@ class CommonTools {
    static void ResetHArrival();
 
    static double ProcessAngle(double angle,bool IsDegree=false);
+   static bool CombineAngleRange(double range1[2],double range2[2],double combrange[2],bool IsDegree=false);
 };
 
 /// Max number of Telescopes

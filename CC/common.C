@@ -418,3 +418,58 @@ double CommonTools::ProcessAngle(double angle,bool IsDegree){
    }
    return IsDegree?(res*scale):res;
 }
+bool CommonTools::CombineAngleRange(double range1[2],double range2[2],double combrange[2],bool IsDegree){
+   double angle_round=(2*PI)*(IsDegree?(180/PI):1);
+   bool all1=range1[1]>=(range1[0]+angle_round);
+   bool all2=range2[1]>=(range2[0]+angle_round);
+   if(all1&&all2){
+      combrange[0]=0;
+      combrange[1]=angle_round;
+      return true;
+   }
+   else if(all1){
+      combrange[0]=range2[0];
+      combrange[1]=range2[1];
+      return true;
+   }
+   else if(all2){
+      combrange[0]=range1[0];
+      combrange[1]=range1[1];
+      return true;
+   }
+   else{
+      double dis_region=-1;
+      int whichregion=-1;
+      int nregion=0;
+      for(int ii=-1;ii<=1;ii++){
+         double range_test1[2]={range1[0]+ii*angle_round,range1[1]+ii*angle_round};
+         for(int jj=-1;jj<=1;jj++){
+            double range_test2[2]={range2[0]+jj*angle_round,range2[1]+jj*angle_round};
+            //check weather there is overlap region
+            double rangemin=TMath::Max(range_test1[0],range_test2[0]);
+            double rangemax=TMath::Min(range_test1[1],range_test2[1]);
+            if(rangemin>rangemax) continue;
+            else{
+               combrange[0]=rangemin;
+               combrange[1]=rangemax;
+               if(fabs(rangemax-rangemin)>dis_region){
+                  dis_region=fabs(rangemax-rangemin);
+                  whichregion=(ii+1)*3+(jj+1);
+               }
+               nregion++;
+            }
+         }
+      }
+      if(nregion<=0) return false;
+      else if(nregion==1) return true;
+      else{
+         int ii=(whichregion/3)-1;
+         int jj=(whichregion%3)-1;
+         double range_test1[2]={range1[0]+ii*angle_round,range1[1]+ii*angle_round};
+         double range_test2[2]={range2[0]+jj*angle_round,range2[1]+jj*angle_round};
+         combrange[0]=TMath::Max(range_test1[0],range_test2[0]);
+         combrange[1]=TMath::Min(range_test1[1],range_test2[1]);
+         return true;
+      }
+   }
+}
