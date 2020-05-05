@@ -478,9 +478,10 @@ bool WFCTAEvent::IsSaturated(int isipm,int itel,bool IsHigh,bool IsIndex){
    for(int ii=start;ii<=end;ii++){
       if((!IsIndex)&&(iSiPM.at(ii)!=isipm)) continue;
       if(IsHigh){
-         double baseh=LaserBaseH.at(ii);
-         if(ii<LaserAdcH.size()&&ii<LaserBaseH.size()&&ii<winsum.size()){
-            content=(LaserAdcH.at(ii)>6000||(winsum.at(ii)+LaserBaseH.at(ii)*4)>9000)?1.:-1.;
+         double baseh=ii<LaserBaseH.size()?LaserBaseH.at(ii):0;
+         double wins=ii<winsum.size()?winsum.at(ii):0;
+         if(ii<LaserAdcH.size()){
+            content=(LaserAdcH.at(ii)>6000||(wins+baseh*4)>9000)?1.:-1.;
          }
          //if(ii<LaserAdcH.size()&&ii<eSatH.size()) content=(LaserAdcH.at(ii)>6000||eSatH.at(ii))?1.:-1.;
       }
@@ -573,7 +574,8 @@ double WFCTAEvent::GetContent(int isipm,int itel,int type,bool IsIndex,bool IsFi
          else if(!ishig) content=(ii<PeakPosL.size())?PeakPosL.at(ii):-1;
          else content=(ii<PeakPosH.size())?PeakPosH.at(ii):-1;
       }
-      if(((CalibType&0x3)!=0&&content>0)&&(!IsFit)){
+      bool ismc=CheckMC();
+      if(((CalibType&0x3)!=0&&content>0)&&(!IsFit)&&(!ismc)){
          if((type>=1&&type<=4)||(type>=7&&type<=8)||(type>=11&&type<=14)){
             TDirectory* gdir=gDirectory;
             if(CalibWFCTA::UseSiPMCalibVer==1){

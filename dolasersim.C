@@ -5,6 +5,7 @@
 #include "TTree.h"
 #include "Laser.h"
 #include "WFCTAEvent.h"
+#include "TelGeoFit.h"
 
 using namespace std;
 
@@ -46,11 +47,19 @@ int main(int argc, char**argv)
    if(!pt) return 0;
    //Atmosphere::SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
    Atmosphere::SetParameters(Form("default.inp"));
-   Atmosphere::scale=1.0e2;
+   Atmosphere::GetHead()->AddATMModel(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/ATMModel.txt"));
+   Atmosphere::ATMRayModel=0;
+   Atmosphere::ATMMieModel=-1;
+   Atmosphere::scale=500.;
+
+   Laser::UseTestScat=true;
+   Laser::WhichRot=2;
+   Laser::WhichTel=-1;
    Laser::scale=1.0e-8;
    //Laser::Doigen=9632;
    Laser::DoPlot=false;
-   Laser::jdebug=0;
+   Laser::jdebug=3;
+   Laser::TelSimDist=200.;
    Laser::IniRange[0][0]=-1.e3;
    Laser::IniRange[0][1]=2.0e5;
    Laser::IniRange[1][0]=-1.e4;
@@ -59,6 +68,7 @@ int main(int argc, char**argv)
    Laser::IniRange[2][1]=5.e5; //1.3e5
    //Laser::IniRange[3][0]=-1;
    //Laser::IniRange[3][1]=-1;
+
    Laser* pl=new Laser(seed);
    if(!pl->pwfc) pl->pwfc=new WFCTAEvent();
    WFCTAEvent* pevt=(pl->pwfc);
@@ -72,7 +82,7 @@ int main(int argc, char**argv)
    int nlaserdir=10;
 
    int Time=1;
-   double time=0;
+   double time=TelGeoFit::GetRotTime(Laser::WhichRot)/20.;
    for(int ii=0;ii<nevent;ii++){
       printf("ievent=%d Time=%d time=%lf\n",ii,Time,time);
       //double angle=-90.+180./nevent*ii;
@@ -81,26 +91,34 @@ int main(int argc, char**argv)
       //pl->laserdir[0]=laserdir0[0]-5.+10./nlaserdir*(ii/nevent);
       //pl->laserdir[1]=laserdir0[1]-5.+10./nlaserdir*(ii%nevent);
       long int ngentel=pl->EventGen(Time,time,true);
+      for(int itel=0;itel<pl->tellist.size();itel++){
+         WFTelescope* pt=WFTelescopeArray::GetHead()->pct[pl->tellist.at(itel)];
+         bool dosim=pl->DoWFCTASim(pl->tellist.at(itel));
+         
+         for(int ipmt=0;ipmt<NSIPM;ipmt++){
+            double content=hPMTs->GetBinContent(ipmt+1);
+            double econtent=hPMTs->GetBinError(ipmt+1);
+            hPMTs->SetBinContent(ipmt+1,content+pevt->mcevent.TubeSignal[0][ipmt]);
+            hPMTs->SetBinError(ipmt+1,sqrt(pow(econtent,2)+pow(content+pevt->mcevent.eTubeSignal[0][ipmt],2)));
+         }
+
+         double smax=0;
+         //for(int jj=0;jj<NSIPM;jj++){
+         //   if(pevt->mcevent.TubeSignal[0][jj]>smax) smax=pevt->mcevent.TubeSignal[0][jj];
+         //}
+         for(int jj=0;jj<pevt->iSiPM.size();jj++){
+            if(pevt->LaserAdcH.at(jj)>smax) smax=pevt->LaserAdcH.at(jj);
+         }
+         printf("Evt=%d Ngen=%lf(%lf) iTel=%d ngentel=%ld evtn=%d size=%d maxsignal=%lf\n\n",ii,pevt->mcevent.Ngen,pl->count_gen,pt->TelIndex_,ngentel,pevt->iEvent,pevt->mcevent.RayTrace.size(),smax);
+         tree->Fill();
+         pevt->EventInitial();
+      }
       if(Laser::DoPlot) pl->Draw("al",0,"./");
       //fill the event
       hNevt->Fill(0.5,pl->count_gen);
       hNevt->Fill(1.5,ngentel/Laser::scale);
       hraytrace->Add(WFCTAMCEvent::hRayTrace);
       hweight->Add(WFCTALaserEvent::hweight);
-      for(int ipmt=0;ipmt<NSIPM;ipmt++){
-         double content=hPMTs->GetBinContent(ipmt+1);
-         double econtent=hPMTs->GetBinError(ipmt+1);
-         hPMTs->SetBinContent(ipmt+1,content+pevt->mcevent.TubeSignal[0][ipmt]);
-         hPMTs->SetBinError(ipmt+1,sqrt(pow(econtent,2)+pow(content+pevt->mcevent.eTubeSignal[0][ipmt],2)));
-      }
-
-      double smax=0;
-      for(int jj=0;jj<NSIPM;jj++){
-         if(pevt->mcevent.TubeSignal[0][jj]>smax) smax=pevt->mcevent.TubeSignal[0][jj];
-      }
-      printf("Evt=%d Ngen=%lf(%lf) ngentel=%ld evtn=%d size=%d maxsignal=%lf\n\n",ii,pevt->mcevent.Ngen,pl->count_gen,ngentel,pevt->iEvent,pevt->mcevent.RayTrace.size(),smax);
-      tree->Fill();
-      pevt->EventInitial();
    }
 
    fout->cd();
@@ -112,6 +130,11 @@ int main(int argc, char**argv)
    for(int ii=0;ii<NSIPM;ii++){
       if(CommonTools::HArrival[ii]->Integral()>1000) CommonTools::HArrival[ii]->Write();
    }
+
+   if(pl->hlength) pl->hlength->Write();
+   if(pl->htheta) pl->htheta->Write();
+   if(pl->hphi) pl->hphi->Write();
+
    fout->Close();
    //delete pl;
    //delete WFTelescopeArray::GetHead();

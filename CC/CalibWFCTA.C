@@ -1,4 +1,5 @@
 #include "CalibWFCTA.h"
+#include "WFCTAMCEvent.h"
 //#include "camera.h"
 extern void SC_Channel2SiPM(short F_DB, short mChannel, short *mSiPM);
 #include "TFile.h"
@@ -380,14 +381,20 @@ double CalibWFCTA::DoCalibSiPM(int iTel,int isipm,double input,double temperatur
          int status=LoadFromrabbitTime((double)Time,iTel);
          if(status>0){
             double corr=ishig?H_Gain_Factor[isipm]:L_Gain_Factor[isipm];
-            if(corr<=0) res=ForceCorr?res:input;
+            if(corr<=0){
+               input/=(ishig?WFCTAMCEvent::fAmpHig:WFCTAMCEvent::fAmpLow);
+               res=ForceCorr?res:input;
+            }
             else res=input/corr;
             ///additional changes due to sipm status
             if(Dead_Channel_Flag[isipm]==1) res=0;
             else if(Dead_Channel_Flag[isipm]==2){if(ishig) res=0;}
             else if(Dead_Channel_Flag[isipm]==3){if(!ishig) res=0;}
          }
-         else res=ForceCorr?res:input;
+         else{
+            input/=(ishig?WFCTAMCEvent::fAmpHig:WFCTAMCEvent::fAmpLow);
+            res=ForceCorr?res:input;
+         }
       }
    }
    if(UseSiPMCalibVer==2){ //use sipm=529 as reference
