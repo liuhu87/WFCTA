@@ -69,6 +69,16 @@ class TelGeoFit{
    ~TelGeoFit() {Clear();}
    int AddEvent(WFCTAEvent* pev,int type=12,bool doclean=true);
    ///Geometry about WFCTA
+   //some geometry at the focus plane
+   static void GetCrossCoor(double x,double y,double CC,double phi,double &x0,double &y0);
+   ///Convertion between sipm index and the coordinate at the focus plane
+   static double GetImageXYCoo(int isipm,double &ImageX,double &ImageY,double focus=-1,bool Isdegree=false);
+   static int IsInside(double xx,double yy);
+   static bool GetRange(double CC,double phi,double XY1[4],double XY2[4]);
+   static double GetWidth(double npe[MAXPMT],double CC,double phi);
+   static bool GetLongRange(double CC,double phi,double width,double LRange[2]);
+   TH1F* GetScatterAngle(int ievt,bool CleanEdge,bool UseFit);
+
    ///Convertion between coordinate at the focus plane and out direction
    static bool GetImageCoo(double zenith,double azimuth,double dir_in[3],double &xx,double &yy,bool IsLocal=false);
    static void GetOutDir(double zenith,double azimuth,double imagexy[2],double dir_out[3],bool IsLocal=false);
@@ -89,6 +99,25 @@ class TelGeoFit{
    ///From image to out direction. refplanephi is the reference planephi
    static void CalPlane(double zenith,double azimuth,double CC,double phi,double &planephi,double &nz,int &signnz,double refplanephi);
    static void CalPlane(double planephi,double nz,double xyzdir[3][3]);
+
+   ///some old functions,not tested
+   //static void CooCorr(double incoo[3],double indir[3],double outcoo[3]);
+   //static int CalTelDir(double CC,double phi,double planephi,double nz,int &nsol,double ele_out[4],double azi_out[4],int signA[4],double ele_in=PI/4,double azi_in=0);
+   //static int CalTelDir(double CC,double phi,double* lasercoo,double* laserdir,int &nsol,double ele_out[4],double azi_out[4],int signA[4],double ele_in=PI/4,double azi_in=0);
+   //int CalTelDir(double CC,double phi,double planephi,double nz,double &elevation,double &azimuth,double ele_in=PI/4,double azi_in=0);
+   //int CalTelDir(double CC,double phi,double* lasercoo,double* laserdir,double &elevation,double &azimuth,double ele_in=PI/4,double azi_in=0);
+   //int GetTelDir(double &elevation,double &errel,double &azimuth,double &erraz,double ele_in=PI/4,double azi_in=0);
+   //static bool CalPHIRange0(double zenith,double azimuth,double planephi,double nz,double PHI_in,double* PHIRange);
+   //static bool GetImageXYCoo(double zenith,double azimuth,double planephi,double nz,double PHI_in,double &xx,double &yy);
+   //static bool GetImageXYCoo(double zenith,double azimuth,double* incoo,double* indir,double PHI_in,double &xx,double &yy);
+   //static void GetPHI(double zenith,double azimuth,double planephi,double nz,double* ImageCoo,double &PHI_in);
+   //static void GetPHI(double zenith,double azimuth,double incoo[3],double indir[2],double* ImageCoo,double &PHI_in);
+   //void GetPHI2(double zenith,double azimuth,double CC,double phi,double* ImageCoo,double &PHI_in);
+   //static int GetRange(double zenith,double azimuth,double planephi,double dirin[3],double phiin,double CCin,double* PHI,double* XX,double* YY);
+   //static bool Calnz_phiL(double planephi,double indir[2],double &nz,double &PHIL);
+   //static double CalTime(double ele_tel,double azi_tel,double incoo[3],double indir[2],double ImageCooXY[2],double time0=0);
+   //static double CalTime(double CC,double phi,double incoo[3],double nz,double PHIL,double ImageCooXY[2],double time0=0,double ele_in=PI/4,double azi_in=0);
+   //bool GetCrossCoor(double x, double y, double &x0, double &y0);
 
    ///From long axis coordinate to out angle
    static double GetOutAngle(double zenith,double azimuth,double CC,double phi,double longcoo,bool sign);

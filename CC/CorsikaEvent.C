@@ -228,7 +228,7 @@ bool CorsikaEvent::DoWFCTASim(int iuse){
 
          x0=cx.at(icer)-corex[whichcore];
          y0=cy.at(icer)-corey[whichcore];
-         z0=0;
+         z0=WFTelescopeArray::lhaaso_coo[2];
          ///the direction are verified with the shower image plot
          m1=cu.at(icer);
          n1=cv.at(icer);

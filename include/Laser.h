@@ -63,6 +63,8 @@ class Atmosphere {
       double GetMieAbs(double z);
       double GetMieAbs(double length,double z0,double zenith);
       double GetRayDensity(double z);
+      double GetRayPressure(double z,bool IsSI=false);
+      double GetTemperature(double z,bool IsAbs=false);
       double GetMieCoeff(double z);
       double GetRayZFromGrammage(double grammage);
       double GetRayZFromGrammage(double grammage,double z0,double zenith);
@@ -70,6 +72,7 @@ class Atmosphere {
       double GetMieZFromAbs(double Mie_Abs,double z0,double zenith);
       double GetRayLengthFromGrammage(double grammage,double z0,double zenith);
       double GetMieLengthFromAbs(double Mie_Abs,double z0,double zenith);
+      static double GetATMMass();
       static double ZDependence(double z,int type=0);
       static double DeltaZ(double z);
       static double ProbTransform(double xx,double yy[2],double &weight,bool IsCenter);
@@ -128,9 +131,6 @@ class Laser {
       static TH1D* hlength;
       static TH1D* htheta;
       static TH1D* hphi;
-
-      ///position of lhaaso
-      static double lhaaso_coo[3];
 
       ///position of the laser generator
       double lasercoo[3];	//in cm

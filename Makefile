@@ -30,6 +30,7 @@ HEADERS  += $(INCDIR)/CloudDB.h
 HEADERS  += $(INCDIR)/WFCTASCDB.h
 HEADERS  += $(INCDIR)/CalibLED.h
 HEADERS  += $(INCDIR)/TelGeoFit.h
+HEADERS  += $(INCDIR)/Meteo.h
 
 SOURCES  := $(SRCDIR)/common.C
 SOURCES  += $(SRCDIR)/CorsikaIO.C $(SRCDIR)/CorsikaChain.C $(SRCDIR)/CorsikaEvent.C 
@@ -54,6 +55,7 @@ SOURCES  += $(SRCDIR)/CloudDB.C
 SOURCES  += $(SRCDIR)/WFCTASCDB.C
 SOURCES  += $(SRCDIR)/CalibLED.C
 SOURCES  += $(SRCDIR)/TelGeoFit.C
+SOURCES  += $(SRCDIR)/Meteo.C
 SOURCES  += event.C
 SOURCES  += eventSort.C
 SOURCES  += eventSortMerge.C
@@ -63,7 +65,7 @@ SOURCES  += read.C
 SOURCES  += dosim.C
 SOURCES  += showcloudmap.C
 SOURCES  += dolasersim.C
-SOURCES  += TelDir.C
+#SOURCES  += TelDir.C
 
 OBJS     := $(OBJDIR)/common.o
 OBJS     += $(OBJDIR)/CorsikaIO.o $(OBJDIR)/CorsikaChain.o $(OBJDIR)/CorsikaEvent.o 
@@ -88,6 +90,7 @@ OBJS     += $(OBJDIR)/CloudDB.o
 OBJS     += $(OBJDIR)/WFCTASCDB.o
 OBJS     += $(OBJDIR)/CalibLED.o
 OBJS     += $(OBJDIR)/TelGeoFit.o
+OBJS     += $(OBJDIR)/Meteo.o
 OBJS     += $(OBJDIR)/dictionary.o
 
 DEFINES  := -I. -I$(INCDIR) -I$(OBJDIR) -Islalib/include `root-config --cflags`
@@ -102,7 +105,7 @@ LDFLAGS  := `root-config --libs`
 CDir := $(shell pwd)
 LDFLAGS  += -L$(CDir)/slalib/lib -lsla
 
-all:event.exe eventSort.exe eventSortMerge.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe TelDir.exe $(LIBDIR)/lib.so
+all:event.exe eventSort.exe eventSortMerge.exe eventYMJ.exe status.exe read.exe dosim.exe showcloudmap.exe dolasersim.exe $(LIBDIR)/lib.so
 
 event.exe: $(OBJDIR)/event.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
@@ -131,8 +134,8 @@ showcloudmap.exe: $(OBJDIR)/showcloudmap.o $(OBJS)
 dolasersim.exe: $(OBJDIR)/dolasersim.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-TelDir.exe: $(OBJDIR)/TelDir.o $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+#TelDir.exe: $(OBJDIR)/TelDir.o $(OBJS)
+#	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(LIBDIR)/lib.so: $(OBJS)
 	mkdir -p $(LIBDIR)
@@ -175,9 +178,9 @@ $(OBJDIR)/dolasersim.o: dolasersim.C
 	mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 
-$(OBJDIR)/TelDir.o: TelDir.C
-	mkdir -p $(OBJDIR)
-	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
+#$(OBJDIR)/TelDir.o: TelDir.C
+#	mkdir -p $(OBJDIR)
+#	$(CXX) $(CXXFLAGS) $(DEFINES) -c $^ -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.C
 	mkdir -p $(OBJDIR)

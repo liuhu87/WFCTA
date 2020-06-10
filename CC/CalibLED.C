@@ -1,5 +1,6 @@
 #include "CalibLED.h"
 #include "WFCTAEvent.h"
+#include "TelGeoFit.h"
 bool CalibLED::ForceCorr=false;
 int CalibLED::TimeDelay=0;
 int CalibLED::jdebug=0;
@@ -243,7 +244,7 @@ void CalibLED::Dump(){
 double CalibLED::DoLedDriveTempCorr(double input,int isipm,double time,int iTel){
    if(time>1300000000) LoadFromrabbitTime(time,iTel);
    double ImageX,ImageY;
-   WFCTAEvent::GetImageXYCoo(isipm,ImageX,ImageY,-1,false);
+   TelGeoFit::GetImageXYCoo(isipm,ImageX,ImageY,-1,false);
    double angle=sqrt(pow(ImageX,2)+pow(ImageY,2));
    double corr=pow(cos(angle),4);
    double res=input/corr;

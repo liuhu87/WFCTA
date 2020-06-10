@@ -554,6 +554,22 @@ double Atmosphere::GetRayDensity(double z){
    else if(ilayer==nlay-1) return bi[ATMRayModel][ilayer]/ci[ATMRayModel][ilayer];
    else return bi[ATMRayModel][ilayer]/ci[ATMRayModel][ilayer]*exp(-z/ci[ATMRayModel][ilayer]);
 }
+double Atmosphere::GetRayPressure(double z,bool IsSI){
+   double grammage=GetRayGrammage(z); //in g/cm^2
+   grammage*=10; //in kg/m^2
+   double res=grammage*9.8; //in N/m^2 or Pascal
+   if(!IsSI) res/=100; //in mbar
+   return res;
+}
+double Atmosphere::GetTemperature(double z,bool IsAbs){
+   double pressure=GetRayPressure(z,true); //in Pascal
+   double density=GetRayDensity(z); //in g/cm^3;
+   if(density<=0||pressure<=0) return -1000;
+   double numdensity=density/(GetATMMass()*1000)*1.0e6; //in 1/m^3
+   double kb=1.380649e-23; //in J/K
+   double temp_abs=pressure/(numdensity*kb);
+   return IsAbs?temp_abs:(temp_abs-273.15);
+}
 double Atmosphere::GetMieCoeff(double z){
    if(ATMMieModel<0||ATMMieModel>=MaxATMModel) return -1;
    if(ATMRayModel>=nmodel[1]) return -1;
@@ -659,6 +675,16 @@ double Atmosphere::GetMieLengthFromAbs(double Mie_Abs,double z0,double zenith){
       if(coeff<=0) return -1;
       else return (Mie_Abs/coeff);
    }
+}
+double Atmosphere::GetATMMass(){
+   double mu=1.993e-26/12.; //in kilogram
+   double frac_o=0.2095;
+   double frac_n=0.7809;
+   double frac_other=0.0096;
+   double mass_o=15.9994*mu*2;
+   double mass_n=14.0070*mu*2;
+   double mass_other=39.948*mu;
+   return frac_o*mass_o+frac_n*mass_n+frac_other*mass_other; //in kilogram
 }
 double Atmosphere::ZDependence(double z,int type){
    return 1;
@@ -883,8 +909,6 @@ double Laser::pulsetime = 0;
 double Laser::spotrange[2] = {0,0};//0.001;//mm, the range of the initial laser spot
 double Laser::divergence[2] = {0,0};//0.0573; //mrad
 
-double Laser::lhaaso_coo[3]={0,0,0};
-
 double Laser::LaserCooErr=100.; //in cm
 double Laser::LaserZenErr=0.02;//0.02; //in degree
 double Laser::LaserAziErr=0.02;//0.02; //in degree
@@ -989,15 +1013,15 @@ void Laser::SetParameters(char* filename){
    WReadConfig read;
    WReadConfig* readconfig=&read;
    readconfig->readparam(filename);
-   lhaaso_coo[0]=readconfig->GetLHAASOCoo(0);
-   lhaaso_coo[1]=readconfig->GetLHAASOCoo(1);
-   lhaaso_coo[2]=readconfig->GetLHAASOCoo(2);
-   for(int i=0;i<3;i++) lasercoo[i] = readconfig->GetLaserCoo(WhichRot,i)-(i==2?0:lhaaso_coo[i]);
+   WFTelescopeArray::lhaaso_coo[0]=readconfig->GetLHAASOCoo(0);
+   WFTelescopeArray::lhaaso_coo[1]=readconfig->GetLHAASOCoo(1);
+   WFTelescopeArray::lhaaso_coo[2]=readconfig->GetLHAASOCoo(2);
+   for(int i=0;i<3;i++) lasercoo[i] = readconfig->GetLaserCoo(WhichRot,i)-(i==2?0:WFTelescopeArray::lhaaso_coo[i]);
    for(int i=0;i<2;i++) laserdir[i] = readconfig->GetLaserDir(WhichRot,i);
-   double dir[2];
-   TelGeoFit::CalDir_out((PI/2-laserdir[0]/180*PI),laserdir[1]/180*PI,WhichRot,dir[0],dir[1]);
-   laserdir[0]=90-dir[0]/PI*180;
-   laserdir[1]=dir[1]/PI*180;
+   //double dir[2];
+   //TelGeoFit::CalDir_out((PI/2-laserdir[0]/180*PI),laserdir[1]/180*PI,WhichRot,dir[0],dir[1]);
+   //laserdir[0]=90-dir[0]/PI*180;
+   //laserdir[1]=dir[1]/PI*180;
    intensity = readconfig->GetLaserIntensity();
    intensity_err = readconfig->GetLaserIntensityErr();
    wavelength0 = readconfig->GetLaserWavelength();
@@ -1098,7 +1122,7 @@ double Laser::mindist(double coor_in[3],double dir_in[3],int &whichtel,double *c
          WFTelescope* pt=pta->pct[ii];
          telcoor[ii][0]=pt->Telx_;
          telcoor[ii][1]=pt->Tely_;
-         telcoor[ii][2]=pt->Telz_+lhaaso_coo[2];
+         telcoor[ii][2]=pt->Telz_+WFTelescopeArray::lhaaso_coo[2];
       }
    }
    whichtel=-2;
@@ -1159,7 +1183,7 @@ void Laser::GetAveTelPos(double zero[3]){
       ncount++;
       avecoo[0]+=pt->Telx_;
       avecoo[1]+=pt->Tely_;
-      avecoo[2]+=pt->Telz_+lhaaso_coo[2];
+      avecoo[2]+=pt->Telz_+WFTelescopeArray::lhaaso_coo[2];
    }
    if(ncount>0){
       for(int ii=0;ii<3;ii++) zero[ii]=avecoo[ii]/ncount;
@@ -1173,7 +1197,10 @@ bool Laser::InitialGen(){
    double xdir[3],ydir[3],zdir[3];
    double zero[3]={0,0,0};
    GetAveTelPos(zero);
-   double dir_in[3]={sin(laserdir[0]/180.*PI)*cos(laserdir[1]/180.*PI),sin(laserdir[0]/180.*PI)*sin(laserdir[1]/180.*PI),cos(laserdir[0]/180.*PI)};
+   double dir[2];
+   TelGeoFit::CalDir_out((PI/2-laserdir[0]/180*PI),laserdir[1]/180*PI,WhichRot,dir[0],dir[1]);
+   dir[0]=PI/2-dir[0];
+   double dir_in[3]={sin(dir[0])*cos(dir[1]),sin(dir[0])*sin(dir[1]),cos(dir[0])};
    double dir_in2[3]={0,0,1};
    if(!CartesianFrame(zero,lasercoo,dir_in,dir_in2,xdir,ydir,zdir)) return false;
 
@@ -1203,6 +1230,7 @@ double Laser::WaveLengthGen(){
 long int Laser::EventGen(int &Time,double &time,bool SimPulse){
    if(!prandom) return 0;
    double acctime,time1,time2,ngen0;
+   double ntotal=intensity*1.0e-3/(hplank*vlight/(wavelength0*1.0e-7));
    if(!SimPulse){
       acctime=0;
       time1=Time+time*20*1.0e-9;
@@ -1221,13 +1249,15 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
       }
       if(acctime<=0) return 0;
       acctime*=1.0e6;
-      ngen0=intensity*1.0e-3/(hplank*vlight/(wavelength0*1.0e-7))/pulsetime*1.0e-6*scale;
+      if(scale>0) ngen0=ntotal/pulsetime*1.0e-6*scale;
+      else ngen0=fabs(scale)/pulsetime*1.0e-6;
    }
    else{
       acctime=pulsetime;
       time1=Time+time*20*1.0e-9;
       time2=time1+acctime;
-      ngen0=intensity*1.0e-3/(hplank*vlight/(wavelength0*1.0e-7))/pulsetime*scale;
+      if(scale>0) ngen0=ntotal/pulsetime*scale;
+      else ngen0=fabs(scale)/pulsetime;
    }
 
    Reset();
@@ -1246,10 +1276,11 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
          vgcoo[ii].push_back(coor_gen[ii]);
          vgdir[ii].push_back(dir_gen[ii]);
       }
-      double weight=1./scale;
+      double weight0=(ntotal/ngen);
+      double weight=weight0;
       double distance;
       int res=Propagate(distance,weight);
-      if((igen%(1000000)==0)&&jdebug>0) printf("Laser::EventGen: %ld of %ld generated (count_gen=%le,weight={%le,%le})\n",igen,ngen,count_gen,weight,weight*scale);
+      if((igen%(1000000)==0)&&jdebug>0) printf("Laser::EventGen: %ld of %ld generated (count_gen=%le,weight={%le,%le})\n",igen,ngen,count_gen,weight,weight/weight0);
       if(jdebug>3) printf("Laser::EventGen: Propagate igen=%ld res=%d distance=%lf lasercoo={%f,%f,%f} laserdir={%f,%f,%f}\n",igen,res,distance,coor_gen[0],coor_gen[1],coor_gen[2],dir_gen[0],dir_gen[1],dir_gen[2]);
       if(res<0) Telindex=res-15;
       else{  //the telescope index has been calculated in Propagate
@@ -1259,7 +1290,7 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
          }
          if(!exist) tellist.push_back(Telindex);
          ngentel++;
-         coor_out[2]-=lhaaso_coo[2];
+         //coor_out[2]-=WFTelescopeArray::lhaaso_coo[2];
       }
       vowei.push_back(weight);
       votim.push_back(time0+distance/vlight);
@@ -1274,7 +1305,7 @@ long int Laser::EventGen(int &Time,double &time,bool SimPulse){
       vophi.push_back(phi_out);
       count_gen+=weight;
    }
-   if(jdebug>0) printf("Laser::EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld scale=%le\n",ngen0,acctime,ngen,ngentel,scale);
+   if(jdebug>0) printf("Laser::EventGen: ngen0=%le acctime=%le ngen=%ld ngentel=%ld scale=%le\n",ngen0,acctime,ngen,ngentel,ngen/ntotal);
    //bool dosim=DoWFCTASim();
    ievent_gen++;
 
@@ -1553,7 +1584,7 @@ int Laser::FindWhichTel(double cooout[3],double dirout[3],double freelength,doub
       if(!pt) continue;
       if(WhichTel>=1&&WhichTel!=pt->TelIndex_) continue;
       double dirin[3]={-sin(pt->TelZ_)*cos(pt->TelA_),-sin(pt->TelZ_)*sin(pt->TelA_),-cos(pt->TelZ_)}; //pointing direction of the telescope
-      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+lhaaso_coo[2]};
+      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+WFTelescopeArray::lhaaso_coo[2]};
       double range[2];
       int findres=FindAllRange(zero,cooout,dirout,dirin,range,4,freelength,theta_scat,phi_scat);
       if(jdebug>3) printf("Laser::FindWhichTel: find telescope with freelength=%.1lf theta_scat=%.2lf phi_scat=%.2lf, WhichTel=%d return=%d\n",freelength,theta_scat/PI*180,phi_scat/PI*180,findtel,findres);
@@ -1570,7 +1601,7 @@ int Laser::FindWhichTel(double cooout[3],double dirout[3],double freelength,doub
       for(int itel=0;itel<ntel2;itel++){
          WFTelescope* pt=pta->pct[telindex2[itel]];
          double dirin[3]={-sin(pt->TelZ_)*cos(pt->TelA_),-sin(pt->TelZ_)*sin(pt->TelA_),-cos(pt->TelZ_)}; //pointing direction of the telescope
-         double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+lhaaso_coo[2]};
+         double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+WFTelescopeArray::lhaaso_coo[2]};
 
          double idistance=0;
          double coor_min[3];
@@ -1831,7 +1862,7 @@ int Laser::FindLengthRange(double cooout[3],double dirout[3],int* telindex,doubl
       if(!pt) continue;
       if(WhichTel>=1&&WhichTel!=pt->TelIndex_) continue;
       double dirin[3]={-sin(pt->TelZ_)*cos(pt->TelA_),-sin(pt->TelZ_)*sin(pt->TelA_),-cos(pt->TelZ_)}; //pointing direction of the telescope
-      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+lhaaso_coo[2]};
+      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+WFTelescopeArray::lhaaso_coo[2]};
       double range[2];
       int findres=FindAllRange(zero,cooout,dirout,dirin,range,1);
       if(findres>0){
@@ -1927,7 +1958,7 @@ int Laser::FindThetaRange(double cooout[3],double dirout[3],int* telindex,double
       if(!pt) continue;
       if(WhichTel>=1&&WhichTel!=pt->TelIndex_) continue;
       double dirin[3]={-sin(pt->TelZ_)*cos(pt->TelA_),-sin(pt->TelZ_)*sin(pt->TelA_),-cos(pt->TelZ_)}; //pointing direction of the telescope
-      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+lhaaso_coo[2]};
+      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+WFTelescopeArray::lhaaso_coo[2]};
       double range[2];
       int findres=FindAllRange(zero,cooout,dirout,dirin,range,2,freelength);
       if(findres>0){
@@ -2117,7 +2148,7 @@ int Laser::FindPhiRange(double cooout[3],double dirout[3],int* telindex,double p
       if(!pt) continue;
       if(WhichTel>=1&&WhichTel!=pt->TelIndex_) continue;
       double dirin[3]={-sin(pt->TelZ_)*cos(pt->TelA_),-sin(pt->TelZ_)*sin(pt->TelA_),-cos(pt->TelZ_)}; //pointing direction of the telescope
-      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+lhaaso_coo[2]};
+      double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+WFTelescopeArray::lhaaso_coo[2]};
       double range[2];
       int findres=FindAllRange(zero,cooout,dirout,dirin,range,3,freelength,theta_scat);
       if(findres>0){
@@ -2199,7 +2230,7 @@ int Laser::Propagate(double &distance,double &weight){
 
    double xdir[3],ydir[3],zdir[3];
    WFTelescope* pt=pta->pct[whichtel];
-   double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+lhaaso_coo[2]};
+   double zero[3]={pt->Telx_,pt->Tely_,pt->Telz_+WFTelescopeArray::lhaaso_coo[2]};
    double dirin[3]={-sin(pt->TelZ_)*cos(pt->TelA_),-sin(pt->TelZ_)*sin(pt->TelA_),-cos(pt->TelZ_)};
 
    double mindist0=mindist(zero,coor_gen,dir_gen,coor_min,decrease);
@@ -2275,7 +2306,7 @@ int Laser::Propagate(double &distance,double &weight){
    else{
       zero[0]=pt->Telx_;
       zero[1]=pt->Tely_;
-      zero[2]=pt->Telz_+lhaaso_coo[2];
+      zero[2]=pt->Telz_+WFTelescopeArray::lhaaso_coo[2];
       dir_tel[0]=-sin(pt->TelZ_)*cos(pt->TelA_);
       dir_tel[1]=-sin(pt->TelZ_)*sin(pt->TelA_);
       dir_tel[2]=-cos(pt->TelZ_);
@@ -2501,15 +2532,26 @@ bool Laser::DoWFCTASim(int SimTel){
          weight=vowei.at(il);
          if(WFCTALaserEvent::Recordweight) (pwfc->laserevent).weight.push_back(weight);
          (pwfc->laserevent).hweight->Fill(log10(weight));
+
+         //any event
+         (pwfc->mcevent).hRayTrace->Fill(-18.);
+         (pwfc->mcevent).hWeightRayTrace->Fill(-18.,weight);
+
          if(whichtel<0||whichtel>=WFTelescopeArray::CTNumber){
             vosipm.push_back(-1);
             if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(whichtel);
-            (pwfc->mcevent).hRayTrace->Fill(whichtel,weight);
+            //not around the telescope
+            (pwfc->mcevent).hRayTrace->Fill(-17.);
+            (pwfc->mcevent).hWeightRayTrace->Fill(-17.,weight);
             if(jdebug>7) printf("Laser::DoWFCTASim: pushing back tracing il=%d whichtel=%d weight=%le\n",il,whichtel,weight);
             continue;
          }
          WFTelescope* pt=pct->pct[whichtel];
          if(!pt) {vosipm.push_back(-1); continue;}
+
+         //close one telescope
+         (pwfc->mcevent).hRayTrace->Fill(-16.);
+         (pwfc->mcevent).hWeightRayTrace->Fill(-16.,weight);
 
          x0=vocoo[0].at(il);
          y0=vocoo[1].at(il);
@@ -2525,19 +2567,28 @@ bool Laser::DoWFCTASim(int SimTel){
             if(!WFTelescope::GetQuantumEff(wave)){
                vosipm.push_back(-1);
                if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(-14);
-               (pwfc->mcevent).hRayTrace->Fill(-14,weight);
+               //not pass through quantum efficiency
+               (pwfc->mcevent).hRayTrace->Fill(-15.);
+               (pwfc->mcevent).hWeightRayTrace->Fill(-15.,weight);
                if(jdebug>7) printf("Laser::DoWFCTASim: no pass quantum efficiecy. il=%d weight=%le\n",il,weight);
                continue;
             }
          }
+
+         //pass through quantum efficiency
+         (pwfc->mcevent).hRayTrace->Fill(-14.);
+         (pwfc->mcevent).hWeightRayTrace->Fill(-14.,weight);
          int res=pct->RayTrace(x0,y0,z0,m1,n1,l1,weight,wave,whichtel,t,itube,icell);
          if(WFCTAMCEvent::RecordRayTrace) (pwfc->mcevent).RayTrace.push_back(res);
-         (pwfc->mcevent).hRayTrace->Fill(res,weight);
+         (pwfc->mcevent).hRayTrace->Fill(res);
+         (pwfc->mcevent).hWeightRayTrace->Fill(res,weight);
          if(res>=0){
             vosipm.push_back(itube);
             findtel=true;
             avet+=t;
             nt++;
+            (pwfc->mcevent).hRayTrace->Fill(itube+21);
+            (pwfc->mcevent).hWeightRayTrace->Fill(itube+21,weight);
             if(jdebug>2) printf("Laser::DoWFCTASim: the photon go through the pmt %3d of Tel%2d, weight=%le iphoton=%8d time={%.9le,%.9le}\n",itube,pt->TelIndex_,weight,il,tt,t); //jdebug>4
          }
          else{
@@ -2690,7 +2741,7 @@ TCanvas* Laser::Draw(const char* option,int ViewOpt,const char* savedir){
          WFTelescope* pt=(pta)?pta->pct[itel]:0;
          if(!pt) continue;
          TPolyLine3D* line=new TPolyLine3D(2);
-         double postel[3]={pt->Telx_,pt->Tely_,pt->Telz_+lhaaso_coo[2]};
+         double postel[3]={pt->Telx_,pt->Tely_,pt->Telz_+WFTelescopeArray::lhaaso_coo[2]};
          double dirtel[3]={sin(pt->TelZ_)*cos(pt->TelA_),sin(pt->TelZ_)*sin(pt->TelA_),cos(pt->TelZ_)};
          double xyzmax[3]={TMath::Max(fabs(plotrange[0][0]),fabs(plotrange[0][1])),TMath::Max(fabs(plotrange[1][0]),fabs(plotrange[1][1])),TMath::Max(fabs(plotrange[2][0]),fabs(plotrange[2][1]))};
          double length_dir=sqrt(pow(xyzmax[0],2)+pow(xyzmax[1],2)+pow(xyzmax[2],2));
@@ -2771,7 +2822,7 @@ int Laser::GetProb(long int ngen){
          if(!exist) tellist.push_back(Telindex);
          if(jdebug>0) printf("Laser::GetProb: igen=%d ngentel=%d freelength={%le,%le} theta=%.2lf phi=%.2lf\n",interpoint,distance,theta_out/PI*180,phi_out/PI*180);
          ngentel++;
-         coor_out[2]-=lhaaso_coo[2];
+         //coor_out[2]-=WFTelescopeArray::lhaaso_coo[2];
       }
       volength.push_back(interpoint);
       volength2.push_back(distance);

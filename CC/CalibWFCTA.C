@@ -12,7 +12,8 @@ CalibWFCTA* CalibWFCTA::_Head=0;
 int CalibWFCTA::UseSiPMCalibVer=1;
 bool CalibWFCTA::ForceCorr=true;
 int CalibWFCTA::jdebug=0;
-char CalibWFCTA::DirName[3][200]={"/eos/user/y/yangmj/wfcta/decode/led_calibrate/LED_Calibrate_End2End_Factor","/afs/ihep.ac.cn/users/h/hliu/public/WFDataDir","/workfs/ybj/yinlq/LHAASO/WFCTA/WFCTA_Info_Parameter"};
+//char CalibWFCTA::DirName[3][200]={"/eos/user/y/yangmj/wfcta/decode/led_calibrate/LED_Calibrate_End2End_Factor","/afs/ihep.ac.cn/users/h/hliu/public/WFDataDir","/workfs/ybj/yinlq/LHAASO/WFCTA/WFCTA_Info_Parameter"};
+char CalibWFCTA::DirName[3][200]={"/eos/lhaaso/cal/wfcta/LED_Calibrate/new_LED_Calibrate_End2End_File_Factor","/afs/ihep.ac.cn/users/h/hliu/public/WFDataDir","/workfs/ybj/yinlq/LHAASO/WFCTA/WFCTA_Info_Parameter"};
 
 void CalibWFCTA::Init(){
    for(int ii=0;ii<NCTMax;ii++){

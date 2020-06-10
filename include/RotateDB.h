@@ -4,6 +4,7 @@
 #define NVALUE 12
 
 #include "common.h"
+#include <fstream>
 
 class WFCTAEvent;
 class RotateDB {
@@ -13,6 +14,9 @@ class RotateDB {
    public:
    static int jdebug;
    static bool UseGPSTime;
+   static bool UseGPSInfo;
+   static bool UseEnvInfo;
+   static bool UsePltInfo;
    static int ntotmin;
    static int nsidemin;
    static int nrot;
@@ -25,21 +29,35 @@ class RotateDB {
    static double aglmargin;
    static double phimargin;
    static double ccmargin;
+   static double phismargin;
+   static double ccsmargin;
    static bool SearchAllAngle;
 
    //log version: v1(save the status for every second), v2(save the change of status)
-   int version;
-   char buff[500];
-   char buff2[2][500];
+   ifstream fin_log1[NRotMax];
+   ifstream fin_log2[NRotMax];
+   char filename_log1[NRotMax][300];
+   char filename_log2[NRotMax][300];
+   long int filesize1[NRotMax];
+   long int filesize2[NRotMax];
+
+   //about other infos
+   ifstream fin_gps[NRotMax];
+   ifstream fin_env[NRotMax];
+   char filename_gps[NRotMax][300];
+   char filename_env[NRotMax][300];
+
+   char rotateinfo[500];
+   char rotateinfo2[2][500];
+
+   char pltinfo[2][500];
+   char gpsinfo[2][500];
+   char envinfo[2][500];
+
    //Li
    int Li;
-   int Li2;
    //time information
    int time;
-   int time2[2];
-   //position in the log file
-   long int currpos;
-   long int currpos2;
    //gps information
    double latitude;
    double longitude;
@@ -63,18 +81,41 @@ class RotateDB {
    static RotateDB* GetHead();
    static RotateDB* GetHead(char* dirname);
    static bool LocateFirst(ifstream* fin);
-   void CleanLog(int ilog);
-   long int LoadData(int time_in,int Li_in,int pLi=0,int ptime=-1,long int cpos=-1);
+   static bool LocateEnd(ifstream* fin);
+   static bool GetFirstLastLine(ifstream* fin,char* firstline,char* lastline);
+   static bool ReadData(ifstream* fin,int godown,char* content);
+   static bool ReadAData(ifstream* fin,int godown,char* content,int Type=1,bool cur_godown=true);
+   static int GetLogTime(int time_in,int Li_in);
+   static bool IsLogFine(char* buffer,int RotateType);
+   bool IsLogFine(int RotateType);
+   bool FillInfo(int type,char* content1,char* content2);
+   int ReadData(int Li_in,int godown=true,char* content=0);
+   int ReadAData(int Li_in,int godown,char* content=0,int Type=1,bool cur_godown=true);
+   bool LoadData(int time_in,int Li_in);
+   bool LoadAData(int time_in,int Li_in,int Type=1);
+   bool LoadRotate(int time_in,int Li_in);
+   bool LoadGPS(int time_in,int Li_in);
+   bool LoadEnv(int time_in,int Li_in);
+   bool LoadPlt(int time_in,int Li_in);
+
+   //long int LoadData(int time_in,int Li_in,int pLi=0,int ptime=-1,long int cpos=-1);
+   //int ReadData(ifstream* fin,bool godown,int RotateType=1);
+   //int ReadData2(ifstream* fin,bool godown,bool IsRotate=true,int Li_in=2);
+   //long int LoadData2(int time_in,int Li_in,int pLi=0,int ptime1=0,int ptime2=0,long int cpos=-1);
+
+   static int ProcessTime(const char* content);
    int ProcessTime();
-   void ProcessAll();
-   bool IsLogFine(char* buffer,int RotateType);
-   bool IsLogFine(bool IsRotate=true);
-   int ReadData(ifstream* fin,bool godown,int RotateType=1);
-   int ReadData2(ifstream* fin,bool godown,bool IsRotate=true,int Li_in=2);
-   long int LoadData2(int time_in,int Li_in,int pLi=0,int ptime1=0,int ptime2=0,long int cpos=-1);
-   int ProcessTime2(int itime);
-   void ProcessAll2(int item=0);
+   bool ProcessAll(int time_in,int Li_in,bool update=true);
+   static int ProcessTime2(char* content);
+   int ProcessTime2(int Type,int itime);
+   bool ProcessAll2(int time_in,int Li_in,bool update=true);
+   bool ProcessRotate();
+   bool ProcessGPS();
+   bool ProcessEnv();
+   bool ProcessPlant();
+
    int ProcessEnv(int time_in,int Li_in);
+
    void DumpInfo();
    bool GetLaserSwith();
    bool GetDoorSwith();
@@ -91,14 +132,17 @@ class RotateDB {
    static int GetLi(int Li_in);
    static int GetLi(double rabbittime);
    static int GetTi(int Tindex);
+   static bool GetEleAzi(int index,double &elevation,double &azimuth);
    static double GetMinDistEleAzi(double ele_in,double azi_in,int irot,int itel,double &minele,double &minazi,int &index);
    static int IsFineAngle(double ele_in,double azi_in,int Li_in,int iTel);
+   static int SearchVersion(int time_in,int Li_in);
    int GetEleAzi1(int time_in,int Li_in,int iTel=-1);
    int GetEleAzi2(int time_in,int Li_in,int iTel=-1);
    int GetEleAzi(int time_in,int Li_in,int iTel=-1);
    int GetEleAzi(WFCTAEvent* pev);
-   static void GetMinDistFit(WFCTAEvent* pev,int EleAziIndex,int Li_in,double &minphi,double &mincc);
-   static bool IsFineImage(WFCTAEvent* pev,int EleAziIndex,int Li_in=0);
+   static void GetMinDistFit(WFCTAEvent* pev,double ele_in,double azi_in,int Li_in,double &minphi,double &mincc,double &minphi_sigma,double &mincc_sigma);
+   static bool IsFineImage(WFCTAEvent* pev,double ele_in,double azi_in);
+   static bool IsFineImage(WFCTAEvent* pev,int EleAziIndex);
    static double GetEref(int Li_in,int iTel,int type,int iangle);
    int LaserIsFine(WFCTAEvent* pev);
 

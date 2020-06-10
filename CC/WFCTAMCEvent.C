@@ -6,7 +6,8 @@
 bool WFCTAMCEvent::RecordRayTrace=false;
 double WFCTAMCEvent::fAmpLow=(5.6/22);
 double WFCTAMCEvent::fAmpHig=5.6;
-TH1D* WFCTAMCEvent::hRayTrace=new TH1D("MCRayTrace","Ray Trace Result",35,-25-0.5,10-0.5);
+TH1D* WFCTAMCEvent::hRayTrace=new TH1D("MCRayTrace","Ray Trace Result",1065,-20-0.5,1024+21-0.5);
+TH1D* WFCTAMCEvent::hWeightRayTrace=new TH1D("MCWeightRayTrace","Weighted Ray Trace Result",1065,-20-0.5,1024+21-0.5);
 void WFCTAMCEvent::Init(int size){
    //hRayTrace=new TH1D("MCRayTrace","Ray Trace Result",35,-25-0.5,10-0.5);
    //for(int ii=0;ii<3;ii++){
@@ -23,6 +24,7 @@ void WFCTAMCEvent::Reset(){
    Timegen=0;
    //memset(this,0,sizeof(*this));
    if(hRayTrace) {if(hRayTrace->Integral()>0) hRayTrace->Reset();}
+   if(hWeightRayTrace) {if(hWeightRayTrace->Integral()>0) hWeightRayTrace->Reset();}
    //for(int ii=0;ii<3;ii++){
    //   Coogen[ii].clear();
    //   Dirgen[ii].clear();

@@ -33,6 +33,7 @@ class WFCTAMCEvent
 
    vector<int> RayTrace; //!
    static TH1D* hRayTrace; //! the histogram to store ray tracing
+   static TH1D* hWeightRayTrace; //! the histogram to store weighted ray tracing
 
    public:
    void Init(int size=0);

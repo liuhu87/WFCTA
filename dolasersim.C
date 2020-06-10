@@ -13,7 +13,7 @@ int main(int argc, char**argv)
 {
    // arguments
    if (argc<3) {
-      printf("   Usage %s <nevent> <outname> <seed>\n",argv[0]);
+      printf("   Usage %s <nevent> <outname> <seed> <Flat_Scatter_Angle>\n",argv[0]);
       return 0;
       //exit(0);
    }
@@ -21,44 +21,55 @@ int main(int argc, char**argv)
    int nevent = atoi(argv[1]);
    const char* outname = argv[2];
    int seed = argc>3?atoi(argv[3]):0;
+   int flat_scatter = argc>4?atoi(argv[4]):-1;
    cout<< nevent << "  " << outname << "  " << seed <<endl;
 
    TH1::SetDefaultSumw2();
    CommonTools::IsLaser=true;
    CommonTools::InitHArrival();
 
-   TFile *fout = new TFile(outname,"RECREATE");
-   TH1D* hNevt = new TH1D("NEvent","",2,0,2);
-   TH1D* hraytrace = (TH1D*) WFCTAMCEvent::hRayTrace->Clone("RayTraceRes");
-   hraytrace->Reset();
-   TH1D* hPMTs = new TH1D("PMTs","",1024,-0.5,1023.5);
-   TH1D* hweight = (TH1D*) WFCTALaserEvent::hweight->Clone("WeightRes");
-   hweight->Reset();
-   TTree *tree = new TTree("eventShow","info of laser evnets");
+   char cdir[200]="/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA";
 
    WFTelescopeArray::jdebug=0;
    WFTelescopeArray::DoSim=true;
    //WFTelescopeArray::GetHead(Form("%s/default.inp",getenv("WFCTADataDir")));
-   WFTelescopeArray::GetHead(Form("default.inp"));
+   WFTelescopeArray::GetHead(Form("%s/default.inp",cdir));
    WFTelescope* pt=0;
    if(WFTelescopeArray::GetHead()){
       pt=WFTelescopeArray::GetHead()->pct[0];
    }
    if(!pt) return 0;
+
+   TFile *fout = new TFile(outname,"RECREATE");
+   TH1D* hraytrace = (TH1D*) WFCTAMCEvent::hRayTrace->Clone("RayTraceRes");
+   hraytrace->Reset();
+   TH1D* hweightraytrace = (TH1D*) WFCTAMCEvent::hRayTrace->Clone("WeightRayTraceRes");
+   hweightraytrace->Reset();
+   TH1D* hPMTs[NCTMax];
+   for(int itel=0;itel<NCTMax;itel++){
+      int iTel=itel+1;
+      int telindex=WFTelescopeArray::GetHead()->GetTelescope(iTel);
+      if(telindex<0) hPMTs[itel]=0;
+      else hPMTs[itel] = new TH1D(Form("PMTs_Tel%d",iTel),"",1024,-0.5,1023.5);
+   }
+   TH1D* hweight = (TH1D*) WFCTALaserEvent::hweight->Clone("WeightRes");
+   hweight->Reset();
+   TTree *tree = new TTree("eventShow","info of laser evnets");
+
    //Atmosphere::SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
-   Atmosphere::SetParameters(Form("default.inp"));
-   Atmosphere::GetHead()->AddATMModel(Form("/afs/ihep.ac.cn/users/h/hliu/Documents/LHAASO/WFCTA/ATMModel.txt"));
+   Atmosphere::SetParameters(Form("%s/default.inp",cdir));
+   Atmosphere::GetHead()->AddATMModel(Form("%s/ATMModel.txt",cdir));
    Atmosphere::ATMRayModel=0;
    Atmosphere::ATMMieModel=-1;
    Atmosphere::scale=500.;
 
-   Laser::UseTestScat=true;
+   Laser::UseTestScat=(flat_scatter>0);
    Laser::WhichRot=2;
    Laser::WhichTel=-1;
-   Laser::scale=1.0e-8;
+   Laser::scale=1.0e-8;//-5.0e6;//4.0e-8;
    //Laser::Doigen=9632;
    Laser::DoPlot=false;
-   Laser::jdebug=3;
+   Laser::jdebug=1;
    Laser::TelSimDist=200.;
    Laser::IniRange[0][0]=-1.e3;
    Laser::IniRange[0][1]=2.0e5;
@@ -74,7 +85,7 @@ int main(int argc, char**argv)
    WFCTAEvent* pevt=(pl->pwfc);
    printf("WFCTAEvent: %p\n",pevt);
    //pl->SetParameters(Form("%s/default.inp",getenv("WFCTADataDir")));
-   pl->SetParameters(Form("default.inp"));
+   pl->SetParameters(Form("%s/default.inp",cdir));
    double lasercoo0[3]={pl->lasercoo[0],pl->lasercoo[1],pl->lasercoo[2]};
    double laserdir0[2]={pl->laserdir[0],pl->laserdir[1]};
    pevt->CreateBranch(tree,1);
@@ -92,14 +103,22 @@ int main(int argc, char**argv)
       //pl->laserdir[1]=laserdir0[1]-5.+10./nlaserdir*(ii%nevent);
       long int ngentel=pl->EventGen(Time,time,true);
       for(int itel=0;itel<pl->tellist.size();itel++){
-         WFTelescope* pt=WFTelescopeArray::GetHead()->pct[pl->tellist.at(itel)];
-         bool dosim=pl->DoWFCTASim(pl->tellist.at(itel));
+         int telindex=pl->tellist.at(itel);
+         if(telindex<0) continue;
+         WFTelescope* pt=WFTelescopeArray::GetHead()->pct[telindex];
+         int iTel=pt->TelIndex_;
+         bool dosim=pl->DoWFCTASim(telindex);
          
+         //fill the event
+         hraytrace->Add(WFCTAMCEvent::hRayTrace);
+         hweightraytrace->Add(WFCTAMCEvent::hWeightRayTrace);
+         hweight->Add(WFCTALaserEvent::hweight);
+
          for(int ipmt=0;ipmt<NSIPM;ipmt++){
-            double content=hPMTs->GetBinContent(ipmt+1);
-            double econtent=hPMTs->GetBinError(ipmt+1);
-            hPMTs->SetBinContent(ipmt+1,content+pevt->mcevent.TubeSignal[0][ipmt]);
-            hPMTs->SetBinError(ipmt+1,sqrt(pow(econtent,2)+pow(content+pevt->mcevent.eTubeSignal[0][ipmt],2)));
+            double content=hPMTs[iTel-1]->GetBinContent(ipmt+1);
+            double econtent=hPMTs[iTel-1]->GetBinError(ipmt+1);
+            hPMTs[iTel-1]->SetBinContent(ipmt+1,content+pevt->mcevent.TubeSignal[telindex][ipmt]);
+            hPMTs[iTel-1]->SetBinError(ipmt+1,sqrt(pow(econtent,2)+pow(pevt->mcevent.eTubeSignal[telindex][ipmt],2)));
          }
 
          double smax=0;
@@ -113,19 +132,20 @@ int main(int argc, char**argv)
          tree->Fill();
          pevt->EventInitial();
       }
+      hraytrace->Fill(-20.);
+      hweightraytrace->Fill(-20.);
       if(Laser::DoPlot) pl->Draw("al",0,"./");
-      //fill the event
-      hNevt->Fill(0.5,pl->count_gen);
-      hNevt->Fill(1.5,ngentel/Laser::scale);
-      hraytrace->Add(WFCTAMCEvent::hRayTrace);
-      hweight->Add(WFCTALaserEvent::hweight);
    }
 
    fout->cd();
    tree->Write();
-   hNevt->Write();
    hraytrace->Write();
-   hPMTs->Write();
+   hweightraytrace->Write();
+   for(int ii=0;ii<NCTMax;ii++){
+      if(!hPMTs[ii]) continue;
+      if(hPMTs[ii]->Integral()<=0) continue;
+      hPMTs[ii]->Write();
+   }
    hweight->Write();
    for(int ii=0;ii<NSIPM;ii++){
       if(CommonTools::HArrival[ii]->Integral()>1000) CommonTools::HArrival[ii]->Write();

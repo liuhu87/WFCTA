@@ -28,6 +28,8 @@ class WFTelescopeArray{
    private:
    static WFTelescopeArray* _Head;
    public:
+   ///position of lhaaso
+   static double lhaaso_coo[3];
    ///random number generator
    static TRandom3* prandom;
    ///control of debug output

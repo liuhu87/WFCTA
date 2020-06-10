@@ -50,4 +50,6 @@
 #pragma link C++ class CalibLED+;
 
 #pragma link C++ class TelGeoFit+;
+
+#pragma link C++ class Meteo+;
 #endif

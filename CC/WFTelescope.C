@@ -9,9 +9,11 @@
 #include "TRandom.h"
 #include "TFile.h"
 #include "TGraph.h"
+#include "TelGeoFit.h"
 #include <vector>
 using std::vector;
 
+double WFTelescopeArray::lhaaso_coo[3]={0,0,0};
 int WFTelescopeArray::jdebug=0;
 bool WFTelescopeArray::DoSim=true;
 int WFTelescopeArray::CTNumber=1;
@@ -94,7 +96,11 @@ void WFTelescopeArray::ReadFromFile(char* filename){
   WFMirror::SetMirrorSpot(MirrorSpot);
   WFMirror::SetMirrorGeometry(MirrorGeometry);
 
-  CTNumber =readconfig-> GetCTNumber();
+  lhaaso_coo[0]=readconfig->GetLHAASOCoo(0);
+  lhaaso_coo[1]=readconfig->GetLHAASOCoo(1);
+  lhaaso_coo[2]=readconfig->GetLHAASOCoo(2);
+
+  CTNumber =readconfig->GetCTNumber();
 
   CT_Index = new int[CTNumber];
   CT_X = new float[CTNumber];
@@ -171,8 +177,8 @@ int WFTelescopeArray::WhichTel(double x0, double y0,double z0,double m1,double n
    if(m1*m1+n1*n1+l1*l1<=0) return whichct;
    double mindist=10000000000000;
    for(int ict=0;ict<CTNumber;ict++){
-      double x1=(l1==0)?x0:(x0+(pct[ict]->Telz_-z0)/l1*m1);
-      double y1=(l1==0)?y0:(y0+(pct[ict]->Telz_-z0)/l1*n1);
+      double x1=(l1==0)?x0:(x0+(pct[ict]->Telz_+lhaaso_coo[2]-z0)/l1*m1);
+      double y1=(l1==0)?y0:(y0+(pct[ict]->Telz_+lhaaso_coo[2]-z0)/l1*n1);
       double dist=sqrt(pow(x1-(pct[ict]->Telx_),2)+pow(y1-(pct[ict]->Tely_),2));
       if(dist<mindist){
          mindist=dist;
@@ -185,8 +191,10 @@ int WFTelescopeArray::RayTrace(double x0, double y0, double z0, double m1, doubl
    int whichct=WhichTel(x0,y0,z0,m1,n1,l1);
    if(whichct<0) return -1000;
    ///inside telescope
-   if(jdebug>0) printf("WFTelescopeArray::RayTrace: Passing Telescope InCoo={%f,%f,%f} TelCoo={%f,%f,%f}\n",x0,y0,z0,pct[whichct]->Telx_,pct[whichct]->Tely_,pct[whichct]->Telz_);
-   if(!pct[whichct]->IncidentTel(x0,y0)) return -1;
+   if(jdebug>0) printf("WFTelescopeArray::RayTrace: Passing Telescope InCoo={%f,%f,%f} TelCoo={%f,%f,%f}\n",x0,y0,z0,pct[whichct]->Telx_,pct[whichct]->Tely_,pct[whichct]->Telz_+lhaaso_coo[2]);
+   double xtel=(l1==0)?x0:(x0+(pct[whichct]->Telz_+lhaaso_coo[2]-z0)/l1*m1);
+   double ytel=(l1==0)?y0:(y0+(pct[whichct]->Telz_+lhaaso_coo[2]-z0)/l1*n1);
+   if(!pct[whichct]->IncidentTel(xtel,ytel)) return -1;
    if(jdebug>0) printf("WFTelescopeArray::RayTrace: Inside Telescope%d\n",whichct);
 
    ///apply all the efficiencies
@@ -204,12 +212,12 @@ int WFTelescopeArray::RayTrace(double x0, double y0, double z0, double m1, doubl
    ///Ray Trace
    int result=pct[whichct]->RayTrace(x0new,y0new,z0new,m1new,n1new,l1new,wavelength,t,itube,icell);
    if(jdebug>0) printf("WFTelescopeArray::RayTrace: From Door to SiPM. result=%d\n",result);
-   if(result>0){
+   if(result>=0){
       GetCamera(whichct)->Fill(itube,t,weight);
       if(jdebug>0) printf("WFTelescopeArray::RayTrace: Filling the camera itube=%d weight=%le\n",itube,weight);
    }
    itel=whichct;
-   return result>0?result:(result-2);
+   return result>=0?result:(result-2);
 }
 bool WFTelescopeArray::CheckTelescope(){
    if(!pct) return false;
@@ -269,8 +277,8 @@ TGraph* WFTelescopeArray::TelViewCal(int iTel,bool IsLocal){
          double imagexy[2];
          bool res=pct0->GetImageCoo(dir_in,imagexy[0],imagexy[1],IsLocal);
          if(res){
-            int retval=WFCTAEvent::IsInside(imagexy[0],imagexy[1]);
-            if(retval>=0||retval<-1) inside=true;
+            int retval=TelGeoFit::IsInside(imagexy[0],imagexy[1]);
+            if(retval>=-1) inside=true;
          }
          if(!inside_pre){
             if(inside&&ymin>99){
@@ -334,7 +342,7 @@ TGraph* WFTelescopeArray::TelViewMC(int iTel,bool IsLocal){
             double imagexy[2];
             bool res=pct0->GetImageCoo(dir_in,imagexy[0],imagexy[1],IsLocal);
             if(res){
-               inside=WFCTAEvent::IsInside(imagexy[0],imagexy[1])>=0;
+               inside=TelGeoFit::IsInside(imagexy[0],imagexy[1])>=0;
             }
             if(jdebug>1) printf("WFTelescopeArray::TelView: res=%d inside=%d dir_in={%.2lf,%.2lf,%.2lf} imagexy={%.2lf,%.2lf}\n",res,inside,dir_in[0],dir_in[1],dir_in[2],imagexy[0],imagexy[1]);
          }
@@ -756,7 +764,7 @@ bool WFTelescope::GetQuantumEff(double wavelength){
 void WFTelescope::ConvertCoor(double x0,double y0,double z0,double m1,double n1,double l1,double &x0new,double &y0new,double &z0new,double &m1new,double &n1new,double &l1new){
    double x1=x0-Telx_;
    double y1=y0-Tely_;
-   double z1=z0-Telz_;
+   double z1=z0-(Telz_+WFTelescopeArray::lhaaso_coo[2]);
    Euler(x1,y1,z1,&x0new,&y0new,&z0new);
    //from cm to mm;
    x0new*=10;
@@ -1005,7 +1013,7 @@ int WFTelescope::RayTrace(double x0, double y0, double z0, double m1, double n1,
     icell = iy*WCamera::NCell+ix;
     if(WFTelescopeArray::jdebug>1) printf("WFTelescope::RayTrace: Passing All to SiPM Tube%d Cell%d\n",itube,icell);
 
-    return 1;
+    return TelIndex_>0?TelIndex_:1;
 }
 bool WFTelescope::GetImageCoo(double dir_in[3],double &xx,double &yy,bool IsLocal){
    double norm=sqrt(dir_in[0]*dir_in[0]+dir_in[1]*dir_in[1]+dir_in[2]*dir_in[2]);
